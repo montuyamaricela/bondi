@@ -11,21 +11,62 @@ datasource db {
 
 // User model - Authentication and account data
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
   profile        Profile?
+  files          File[]
   likesGiven     Like[]    @relation("LikesGiven")
   likesReceived  Like[]    @relation("LikesReceived")
   matchesAsUser1 Match[]   @relation("MatchUser1")
   matchesAsUser2 Match[]   @relation("MatchUser2")
   messagesSent   Message[]
+  sessions       Session[]
+  accounts       Account[]
 
   @@index([email])
+}
+
+// Session model - Better Auth session management
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Account model - Better Auth account/password management
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  accountId         String
+  providerId        String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  expiresAt         DateTime?
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
 }
 
 // Profile model - User profile information
@@ -36,7 +77,6 @@ model Profile {
   age       Int
   bio       String   @db.Text
   gender    Gender
-  photos    String[]
   location  String?
   interests String[] // (e.g., ["Music", "Travel", "Cooking"])
   hobbies   String[] // (e.g., ["Reading", "Hiking", "Gaming"])

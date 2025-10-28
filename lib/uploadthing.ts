@@ -1,6 +1,8 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next"
+import { UploadThingError } from "uploadthing/server"
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { db } from "@/lib/db"
+import { generateReactHelpers } from "@uploadthing/react"
 
 const f = createUploadthing()
 
@@ -8,37 +10,57 @@ const f = createUploadthing()
 export const uploadRouter = {
   // Profile image uploader - single image for main profile picture
   profileImage: f({ image: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async () => {
-      const headersList = await headers()
-      const session = await auth.api.getSession({ headers: headersList })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({ headers: req.headers })
 
-      if (!session) throw new Error("Unauthorized")
+      if (!session?.user) {
+        throw new UploadThingError("Unauthorized")
+      }
 
       return { userId: session.user.id }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Profile image upload complete for userId:", metadata.userId)
-      console.log("File URL:", file.url)
+      const uploadedFile = await db.file.create({
+        data: {
+          userId: metadata.userId,
+          url: file.url,
+          key: file.key,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        },
+      })
 
-      return { url: file.url, userId: metadata.userId }
+      return { url: file.url, key: file.key, fileId: uploadedFile.id }
     }),
 
   // Profile photos uploader - multiple images for profile gallery (up to 6)
   profilePhotos: f({ image: { maxFileSize: "8MB", maxFileCount: 6 } })
-    .middleware(async () => {
-      const headersList = await headers()
-      const session = await auth.api.getSession({ headers: headersList })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({ headers: req.headers })
 
-      if (!session) throw new Error("Unauthorized")
+      if (!session?.user) {
+        throw new UploadThingError("Unauthorized")
+      }
 
       return { userId: session.user.id }
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Profile photos upload complete for userId:", metadata.userId)
-      console.log("File URL:", file.url)
+      const uploadedFile = await db.file.create({
+        data: {
+          userId: metadata.userId,
+          url: file.url,
+          key: file.key,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        },
+      })
 
-      return { url: file.url, userId: metadata.userId }
+      return { url: file.url, key: file.key, fileId: uploadedFile.id }
     }),
 } satisfies FileRouter
 
 export type UploadRouter = typeof uploadRouter
+
+export const { useUploadThing } = generateReactHelpers<UploadRouter>()
