@@ -1,0 +1,20 @@
+model Like {
+  id           String     @id @default(cuid())
+  userId       String
+  targetUserId String
+  action       LikeAction // LIKE or PASS
+  createdAt    DateTime   @default(now())
+
+  user   User @relation("LikesGiven", fields: [userId], references: [id], onDelete: Cascade)
+  target User @relation("LikesReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetUserId])
+  @@index([userId])
+  @@index([targetUserId])
+  @@index([createdAt])
+}
+
+enum LikeAction {
+  LIKE
+  PASS
+}
