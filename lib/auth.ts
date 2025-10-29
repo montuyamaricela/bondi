@@ -18,6 +18,10 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 60 * 60 * 24 * 7, // 7 days
     },
+    rememberMe: {
+      enabled: true,
+      expiresIn: 60 * 60 * 24 * 30, // 30 days when remember me is checked
+    },
   },
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',

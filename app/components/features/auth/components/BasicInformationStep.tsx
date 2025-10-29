@@ -57,7 +57,7 @@ export function BasicInformationStep({
               <div className='flex flex-col items-center gap-4'>
                 <div className='w-32 h-32 rounded-full bg-secondary-main flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600'>
                   {uploadedImage ? (
-                    <Image
+                    <img
                       src={uploadedImage}
                       alt='Profile'
                       width={128}
