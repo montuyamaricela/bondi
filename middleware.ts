@@ -49,8 +49,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If there's no session and the route is not public, redirect to login
+  // If there's no session and the route is not public
   if (!session && !isPublicRoute) {
+    // For API routes, let them handle authentication and return proper error responses
+    if (isApiRoute) {
+      return NextResponse.next()
+    }
+
+    // For non-API routes, redirect to login
     const url = new URL("/login", request.url)
     url.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(url)
