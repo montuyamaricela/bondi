@@ -87,7 +87,7 @@ export default function Stepper({
   return (
     <div className='w-full' {...rest}>
       <div
-        className={`mx-auto w-full max-w-4xl rounded-2xl shadow-lg border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 ${stepCircleContainerClassName}`}
+        className={`mx-auto w-full max-w-4xl rounded-2xl shadow-lg border bg-bg-card border-border-main ${stepCircleContainerClassName}`}
       >
         <div
           className={`${stepContainerClassName} flex w-full items-center p-6`}
@@ -140,7 +140,7 @@ export default function Stepper({
                   onClick={handleBack}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     currentStep === 1
-                      ? 'pointer-events-none opacity-50 text-gray-400 dark:text-gray-600'
+                      ? 'pointer-events-none opacity-50 text-text-muted'
                       : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
                   {...backButtonProps}

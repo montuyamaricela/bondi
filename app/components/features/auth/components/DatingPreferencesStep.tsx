@@ -25,8 +25,8 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-2 mb-6'>
-        <Heart className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-        <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
+        <Heart className='w-5 h-5 text-primary-main' />
+        <h3 className='text-xl font-semibold text-text-heading'>
           Dating Preferences
         </h3>
       </div>
@@ -37,7 +37,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
           name='relationshipType'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-gray-900 dark:text-gray-100'>
+              <FormLabel className='text-text-heading'>
                 What are you looking for?
               </FormLabel>
               <Select
@@ -45,7 +45,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className='w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'>
+                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
                     <SelectValue placeholder='Select relationship type' />
                   </SelectTrigger>
                 </FormControl>
@@ -74,7 +74,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
           name='genderPreference'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-gray-900 dark:text-gray-100'>
+              <FormLabel className='text-text-heading'>
                 Show me
               </FormLabel>
               <Select
@@ -82,7 +82,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className='w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'>
+                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
                     <SelectValue placeholder='Select gender preference' />
                   </SelectTrigger>
                 </FormControl>
@@ -103,14 +103,14 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
         name='lookingFor'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
+            <FormLabel className='text-text-heading'>
               What else should people know? (Optional)
             </FormLabel>
             <FormControl>
               <Textarea
                 placeholder='Share what makes you unique...'
                 rows={3}
-                className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
                 {...field}
               />
             </FormControl>

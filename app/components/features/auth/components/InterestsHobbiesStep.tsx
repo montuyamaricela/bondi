@@ -9,7 +9,7 @@ import {
 } from '@/app/components/ui/form';
 import { Sparkles } from 'lucide-react';
 import type { ProfileSetupFormData } from '../types';
-import { InterestSelector } from './InterestSelector';
+import { TagInputWithSuggestions } from './TagInputWithSuggestions';
 
 interface InterestsHobbiesStepProps {
   form: UseFormReturn<ProfileSetupFormData>;
@@ -19,8 +19,8 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-2 mb-6'>
-        <Sparkles className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-        <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
+        <Sparkles className='w-5 h-5 text-primary-main' />
+        <h3 className='text-xl font-semibold text-text-heading'>
           Interests & Hobbies
         </h3>
       </div>
@@ -30,14 +30,14 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
         name='interests'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
-              Interests <span className='text-red-500'>*</span>
+            <FormLabel className='text-text-heading'>
+              Interests <span className='text-error'>*</span>
             </FormLabel>
             <FormControl>
-              <InterestSelector
+              <TagInputWithSuggestions
                 value={field.value}
                 onChange={field.onChange}
-                options={[
+                suggestions={[
                   'Music',
                   'Travel',
                   'Cooking',
@@ -49,20 +49,22 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
                   'Gaming',
                   'Fitness',
                 ]}
+                placeholder="Type to add custom interests or select from suggestions"
+                maxTags={10}
               />
             </FormControl>
             <FormDescription
               className={`text-xs ${
                 field.value.length === 0
-                  ? 'text-red-500 dark:text-red-400 font-medium'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-error font-medium'
+                  : 'text-text-muted'
               }`}
             >
               {field.value.length > 0
                 ? `${field.value.length} selected (max 10)`
                 : 'Select at least 1 interest'}
             </FormDescription>
-            <FormMessage className='text-red-600 dark:text-red-400' />
+            <FormMessage className='text-error' />
           </FormItem>
         )}
       />
@@ -72,14 +74,14 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
         name='hobbies'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
-              Hobbies <span className='text-red-500'>*</span>
+            <FormLabel className='text-text-heading'>
+              Hobbies <span className='text-error'>*</span>
             </FormLabel>
             <FormControl>
-              <InterestSelector
+              <TagInputWithSuggestions
                 value={field.value}
                 onChange={field.onChange}
-                options={[
+                suggestions={[
                   'Reading',
                   'Hiking',
                   'Gaming',
@@ -91,20 +93,22 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
                   'Swimming',
                   'Gardening',
                 ]}
+                placeholder="Type to add custom hobbies or select from suggestions"
+                maxTags={10}
               />
             </FormControl>
             <FormDescription
               className={`text-xs ${
                 field.value.length === 0
-                  ? 'text-red-500 dark:text-red-400 font-medium'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-error font-medium'
+                  : 'text-text-muted'
               }`}
             >
               {field.value.length > 0
                 ? `${field.value.length} selected (max 10)`
                 : 'Select at least 1 hobby'}
             </FormDescription>
-            <FormMessage className='text-red-600 dark:text-red-400' />
+            <FormMessage className='text-error' />
           </FormItem>
         )}
       />

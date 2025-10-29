@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { profileSetupSchema } from '@/app/components/features/auth/validation';
+import { profileEditSchema } from '@/app/components/features/profile/validation';
 import { handleApiError } from '@/lib/errors';
 import { getProfileByUserId } from '@/lib/server/profile';
 
@@ -106,6 +107,94 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(request.headers);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    const result = profileEditSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: result.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingProfile = await db.profile.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!existingProfile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      );
+    }
+
+    const {
+      name,
+      age,
+      bio,
+      gender,
+      location,
+      interests,
+      hobbies,
+      lookingFor,
+      relationshipType,
+      genderPreference,
+    } = result.data;
+
+    if (name !== session.user.name) {
+      await db.user.update({
+        where: { id: session.user.id },
+        data: { name },
+      });
+    }
+
+    const updatedProfile = await db.profile.update({
+      where: { userId: session.user.id },
+      data: {
+        name,
+        age,
+        bio,
+        gender,
+        location,
+        interests,
+        hobbies,
+        lookingFor,
+        relationshipType,
+        genderPreference,
+      },
+    });
+
+    const photos = await db.file.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return NextResponse.json({
+      success: true,
+      profile: {
+        ...updatedProfile,
+        photos,
+      },
+    });
   } catch (error) {
     return handleApiError(error);
   }

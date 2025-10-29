@@ -165,7 +165,7 @@ export function ProfileSetupForm() {
     return (
       <div className='w-full space-y-6'>
         <div className='space-y-2 text-center'>
-          <p className='text-gray-600 dark:text-gray-400'>Loading...</p>
+          <p className='text-text-muted'>Loading...</p>
         </div>
       </div>
     );
@@ -175,10 +175,10 @@ export function ProfileSetupForm() {
     return (
       <div className='w-full space-y-6'>
         <div className='space-y-2 text-center'>
-          <p className='text-red-600 dark:text-red-400'>
+          <p className='text-error'>
             {sessionError ? 'Failed to load session' : 'No session found'}
           </p>
-          <p className='text-gray-600 dark:text-gray-400'>
+          <p className='text-text-muted'>
             Redirecting to login...
           </p>
         </div>
@@ -189,17 +189,17 @@ export function ProfileSetupForm() {
   return (
     <div className='w-full max-w-4xl mx-auto'>
       <div className='space-y-2 text-center mb-8'>
-        <h2 className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
+        <h2 className='text-3xl font-bold text-text-heading'>
           Complete your profile
         </h2>
-        <p className='text-gray-600 dark:text-gray-400'>
+        <p className='text-text-muted'>
           Tell us about yourself to get started
         </p>
       </div>
 
       {apiError && (
-        <div className='mb-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'>
-          <p className='text-sm text-red-600 dark:text-red-400'>{apiError}</p>
+        <div className='mb-6 p-4 rounded-lg bg-error-light border border-error'>
+          <p className='text-sm text-error'>{apiError}</p>
         </div>
       )}
 
@@ -226,9 +226,9 @@ export function ProfileSetupForm() {
                 }
               )();
             }}
-            stepCircleContainerClassName='bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
+            stepCircleContainerClassName='bg-bg-card border-border-main'
             contentClassName='py-8'
-            footerClassName='border-t border-gray-200 dark:border-gray-800'
+            footerClassName='border-t border-border-main'
           >
             <Step>
               <BasicInformationStep
