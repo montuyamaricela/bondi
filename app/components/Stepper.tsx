@@ -6,6 +6,7 @@ interface StepperProps extends HTMLAttributes<HTMLDivElement> {
   initialStep?: number;
   onStepChange?: (step: number) => void;
   onFinalStepCompleted?: () => void;
+  onStepValidation?: (step: number) => Promise<boolean> | boolean;
   stepCircleContainerClassName?: string;
   stepContainerClassName?: string;
   contentClassName?: string;
@@ -27,6 +28,7 @@ export default function Stepper({
   initialStep = 1,
   onStepChange = () => {},
   onFinalStepCompleted = () => {},
+  onStepValidation,
   stepCircleContainerClassName = '',
   stepContainerClassName = '',
   contentClassName = '',
@@ -60,8 +62,20 @@ export default function Stepper({
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isLastStep) {
+      // If validation function is provided, validate current step before proceeding
+      if (onStepValidation) {
+        try {
+          const isValid = await onStepValidation(currentStep);
+          if (!isValid) {
+            return; // Don't proceed if validation fails
+          }
+        } catch (error) {
+          console.error('Step validation error:', error);
+          return; // Don't proceed if validation throws an error
+        }
+      }
       updateStep(currentStep + 1);
     }
   };
@@ -122,6 +136,7 @@ export default function Stepper({
             >
               {currentStep !== 1 && (
                 <button
+                  type='button'
                   onClick={handleBack}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     currentStep === 1
@@ -134,6 +149,7 @@ export default function Stepper({
                 </button>
               )}
               <button
+                type='button'
                 onClick={isLastStep ? handleComplete : handleNext}
                 className='px-6 py-2 cursor-pointer rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
                 {...nextButtonProps}

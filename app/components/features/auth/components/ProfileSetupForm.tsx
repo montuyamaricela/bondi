@@ -4,38 +4,25 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSession } from '@/lib/auth-client';
-import { PhotoUpload } from '@/app/components/ui/custom/PhotoUpload';
+import { useSession } from '@/lib/session';
 import { profileSetupSchema } from '../validation';
-import type { ProfileSetupFormData } from '../types';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Textarea } from '@/app/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/app/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/app/components/ui/form';
-import { User, Heart, MapPin, Sparkles } from 'lucide-react';
+import type { ProfileSetupFormData, ProfileStep } from '../types';
+import { getFieldsToValidate } from '../types';
+import { Form } from '@/app/components/ui/form';
 import { FetchError } from '@/lib/fetch-wrapper';
 import { useProfileSetupMutation } from '@/lib/client/profile';
 import Stepper, { Step } from '@/app/components/Stepper';
 import { useLocalStorage } from '@/app/components/hooks/useLocalStorage';
+import { toast } from 'sonner';
+import { SuccessModal } from '@/app/components/ui/custom/SuccessModal';
+import { BasicInformationStep } from './BasicInformationStep';
+import { InterestsHobbiesStep } from './InterestsHobbiesStep';
+import { DatingPreferencesStep } from './DatingPreferencesStep';
 
 export function ProfileSetupForm() {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const profileSetupMutation = useProfileSetupMutation();
   const {
     data: session,
@@ -79,14 +66,55 @@ export function ProfileSetupForm() {
       setSavedFormData({
         ...formData,
         profileImage: uploadedImage || '',
-        interests: formData.interests?.filter((interest): interest is string => interest !== undefined) || [],
-        hobbies: formData.hobbies?.filter((hobby): hobby is string => hobby !== undefined) || [],
+        interests:
+          formData.interests?.filter(
+            (interest): interest is string => interest !== undefined
+          ) || [],
+        hobbies:
+          formData.hobbies?.filter(
+            (hobby): hobby is string => hobby !== undefined
+          ) || [],
       });
     });
     return () => subscription.unsubscribe();
   }, [form, setSavedFormData, uploadedImage]);
 
+  const validateStep = async (step: number): Promise<boolean> => {
+    const formData = form.getValues();
+    const dataToValidate = {
+      ...formData,
+      profileImage: uploadedImage || undefined,
+    };
+
+    try {
+      const fieldsToValidate = getFieldsToValidate(step as ProfileStep);
+
+      const stepSchema = profileSetupSchema.pick(
+        fieldsToValidate.reduce((acc, field) => {
+          acc[field] = true;
+          return acc;
+        }, {} as Record<string, true>)
+      );
+
+      stepSchema.parse(dataToValidate);
+      return true;
+    } catch (error) {
+      if (error instanceof Error && 'issues' in error) {
+        const zodError = error as { issues?: Array<{ message: string }> };
+        const firstError = zodError.issues?.[0];
+        if (firstError) {
+          toast.error(firstError.message);
+        }
+      }
+      return false;
+    }
+  };
+
   const onSubmit = async (data: ProfileSetupFormData) => {
+    console.log('🚀 Form submission started');
+    console.log('📋 Form data:', data);
+    console.log('🖼️ Uploaded image:', uploadedImage);
+
     setApiError(null);
 
     const dataToSubmit = {
@@ -94,19 +122,41 @@ export function ProfileSetupForm() {
       profileImage: uploadedImage || undefined,
     };
 
+    console.log('📤 Submitting data:', dataToSubmit);
+
     try {
       const result = await profileSetupMutation.mutateAsync(dataToSubmit);
+      console.log('✅ API response:', result);
+
       if (result.success) {
         clearSavedFormData();
-        router.push('/discover');
+        console.log('🧹 Cleared saved form data');
+
+        setShowSuccessModal(true);
+
+        setTimeout(() => {
+          console.log('🔀 Redirecting to /discover');
+          router.push('/discover');
+        }, 2500);
       } else {
-        setApiError(result.error || 'Failed to create profile');
+        const errorMsg = result.error || 'Failed to create profile';
+        console.error('❌ Profile creation failed:', errorMsg);
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
+      console.error('💥 Error during submission:', error);
+
       if (error instanceof FetchError) {
-        setApiError(error instanceof Error ? error.message : 'Unknown error');
+        const errorMsg = error.message;
+        console.error('🌐 Fetch error:', errorMsg);
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       } else {
-        setApiError('An unexpected error occurred. Please try again.');
+        const errorMsg = 'An unexpected error occurred. Please try again.';
+        console.error('⚠️ Unexpected error:', error);
+        setApiError(errorMsg);
+        toast.error(errorMsg);
       }
     }
   };
@@ -154,413 +204,58 @@ export function ProfileSetupForm() {
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={(e) => e.preventDefault()}>
           <Stepper
             initialStep={1}
+            onStepValidation={validateStep}
             onFinalStepCompleted={() => {
-              form.handleSubmit(onSubmit)();
+              console.log(
+                '🎯 Final step completed - triggering form submission'
+              );
+              form.handleSubmit(
+                (data) => {
+                  console.log('✅ Form validation passed');
+                  onSubmit(data);
+                },
+                (errors) => {
+                  console.error('❌ Form validation failed:', errors);
+                  const firstError = Object.values(errors)[0]?.message;
+                  if (firstError) {
+                    toast.error(firstError);
+                  }
+                }
+              )();
             }}
             stepCircleContainerClassName='bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
             contentClassName='py-8'
             footerClassName='border-t border-gray-200 dark:border-gray-800'
           >
             <Step>
-              <div className='space-y-6'>
-                <div className='flex items-center gap-2 mb-6'>
-                  <User className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-                  <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
-                    Basic Information
-                  </h3>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name='profileImage'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        Profile Picture
-                      </FormLabel>
-                      <FormControl>
-                        <div className='flex flex-col items-center gap-4'>
-                          <div className='w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600'>
-                            {uploadedImage ? (
-                              <img
-                                src={uploadedImage}
-                                alt='Profile'
-                                className='w-full h-full object-cover'
-                              />
-                            ) : (
-                              <User className='w-16 h-16 text-gray-400 dark:text-gray-600' />
-                            )}
-                          </div>
-                          <PhotoUpload
-                            endpoint='profileImage'
-                            onClientUploadComplete={(res) => {
-                              if (res && res[0]) {
-                                setUploadedImage(res[0].url);
-                                field.onChange(res[0].url);
-                                setSavedFormData({
-                                  ...form.getValues(),
-                                  profileImage: res[0].url,
-                                });
-                              }
-                            }}
-                            onUploadError={(error: Error) => {
-                              setApiError(`Upload failed: ${error.message}`);
-                            }}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        Name
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='John Doe'
-                          className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className='grid grid-cols-2 gap-4'>
-                  <div className='grid grid-cols-2 gap-4'>
-                    <FormField
-                      control={form.control}
-                      name='age'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className='text-gray-900 dark:text-gray-100'>
-                            Age
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type='number'
-                              min='18'
-                              max='100'
-                              className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(parseInt(e.target.value) || 18)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name='gender'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className='text-gray-900 dark:text-gray-100'>
-                            Gender
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 w-full'>
-                                <SelectValue placeholder='Select gender' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value='MALE'>Male</SelectItem>
-                              <SelectItem value='FEMALE'>Female</SelectItem>
-                              <SelectItem value='NON_BINARY'>
-                                Non-binary
-                              </SelectItem>
-                              <SelectItem value='OTHER'>Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name='location'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className='text-gray-900 dark:text-gray-100'>
-                          Location (Optional)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder='New York, NY'
-                            className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name='bio'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        Bio
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder='Tell us about yourself...'
-                          rows={4}
-                          className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription className='text-xs text-gray-500 dark:text-gray-400'>
-                        {field.value.length}/500 characters
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <BasicInformationStep
+                form={form}
+                uploadedImage={uploadedImage}
+                setUploadedImage={setUploadedImage}
+                setApiError={setApiError}
+                setSavedFormData={setSavedFormData}
+              />
             </Step>
 
             <Step>
-              <div className='space-y-6'>
-                <div className='flex items-center gap-2 mb-6'>
-                  <Sparkles className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-                  <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
-                    Interests & Hobbies
-                  </h3>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name='interests'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        Interests
-                      </FormLabel>
-                      <FormControl>
-                        <InterestSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                          options={[
-                            'Music',
-                            'Travel',
-                            'Cooking',
-                            'Sports',
-                            'Reading',
-                            'Movies',
-                            'Art',
-                            'Photography',
-                            'Gaming',
-                            'Fitness',
-                          ]}
-                        />
-                      </FormControl>
-                      <FormDescription className='text-xs text-gray-500 dark:text-gray-400'>
-                        Select at least 1 interest (max 10)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='hobbies'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        Hobbies
-                      </FormLabel>
-                      <FormControl>
-                        <InterestSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                          options={[
-                            'Reading',
-                            'Hiking',
-                            'Gaming',
-                            'Dancing',
-                            'Yoga',
-                            'Painting',
-                            'Writing',
-                            'Cycling',
-                            'Swimming',
-                            'Gardening',
-                          ]}
-                        />
-                      </FormControl>
-                      <FormDescription className='text-xs text-gray-500 dark:text-gray-400'>
-                        Select at least 1 hobby (max 10)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <InterestsHobbiesStep form={form} />
             </Step>
 
             <Step>
-              <div className='space-y-6'>
-                <div className='flex items-center gap-2 mb-6'>
-                  <Heart className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-                  <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
-                    Dating Preferences
-                  </h3>
-                </div>
-
-                <div className='grid grid-cols-2 gap-4'>
-                  <FormField
-                    control={form.control}
-                    name='relationshipType'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className='text-gray-900 dark:text-gray-100'>
-                          What are you looking for?
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className='w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'>
-                              <SelectValue placeholder='Select relationship type' />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value='CASUAL'>
-                              Casual dating
-                            </SelectItem>
-                            <SelectItem value='SERIOUS'>
-                              Serious relationship
-                            </SelectItem>
-                            <SelectItem value='FRIENDSHIP'>
-                              Friendship
-                            </SelectItem>
-                            <SelectItem value='NOT_SURE'>
-                              Not sure yet
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='genderPreference'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className='text-gray-900 dark:text-gray-100'>
-                          Show me
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className='w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'>
-                              <SelectValue placeholder='Select gender preference' />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value='MALE'>Men</SelectItem>
-                            <SelectItem value='FEMALE'>Women</SelectItem>
-                            <SelectItem value='EVERYONE'>Everyone</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name='lookingFor'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='text-gray-900 dark:text-gray-100'>
-                        What else should people know? (Optional)
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder='Share what makes you unique...'
-                          rows={3}
-                          className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <DatingPreferencesStep form={form} />
             </Step>
           </Stepper>
         </form>
       </Form>
-    </div>
-  );
-}
 
-interface InterestSelectorProps {
-  value: string[];
-  onChange: (value: string[]) => void;
-  options: string[];
-}
-
-function InterestSelector({ value, onChange, options }: InterestSelectorProps) {
-  const toggleInterest = (interest: string) => {
-    if (value.includes(interest)) {
-      onChange(value.filter((i) => i !== interest));
-    } else {
-      if (value.length < 10) {
-        onChange([...value, interest]);
-      }
-    }
-  };
-
-  return (
-    <div className='flex flex-wrap gap-2'>
-      {options.map((option) => {
-        const isSelected = value.includes(option);
-        return (
-          <button
-            key={option}
-            type='button'
-            onClick={() => toggleInterest(option)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              isSelected
-                ? 'bg-purple-600 text-white dark:bg-purple-500'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-            }`}
-          >
-            {option}
-          </button>
-        );
-      })}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        title='Profile Created!'
+        message='Your profile has been created successfully. Redirecting to discover...'
+      />
     </div>
   );
 }

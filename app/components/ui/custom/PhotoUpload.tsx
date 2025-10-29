@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useUploadThing } from '@/lib/uploadthing';
+import { useUploadThing } from '@/app/api/uploadthing/route';
 import { Upload } from 'lucide-react';
 
 interface PhotoUploadProps {

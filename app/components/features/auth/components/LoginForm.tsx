@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signIn } from '@/lib/auth-client';
+import { useProfileQuery } from '@/lib/client/profile';
 import { loginSchema } from '../validation';
 import type { LoginFormData } from '../types';
 import { Button } from '@/app/components/ui/button';
@@ -23,6 +24,7 @@ import { PasswordInput } from '@/app/components/ui/custom/PasswordInput';
 export function LoginForm() {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
+  const { refetch: refetchProfile } = useProfileQuery(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -40,12 +42,19 @@ export function LoginForm() {
       const response = await signIn.email({
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
 
       if (response.error) {
         setApiError(response.error.message || 'Invalid email or password');
       } else {
-        router.push('/discover');
+        const { data: profileData } = await refetchProfile();
+
+        if (profileData?.profile) {
+          router.push('/discover');
+        } else {
+          router.push('/profile/setup');
+        }
       }
     } catch (error) {
       setApiError(
