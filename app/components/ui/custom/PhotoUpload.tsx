@@ -69,7 +69,7 @@ export function PhotoUpload({
         'cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all w-full',
         isDragActive
           ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
-          : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600',
+          : 'border-border-input hover:border-gray-400 dark:hover:border-gray-600',
         isUploading && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -79,7 +79,7 @@ export function PhotoUpload({
         {isUploading ? (
           <>
             <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-purple-600'></div>
-            <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+            <p className='text-sm font-medium text-text-heading'>
               Uploading...
             </p>
           </>
@@ -89,26 +89,26 @@ export function PhotoUpload({
               className={cn(
                 'rounded-full p-3 transition-colors',
                 isDragActive
-                  ? 'bg-purple-100 dark:bg-purple-900/30'
-                  : 'bg-gray-100 dark:bg-gray-800'
+                  ? 'bg-primary-main/10'
+                  : 'bg-bg-hover'
               )}
             >
               <Upload
                 className={cn(
                   'h-6 w-6 transition-colors',
                   isDragActive
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-gray-600 dark:text-gray-400'
+                    ? 'text-primary-main'
+                    : 'text-text-muted'
                 )}
               />
             </div>
             <div className='space-y-1'>
-              <p className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+              <p className='text-sm font-medium text-text-heading'>
                 {isDragActive
                   ? 'Drop your image here'
                   : 'Drag and drop your image here'}
               </p>
-              <p className='text-xs text-gray-600 dark:text-gray-400'>
+              <p className='text-xs text-text-muted'>
                 or click to browse{' '}
                 {endpoint === 'profilePhotos' ? '(up to 6 images)' : ''}
               </p>

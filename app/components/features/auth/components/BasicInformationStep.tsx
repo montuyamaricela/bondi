@@ -39,8 +39,8 @@ export function BasicInformationStep({
   return (
     <div className='space-y-6'>
       <div className='flex items-center gap-2 mb-6'>
-        <User className='w-5 h-5 text-purple-600 dark:text-purple-500' />
-        <h3 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
+        <User className='w-5 h-5 text-primary-main' />
+        <h3 className='text-xl font-semibold text-text-heading'>
           Basic Information
         </h3>
       </div>
@@ -50,12 +50,12 @@ export function BasicInformationStep({
         name='profileImage'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
+            <FormLabel className='text-text-heading'>
               Profile Picture
             </FormLabel>
             <FormControl>
               <div className='flex flex-col items-center gap-4'>
-                <div className='w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600'>
+                <div className='w-32 h-32 rounded-full bg-secondary-main flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600'>
                   {uploadedImage ? (
                     <Image
                       src={uploadedImage}
@@ -65,7 +65,7 @@ export function BasicInformationStep({
                       className='w-full h-full object-cover'
                     />
                   ) : (
-                    <User className='w-16 h-16 text-gray-400 dark:text-gray-600' />
+                    <User className='w-16 h-16 text-text-muted' />
                   )}
                 </div>
                 <PhotoUpload
@@ -96,13 +96,13 @@ export function BasicInformationStep({
         name='name'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
+            <FormLabel className='text-text-heading'>
               Name
             </FormLabel>
             <FormControl>
               <Input
                 placeholder='John Doe'
-                className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
                 {...field}
               />
             </FormControl>
@@ -118,7 +118,7 @@ export function BasicInformationStep({
             name='age'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-gray-900 dark:text-gray-100'>
+                <FormLabel className='text-text-heading'>
                   Age
                 </FormLabel>
                 <FormControl>
@@ -126,7 +126,7 @@ export function BasicInformationStep({
                     type='number'
                     min='18'
                     max='100'
-                    className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+                    className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
                     {...field}
                     onChange={(e) =>
                       field.onChange(parseInt(e.target.value) || 18)
@@ -142,7 +142,7 @@ export function BasicInformationStep({
             name='gender'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-gray-900 dark:text-gray-100'>
+                <FormLabel className='text-text-heading'>
                   Gender
                 </FormLabel>
                 <Select
@@ -150,7 +150,7 @@ export function BasicInformationStep({
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 w-full'>
+                    <SelectTrigger className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading w-full'>
                       <SelectValue placeholder='Select gender' />
                     </SelectTrigger>
                   </FormControl>
@@ -173,13 +173,13 @@ export function BasicInformationStep({
           name='location'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-gray-900 dark:text-gray-100'>
+              <FormLabel className='text-text-heading'>
                 Location (Optional)
               </FormLabel>
               <FormControl>
                 <Input
                   placeholder='New York, NY'
-                  className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+                  className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
                   {...field}
                 />
               </FormControl>
@@ -194,24 +194,24 @@ export function BasicInformationStep({
         name='bio'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-gray-900 dark:text-gray-100'>
-              Bio <span className='text-red-500'>*</span>
+            <FormLabel className='text-text-heading'>
+              Bio <span className='text-error'>*</span>
             </FormLabel>
             <FormControl>
               <Textarea
                 placeholder='Tell us about yourself... (minimum 10 characters)'
                 rows={4}
-                className='bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
                 {...field}
               />
             </FormControl>
             <FormDescription
               className={`text-xs ${
                 field.value.length < 10
-                  ? 'text-red-500 dark:text-red-400 font-medium'
+                  ? 'text-error font-medium'
                   : field.value.length > 500
-                  ? 'text-red-500 dark:text-red-400 font-medium'
-                  : 'text-gray-500 dark:text-gray-400'
+                  ? 'text-error font-medium'
+                  : 'text-text-muted'
               }`}
             >
               {field.value.length}/500 characters
@@ -221,7 +221,7 @@ export function BasicInformationStep({
                 </span>
               )}
             </FormDescription>
-            <FormMessage className='text-red-600 dark:text-red-400' />
+            <FormMessage className='text-error' />
           </FormItem>
         )}
       />

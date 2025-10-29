@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className='w-full'>{children}</div>
       </main>
 
-      <footer className='p-6 text-center text-sm text-gray-600 dark:text-gray-400'>
+      <footer className='p-6 text-center text-sm text-text-muted'>
         <p>&copy; 2024 Bondi. All rights reserved.</p>
       </footer>
     </div>

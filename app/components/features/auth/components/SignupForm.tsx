@@ -60,12 +60,12 @@ export function SignupForm() {
   };
 
   return (
-    <div className='max-w-md mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 space-y-6'>
+    <div className='max-w-md mx-auto bg-bg-card rounded-2xl shadow-xl p-8 space-y-6'>
       <div className='space-y-2 text-center'>
-        <h2 className='text-3xl font-bold text-gray-900 dark:text-gray-100'>
+        <h2 className='text-3xl font-bold text-text-heading'>
           Create your account
         </h2>
-        <p className='text-gray-600 dark:text-gray-400'>
+        <p className='text-text-muted'>
           Start your journey to find meaningful connections
         </p>
       </div>
@@ -73,8 +73,8 @@ export function SignupForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
           {apiError && (
-            <div className='p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'>
-              <p className='text-sm text-red-600 dark:text-red-400'>
+            <div className='p-3 rounded-lg bg-error-light border border-error'>
+              <p className='text-sm text-error'>
                 {apiError}
               </p>
             </div>
@@ -157,12 +157,12 @@ export function SignupForm() {
       </Form>
 
       <div className='text-center text-sm'>
-        <span className='text-gray-600 dark:text-gray-400'>
+        <span className='text-text-muted'>
           Already have an account?{' '}
         </span>
         <Link
           href='/login'
-          className='font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
+          className='font-medium text-primary-main hover:text-purple-700 dark:hover:text-purple-300'
         >
           Sign in
         </Link>

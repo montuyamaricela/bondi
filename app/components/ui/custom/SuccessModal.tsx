@@ -44,7 +44,7 @@ export function SuccessModal({
       />
 
       <div
-        className={`relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ${
+        className={`relative bg-bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ${
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -55,10 +55,10 @@ export function SuccessModal({
           </div>
 
           <div className='space-y-2'>
-            <h2 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+            <h2 className='text-2xl font-bold text-text-heading'>
               {title}
             </h2>
-            <p className='text-gray-600 dark:text-gray-400'>{message}</p>
+            <p className='text-text-muted'>{message}</p>
           </div>
 
           <div className='w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden'>
