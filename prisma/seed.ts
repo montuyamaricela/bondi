@@ -1,9 +1,46 @@
 import { PrismaClient, Gender, RelationshipType, GenderPreference, LikeAction, Profile, User } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from 'better-auth/crypto'
 
 const prisma = new PrismaClient()
 
 const users = [
+  {
+    email: 'montuyamaricela@gmail.com',
+    name: 'Maricel Montuya',
+    age: 26,
+    bio: 'Software developer and tech enthusiast. Love coding, coffee, and exploring new places. Always up for good conversations and new adventures!',
+    gender: Gender.FEMALE,
+    location: 'San Francisco, CA',
+    interests: ['Technology', 'Travel', 'Coffee', 'Music'],
+    hobbies: ['Coding', 'Reading', 'Photography'],
+    lookingFor: 'Someone genuine and fun to connect with',
+    relationshipType: RelationshipType.SERIOUS,
+    genderPreference: GenderPreference.MALE,
+    photos: [
+      'https://picsum.photos/seed/maricel1/800/1000',
+      'https://picsum.photos/seed/maricel2/800/1000',
+      'https://picsum.photos/seed/maricel3/800/1000',
+    ],
+  },
+  {
+    email: 'montuyamaricela+test@gmail.com',
+    name: 'Alex Thompson',
+    age: 28,
+    bio: 'Designer and creative thinker. Passionate about art, design, and making meaningful connections. Let\'s chat!',
+    gender: Gender.MALE,
+    location: 'San Francisco, CA',
+    interests: ['Design', 'Art', 'Photography', 'Travel'],
+    hobbies: ['Designing', 'Sketching', 'Exploring'],
+    lookingFor: 'Creative souls and interesting conversations',
+    relationshipType: RelationshipType.CASUAL,
+    genderPreference: GenderPreference.FEMALE,
+    photos: [
+      'https://picsum.photos/seed/alex1/800/1000',
+      'https://picsum.photos/seed/alex2/800/1000',
+      'https://picsum.photos/seed/alex3/800/1000',
+      'https://picsum.photos/seed/alex4/800/1000',
+    ],
+  },
   {
     email: 'alice@example.com',
     name: 'Alice Johnson',
@@ -752,7 +789,7 @@ async function main() {
   await prisma.account.deleteMany()
   await prisma.user.deleteMany()
 
-  const hashedPassword = await bcrypt.hash('password123', 10)
+  const hashedPassword = await hashPassword('password123')
   const createdUsers: { user: User; profile: Profile }[] = []
 
   for (const userData of users) {
@@ -769,7 +806,7 @@ async function main() {
     await prisma.account.create({
       data: {
         userId: user.id,
-        accountId: user.id,
+        accountId: userData.email,
         providerId: 'credential',
         password: hashedPassword,
       },
@@ -811,16 +848,20 @@ async function main() {
 
   // Create some mutual matches
   const matches = [
-    [0, 1],   // Alice & Bob
-    [3, 5],   // Diana & Frank
-    [4, 2],   // Emma & Charlie
-    [6, 7],   // Grace & Henry
-    [8, 9],   // Isabel & Jack
-    [10, 11], // Kate & Liam
-    [12, 15], // Maya & Peter
-    [17, 18], // Rachel & Sam
-    [20, 21], // Uma & Victor
-    [23, 24], // Xavier & Yara
+    [0, 1],   // Maricel & Alex (test account)
+    [0, 3],   // Maricel & Bob
+    [0, 4],   // Maricel & Charlie
+    [0, 9],   // Maricel & Henry
+    [2, 3],   // Alice & Bob
+    [5, 7],   // Diana & Frank
+    [6, 4],   // Emma & Charlie
+    [8, 9],   // Grace & Henry
+    [10, 11], // Isabel & Jack
+    [12, 13], // Kate & Liam
+    [14, 17], // Maya & Peter
+    [19, 20], // Rachel & Sam
+    [22, 23], // Uma & Victor
+    [25, 26], // Xavier & Yara
   ]
 
   const matchRecords = []
@@ -854,16 +895,16 @@ async function main() {
 
   // Create some non-mutual likes
   const nonMutualLikes = [
-    [13, 14], // Noah likes Olivia
-    [16, 17], // Quinn likes Rachel
-    [19, 20], // Tina likes Uma
-    [22, 23], // Wendy likes Xavier
-    [25, 26], // Amber likes Blake
-    [27, 28], // Chloe likes Dylan
-    [29, 30], // Ella likes Felix
-    [31, 32], // Gina likes Hector
-    [33, 34], // Iris likes Jason
-    [35, 36], // Kendra likes Leo
+    [15, 16], // Noah likes Olivia
+    [18, 19], // Quinn likes Rachel
+    [21, 22], // Tina likes Uma
+    [24, 25], // Wendy likes Xavier
+    [27, 28], // Amber likes Blake
+    [29, 30], // Chloe likes Dylan
+    [31, 32], // Ella likes Felix
+    [33, 34], // Gina likes Hector
+    [35, 36], // Iris likes Jason
+    [37, 38], // Kendra likes Leo
   ]
 
   for (const [idx1, idx2] of nonMutualLikes) {
@@ -878,13 +919,13 @@ async function main() {
 
   // Create some passes
   const passes = [
-    [14, 15], // Olivia passes Peter
-    [18, 19], // Sam passes Tina
-    [21, 22], // Victor passes Wendy
-    [26, 27], // Blake passes Chloe
-    [30, 31], // Felix passes Gina
-    [34, 35], // Jason passes Kendra
-    [37, 38], // Mia passes Nolan
+    [16, 17], // Olivia passes Peter
+    [20, 21], // Sam passes Tina
+    [23, 24], // Victor passes Wendy
+    [28, 29], // Blake passes Chloe
+    [32, 33], // Felix passes Gina
+    [36, 37], // Jason passes Kendra
+    [39, 40], // Mia passes Nolan
   ]
 
   for (const [idx1, idx2] of passes) {
@@ -939,12 +980,15 @@ async function main() {
   console.log(`Created ${passes.length} passes`)
   console.log('\nTest credentials (all users have the same password):')
   console.log('Password: password123')
-  console.log('\nSample users:')
+  console.log('\nYour accounts:')
+  console.log('- montuyamaricela@gmail.com (Maricel Montuya) - 4 matches')
+  console.log('- montuyamaricela+test@gmail.com (Alex Thompson) - 1 match')
+  console.log('\nOther sample users:')
   console.log('- alice@example.com')
   console.log('- bob@example.com')
   console.log('- charlie@example.com')
   console.log('- diana@example.com')
-  console.log(`And ${users.length - 4} more...`)
+  console.log(`And ${users.length - 6} more...`)
 }
 
 main()
