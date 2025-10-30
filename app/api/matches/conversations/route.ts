@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
@@ -85,9 +87,11 @@ export async function GET(request: NextRequest) {
         matchedAt: match.matchedAt,
         otherUser: {
           id: otherUser.id,
+          userId: otherUser.id,
           name: otherUser.profile?.name || otherUser.name || "Unknown",
           age: otherUser.profile?.age || null,
           image: otherUser.files[0]?.url || otherUser.image || null,
+          showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
         },
         lastMessage: lastMessage
           ? {

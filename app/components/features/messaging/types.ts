@@ -17,9 +17,11 @@ export interface Conversation {
   matchedAt: string | Date
   otherUser: {
     id: string
+    userId: string
     name: string
     age: number | null
     image: string | null
+    showOnlineStatus: boolean
   }
   lastMessage: {
     id: string

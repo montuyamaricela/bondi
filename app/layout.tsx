@@ -3,6 +3,7 @@ import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/app/components/providers/query-provider";
 import { SocketProvider } from "@/app/components/providers/socket-provider";
+import { ThemeProvider } from "@/app/components/providers/theme-provider";
 import { Toaster } from "@/app/components/ui/sonner";
 
 const spaceGrotesk = Space_Grotesk({
@@ -32,12 +33,14 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <QueryProvider>
-          <SocketProvider>
-            {children}
-            <Toaster duration={3000} position="top-center" />
-          </SocketProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <SocketProvider>
+              {children}
+              <Toaster duration={3000} position="top-center" />
+            </SocketProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

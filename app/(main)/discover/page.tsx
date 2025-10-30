@@ -8,6 +8,7 @@ import { MatchModal } from "@/app/components/features/discover/components/MatchM
 import { FilterPanel } from "@/app/components/features/discover/components/FilterPanel"
 import { Button } from "@/app/components/ui/button"
 import { useDiscoverProfiles, useLikeActionMutation } from "@/lib/client/discover"
+import { useNotifications } from "@/app/components/hooks/useNotifications"
 import type {
   DiscoverFilters,
   MatchNotification,
@@ -25,6 +26,7 @@ export default function DiscoverPage() {
 
   const { data: profiles, isLoading, error, refetch } = useDiscoverProfiles(filters)
   const likeActionMutation = useLikeActionMutation()
+  const { showMatchNotification, permission } = useNotifications()
 
   const currentProfile = profiles?.[currentProfileIndex]
 
@@ -47,6 +49,16 @@ export default function DiscoverPage() {
           matchedUser: result.matchedUser,
         })
         toast.success("It's a Match!")
+
+        const notificationSettings = localStorage.getItem('notificationSettings')
+        const settings = notificationSettings ? JSON.parse(notificationSettings) : { matchNotifications: true }
+
+        if (permission === 'granted' && settings.matchNotifications) {
+          showMatchNotification(
+            result.matchedUser.name,
+            result.matchedUser.photo || undefined
+          )
+        }
       }
 
       if (currentProfileIndex < (profiles?.length ?? 0) - 1) {

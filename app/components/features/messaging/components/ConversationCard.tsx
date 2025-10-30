@@ -5,6 +5,7 @@ import Image from "next/image"
 import { formatDistanceToNow } from "date-fns"
 import type { Conversation } from "../types"
 import { cn } from "@/lib/utils"
+import { OnlineStatusIndicator } from "@/app/components/ui/custom/OnlineStatusIndicator"
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -44,6 +45,13 @@ export function ConversationCard({
                 {otherUser.name.charAt(0).toUpperCase()}
               </div>
             )}
+          </div>
+          <div className="absolute bottom-0 right-0">
+            <OnlineStatusIndicator
+              userId={otherUser.userId}
+              showOnlineStatus={otherUser.showOnlineStatus}
+              size="md"
+            />
           </div>
           {unreadCount > 0 && (
             <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-app-accent text-app-accent-text flex items-center justify-center text-xs font-bold">

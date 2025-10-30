@@ -2,25 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Heart,
   MessageCircle,
   User,
   Compass,
-  LogOut,
+  Settings,
 } from 'lucide-react';
 
 export function MainNav() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await authClient.signOut();
-    router.push('/login');
-  };
 
   const navItems = [
     {
@@ -42,6 +34,11 @@ export function MainNav() {
       href: '/profile',
       label: 'Profile',
       icon: User,
+    },
+    {
+      href: '/settings',
+      label: 'Settings',
+      icon: Settings,
     },
   ];
 
@@ -80,14 +77,6 @@ export function MainNav() {
               })}
             </div>
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium text-text-body hover:bg-bg-hover transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
         </div>
 
         <div className="md:hidden flex justify-around border-t border-border-main py-2">
