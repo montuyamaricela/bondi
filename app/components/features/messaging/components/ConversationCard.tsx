@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { formatDistanceToNow } from "date-fns"
 import type { Conversation } from "../types"
 import { cn } from "@/lib/utils"
@@ -29,12 +30,14 @@ export function ConversationCard({
     >
       <div className="flex items-start gap-4 p-4 border-b border-border-main">
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-bg-input">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-bg-input relative">
             {otherUser.image ? (
-              <img
+              <Image
                 src={otherUser.image}
                 alt={otherUser.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="56px"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-primary-main text-primary-text text-xl font-semibold">

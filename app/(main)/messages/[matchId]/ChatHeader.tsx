@@ -1,16 +1,16 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { ArrowLeft } from "lucide-react"
 
 interface ChatHeaderProps {
   name: string
   age: number | null
   image: string | null
-  userId: string
 }
 
-export function ChatHeader({ name, age, image, userId }: ChatHeaderProps) {
+export function ChatHeader({ name, age, image }: ChatHeaderProps) {
   return (
     <div className="flex items-center gap-4 p-4 border-b border-border-main bg-bg-card">
       <Link
@@ -21,12 +21,14 @@ export function ChatHeader({ name, age, image, userId }: ChatHeaderProps) {
       </Link>
 
       <div className="flex items-center gap-3 flex-1">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-bg-input flex-shrink-0">
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-bg-input flex-shrink-0 relative">
           {image ? (
-            <img
+            <Image
               src={image}
               alt={name}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="40px"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-primary-main text-primary-text text-lg font-semibold">

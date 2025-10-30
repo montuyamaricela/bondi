@@ -23,12 +23,35 @@ export function ChatInterface({
   const { socket, isConnected } = useSocket();
   const { data: initialMessages = [], isLoading } = useMessages(matchId);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMatchId, setCurrentMatchId] = useState(matchId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
-  const markedAsReadRef = useRef<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const markedAsReadRef = useRef<Set<string>>(new Set<string>());
+
+  // Reset messages when matchId changes
+  if (matchId !== currentMatchId) {
+    setMessages(initialMessages);
+    setCurrentMatchId(matchId);
+  }
+
+  // Update messages when initial messages load
+  if (
+    matchId === currentMatchId &&
+    !isLoading &&
+    messages.length === 0 &&
+    initialMessages.length > 0
+  ) {
+    setMessages(initialMessages);
+  }
+
+  // Clear marked messages when matchId changes
+  useEffect(() => {
+    const markedAsRead = markedAsReadRef.current;
+    markedAsRead.clear();
+  }, [matchId]);
 
   // Mark a message as read (helper function)
   const markMessageAsRead = useCallback(
@@ -41,16 +64,6 @@ export function ChatInterface({
     },
     [socket, isConnected]
   );
-
-  // Single effect to handle messages state and initial read marking
-  useEffect(() => {
-    setMessages(initialMessages);
-
-    // Reset marked messages when matchId changes
-    return () => {
-      markedAsReadRef.current.clear();
-    };
-  }, [matchId, initialMessages]);
 
   // Socket connection and event handlers
   useEffect(() => {
@@ -76,7 +89,7 @@ export function ChatInterface({
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === message.id);
           if (exists) return prev;
-          return [...prev, message];
+          return [...prev, { ...message, readAt: null }];
         });
 
         // Mark new message as read if it's from other user
@@ -187,7 +200,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className='flex flex-col'>
+    <div className='flex flex-col h-full overflow-hidden'>
       <div className='flex-1 overflow-y-auto p-4 space-y-2'>
         {messages.length === 0 ? (
           <div className='flex items-center justify-center h-full'>

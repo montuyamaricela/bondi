@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useMatch } from '@/app/components/features/matching/hooks';
 import { ConversationList } from '../ConversationList';
 import { ChatHeader } from './ChatHeader';
-import { ChatContainer } from './ChatContainer';
+import { ChatInterface } from '@/app/components/features/messaging/components/ChatInterface';
 
 interface ChatPageContentProps {
   matchId: string;
@@ -33,7 +33,7 @@ export function ChatPageContent({
   }
 
   return (
-    <div className='flex'>
+    <div className='h-[calc(100vh-4.1rem)] flex'>
       {/* Left Sidebar - Conversation List */}
       <div className='w-96 border-r border-border-main bg-bg-card flex flex-col'>
         <div className='p-4 border-b border-border-main'>
@@ -46,14 +46,13 @@ export function ChatPageContent({
       </div>
 
       {/* Right Side - Chat */}
-      <div className='flex-1 flex flex-col bg-bg-main h-screen'>
+      <div className='flex-1 flex flex-col bg-bg-main h-full'>
         <ChatHeader
           name={match.otherUser.name}
           age={match.otherUser.age}
           image={match.otherUser.image}
-          userId={match.otherUser.id}
         />
-        <ChatContainer
+        <ChatInterface
           matchId={matchId}
           currentUserId={currentUserId}
           otherUserId={match.otherUser.id}
