@@ -82,10 +82,14 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
         return next(new Error("Authentication required"))
       }
 
+      const cookieName = process.env.NODE_ENV === "production"
+        ? "__Secure-better-auth.session_token"
+        : "better-auth.session_token"
+
       const session = await auth.api.getSession({
         headers: {
           authorization: `Bearer ${token}`,
-          cookie: `better-auth.session_token=${token}`,
+          cookie: `${cookieName}=${token}`,
         },
       })
 
