@@ -46,7 +46,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     // Fetch socket token from API endpoint
     const initSocket = async () => {
       try {
-        const response = await fetch("/api/socket/token")
+        const response = await fetch("/api/socket/token", {
+          credentials: "include",
+        })
 
         if (!response.ok) {
           console.error("Failed to get socket token")
