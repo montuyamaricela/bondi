@@ -68,7 +68,7 @@ export function ProfileView({ profile }: ProfileViewProps) {
 
   return (
     <>
-      <div className='flex gap-6'>
+      <div className='flex gap-6 flex-col md:flex-row'>
         {/* Left Column */}
         <div className='bg-bg-card rounded-lg shadow-md overflow-hidden border border-border-main flex-1'>
           <div className='p-6 space-y-4'>
@@ -160,7 +160,7 @@ export function ProfileView({ profile }: ProfileViewProps) {
         </div>
 
         {/* Right Column */}
-        <div className='bg-bg-card rounded-lg shadow-md overflow-hidden border border-border-main p-6 space-y-6 w-96'>
+        <div className='bg-bg-card rounded-lg shadow-md overflow-hidden border border-border-main p-6 space-y-6 w-full md:w-96'>
           {/* Interests */}
           {profile.interests.length > 0 && (
             <div>

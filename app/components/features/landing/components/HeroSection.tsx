@@ -15,7 +15,7 @@ export function HeroSection() {
       </div>
       <div className='relative z-10 flex h-full flex-col justify-end pb-16 lg:pb-32'>
         <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-          <h1 className="font-heading text-3xl font-semibold text-white md:text-5xl lg:text-6xl">
+          <h1 className='font-heading text-3xl font-semibold text-white md:text-5xl lg:text-6xl'>
             Find your perfect match,
             <br />
             one swipe at a time

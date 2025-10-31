@@ -78,16 +78,23 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
         <div className='relative h-full w-full'>
           <AnimatePresence initial={false}>
             {currentPhoto ? (
-              <motion.img
+              <motion.div
                 key={currentPhoto.url}
-                src={currentPhoto.url}
-                alt={profile.name}
-                className='absolute inset-0 h-full w-full object-cover'
+                className='absolute inset-0 h-full w-full'
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: 'easeInOut' }}
-              />
+              >
+                <Image
+                  src={currentPhoto.url}
+                  alt={profile.name}
+                  fill
+                  className='object-cover'
+                  sizes='(max-width: 768px) 100vw, 500px'
+                  priority={currentPhotoIndex === 0}
+                />
+              </motion.div>
             ) : (
               <div className='flex h-full w-full items-center justify-center bg-primary-main'>
                 <span className='text-9xl font-bold text-primary-text'>

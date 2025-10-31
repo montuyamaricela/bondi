@@ -40,16 +40,24 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const handleNewMessage = () => {
+    const handleNewMessage = (message: { matchId: string }) => {
+      console.log('ConversationList: Received message:new, invalidating conversations query');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     const handleMessageRead = () => {
+      console.log('ConversationList: Received message:read, invalidating conversations query');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
+    // Remove all previous listeners to prevent duplicates
+    socket.off('message:new');
+    socket.off('message:read');
+
     socket.on('message:new', handleNewMessage);
     socket.on('message:read', handleMessageRead);
+
+    console.log('ConversationList: Socket listeners registered');
 
     return () => {
       socket.off('message:new', handleNewMessage);

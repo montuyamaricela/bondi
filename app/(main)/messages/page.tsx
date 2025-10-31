@@ -13,7 +13,7 @@ export default async function MessagesPage() {
   }
 
   return (
-    <div className='h-[calc(100vh-4rem)] container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row bg-bg-main '>
+    <div className='sm:h-[calc(100vh-4rem)] container mx-auto px-0 sm:px-6 lg:px-8 flex flex-col md:flex-row bg-bg-main '>
       {/* Left Sidebar - Conversation List */}
       <div className='w-full md:w-96 border-r border-border-main bg-bg-card flex flex-col shadow-sm'>
         <div className='p-4 border-b border-border-main bg-bg-card sticky top-0 z-10'>
