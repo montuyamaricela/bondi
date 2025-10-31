@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "tsx server.ts",
     "socket": "tsx socket-server.ts",
-    "build": "next build && tsc --project tsconfig.server.json",
+    "build": "next build && tsc -p tsconfig.server.json",
     "start": "NODE_ENV=production node dist/server.js",
-    "start:socket": "NODE_ENV=production tsx socket-server.ts",
+    "start:socket": "NODE_ENV=production node dist/socket-server.js",
     "lint": "eslint"
   },
   "dependencies": {

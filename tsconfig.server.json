@@ -17,7 +17,8 @@
     "server.ts",
     "lib/**/*",
     "prisma/**/*",
-    "types/**/*"
+    "types/**/*",
+    "socket-server.ts"
   ],
   "exclude": [
     "node_modules",
