@@ -15,6 +15,7 @@ export interface Message {
 export interface Conversation {
   matchId: string
   matchedAt: string | Date
+  status: "ACTIVE" | "UNMATCHED"
   otherUser: {
     id: string
     userId: string

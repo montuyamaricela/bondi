@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/session"
 import { db } from "@/lib/db"
 import { handleApiError, createAppError } from "@/lib/errors"
 import { likeActionSchema } from "@/app/components/features/discover/validation"
+import { calculateDistance } from "@/lib/geolocation"
+import { getSocketInstance } from "@/lib/socket-instance"
 
 export async function GET(request: NextRequest) {
   try {
@@ -95,24 +97,43 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const discoverableProfiles = profiles.map((profile) => ({
-      id: profile.id,
-      userId: profile.userId,
-      name: profile.name,
-      age: profile.age,
-      bio: profile.bio,
-      gender: profile.gender,
-      location: profile.location,
-      interests: profile.interests,
-      hobbies: profile.hobbies,
-      lookingFor: profile.lookingFor,
-      relationshipType: profile.relationshipType,
-      photos: profile.user.files.map((file) => ({
-        id: file.id,
-        url: file.url,
-        key: file.key,
-      })),
-    }))
+    const discoverableProfiles = profiles.map((profile) => {
+      let distance: number | null = null;
+
+      if (
+        profile.showDistance &&
+        profile.latitude &&
+        profile.longitude &&
+        currentUserProfile.latitude &&
+        currentUserProfile.longitude
+      ) {
+        distance = calculateDistance(
+          { latitude: currentUserProfile.latitude, longitude: currentUserProfile.longitude },
+          { latitude: profile.latitude, longitude: profile.longitude }
+        );
+      }
+
+      return {
+        id: profile.id,
+        userId: profile.userId,
+        name: profile.name,
+        age: profile.age,
+        bio: profile.bio,
+        gender: profile.gender,
+        location: profile.location,
+        interests: profile.interests,
+        hobbies: profile.hobbies,
+        lookingFor: profile.lookingFor,
+        relationshipType: profile.relationshipType,
+        showDistance: profile.showDistance,
+        distance,
+        photos: profile.user.files.map((file) => ({
+          id: file.id,
+          url: file.url,
+          key: file.key,
+        })),
+      };
+    })
 
     return NextResponse.json(discoverableProfiles)
   } catch (error) {
@@ -222,6 +243,42 @@ export async function POST(request: NextRequest) {
             where: { userId: targetUserId },
             orderBy: { createdAt: "asc" },
           })
+
+          await db.notification.create({
+            data: {
+              userId: currentUserId,
+              title: "It's a Match! 🎉",
+              content: `You matched with ${targetUser.profile.name}!`,
+              type: "MATCH",
+              entityId: match.id,
+              actionUrl: `/messages/${match.id}`,
+              isRead: false,
+            },
+          })
+
+          await db.notification.create({
+            data: {
+              userId: targetUserId,
+              title: "It's a Match! 🎉",
+              content: `You matched with ${currentUserProfile?.name || "someone"}!`,
+              type: "MATCH",
+              entityId: match.id,
+              actionUrl: `/messages/${match.id}`,
+              isRead: false,
+            },
+          })
+
+          const io = getSocketInstance()
+          if (io) {
+            io.to(`user:${currentUserId}`).emit("notification:new", {
+              type: "MATCH",
+              matchId: match.id,
+            })
+            io.to(`user:${targetUserId}`).emit("notification:new", {
+              type: "MATCH",
+              matchId: match.id,
+            })
+          }
 
           return NextResponse.json({
             matched: true,

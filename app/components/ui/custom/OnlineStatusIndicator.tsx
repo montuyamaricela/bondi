@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSocket } from '@/app/components/providers/socket-provider';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/fetch-wrapper';
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -15,7 +16,7 @@ export function OnlineStatusIndicator({
   showOnlineStatus = true,
   size = 'md',
 }: OnlineStatusIndicatorProps) {
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
   const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
@@ -36,11 +37,32 @@ export function OnlineStatusIndicator({
     socket.on('user:online', handleUserOnline);
     socket.on('user:offline', handleUserOffline);
 
+    const checkInitialStatus = async () => {
+      if (!isConnected) return;
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      try {
+        const response = await api.post<Record<string, boolean>>(
+          '/api/users/online-status',
+          { userIds: [userId] }
+        );
+        setIsOnline(response[userId] || false);
+      } catch (error) {
+        console.error('Failed to check initial online status:', error);
+        setIsOnline(false);
+      }
+    };
+
+    if (isConnected) {
+      checkInitialStatus();
+    }
+
     return () => {
       socket.off('user:online', handleUserOnline);
       socket.off('user:offline', handleUserOffline);
     };
-  }, [socket, userId, showOnlineStatus]);
+  }, [socket, userId, showOnlineStatus, isConnected]);
 
   if (!showOnlineStatus || !isOnline) {
     return null;

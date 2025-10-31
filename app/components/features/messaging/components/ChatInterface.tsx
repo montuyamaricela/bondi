@@ -13,12 +13,14 @@ interface ChatInterfaceProps {
   matchId: string;
   currentUserId: string;
   otherUserId: string;
+  isUnmatched?: boolean;
 }
 
 export function ChatInterface({
   matchId,
   currentUserId,
   otherUserId,
+  isUnmatched = false,
 }: ChatInterfaceProps) {
   const { socket, isConnected } = useSocket();
   const { data: initialMessages = [], isLoading } = useMessages(matchId);
@@ -172,7 +174,7 @@ export function ChatInterface({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || isSending || !socket || !isConnected) return;
+    if (!newMessage.trim() || isSending || !socket || !isConnected || isUnmatched) return;
 
     const messageContent = newMessage.trim();
     setNewMessage('');
@@ -238,37 +240,47 @@ export function ChatInterface({
       </div>
 
       <div className='border-t border-border-main bg-bg-card p-4'>
-        {!isConnected && (
-          <div className='mb-2 text-center text-sm text-warning'>
-            Connecting to server...
+        {isUnmatched ? (
+          <div className='text-center py-3 px-4 bg-bg-hover border border-border-main rounded-lg'>
+            <p className='text-sm text-text-muted'>
+              You've unmatched with this person. You can view chat history but cannot send new messages.
+            </p>
           </div>
+        ) : (
+          <>
+            {!isConnected && (
+              <div className='mb-2 text-center text-sm text-warning'>
+                Connecting to server...
+              </div>
+            )}
+            <form onSubmit={handleSendMessage} className='flex gap-2'>
+              <input
+                type='text'
+                value={newMessage}
+                onChange={(e) => handleInputChange(e.target.value)}
+                placeholder='Type a message...'
+                className={cn(
+                  'flex-1 px-4 py-2 rounded-full border bg-bg-input text-text-body',
+                  'border-border-input focus:outline-none focus:border-primary-main',
+                  'placeholder:text-text-muted'
+                )}
+                maxLength={5000}
+                disabled={isSending || !isConnected}
+              />
+              <Button
+                type='submit'
+                disabled={!newMessage.trim() || isSending || !isConnected}
+                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover'
+              >
+                {isSending ? (
+                  <Loader2 className='w-5 h-5 animate-spin' />
+                ) : (
+                  <Send className='w-5 h-5' />
+                )}
+              </Button>
+            </form>
+          </>
         )}
-        <form onSubmit={handleSendMessage} className='flex gap-2'>
-          <input
-            type='text'
-            value={newMessage}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder='Type a message...'
-            className={cn(
-              'flex-1 px-4 py-2 rounded-full border bg-bg-input text-text-body',
-              'border-border-input focus:outline-none focus:border-primary-main',
-              'placeholder:text-text-muted'
-            )}
-            maxLength={5000}
-            disabled={isSending || !isConnected}
-          />
-          <Button
-            type='submit'
-            disabled={!newMessage.trim() || isSending || !isConnected}
-            className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover'
-          >
-            {isSending ? (
-              <Loader2 className='w-5 h-5 animate-spin' />
-            ) : (
-              <Send className='w-5 h-5' />
-            )}
-          </Button>
-        </form>
       </div>
     </div>
   );

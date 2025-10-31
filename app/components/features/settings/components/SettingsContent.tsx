@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { LogOut, User, Bell, Palette, Shield, MapPin } from 'lucide-react';
+import { LogOut, User, Palette, Shield, MapPin } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { useNotifications } from '@/app/components/hooks/useNotifications';
 import { useGeolocation } from '@/app/components/hooks/useGeolocation';
 import { Button } from '@/app/components/ui/button';
 import { api } from '@/lib/fetch-wrapper';
@@ -29,19 +28,7 @@ interface SettingsContentProps {
 export function SettingsContent({ user, profile }: SettingsContentProps) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const {
-    permission,
-    isSupported,
-    requestPermission,
-    showMatchNotification: _showMatchNotification,
-    showMessageNotification: _showMessageNotification,
-  } = useNotifications();
   const { requestLocation, isLoading: isLoadingLocation } = useGeolocation();
-
-  const [notificationSettings, setNotificationSettings] = useState({
-    matchNotifications: true,
-    messageNotifications: true,
-  });
 
   const [privacySettings, setPrivacySettings] = useState({
     showOnlineStatus: profile?.showOnlineStatus ?? true,
@@ -51,22 +38,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
   const [hasLocation, setHasLocation] = useState(
     Boolean(profile?.latitude && profile?.longitude)
   );
-
-  useEffect(() => {
-    const stored = localStorage.getItem('notificationSettings');
-    if (stored) {
-      setNotificationSettings(JSON.parse(stored));
-    }
-  }, []);
-
-  const updateNotificationSetting = (
-    key: 'matchNotifications' | 'messageNotifications',
-    value: boolean
-  ) => {
-    const newSettings = { ...notificationSettings, [key]: value };
-    setNotificationSettings(newSettings);
-    localStorage.setItem('notificationSettings', JSON.stringify(newSettings));
-  };
 
   const updatePrivacySetting = async (
     key: 'showOnlineStatus' | 'showDistance',
@@ -100,15 +71,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
       } else {
         toast.error('Failed to update location');
       }
-    }
-  };
-
-  const handleRequestPermission = async () => {
-    const result = await requestPermission();
-    if (result === 'granted') {
-      toast.success('Notification permission granted');
-    } else if (result === 'denied') {
-      toast.error('Notification permission denied');
     }
   };
 
@@ -249,99 +211,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
             <p className="text-sm font-medium text-text-body mb-3">Theme</p>
             <ThemeToggle />
           </div>
-        </div>
-      </div>
-
-      <div className="bg-bg-card border border-border-main rounded-lg p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <Bell className="h-5 w-5 text-primary-main" />
-          <h2 className="text-xl font-semibold text-text-heading">
-            Notification Settings
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          {!isSupported && (
-            <div className="bg-bg-input border border-border-main rounded-lg p-4">
-              <p className="text-sm text-text-muted">
-                Browser notifications are not supported on this device
-              </p>
-            </div>
-          )}
-
-          {isSupported && permission === 'default' && (
-            <div className="bg-bg-input border border-border-main rounded-lg p-4">
-              <p className="text-sm text-text-body mb-3">
-                Enable notifications to get updates about matches and messages
-              </p>
-              <Button onClick={handleRequestPermission} size="sm">
-                Enable Notifications
-              </Button>
-            </div>
-          )}
-
-          {isSupported && permission === 'denied' && (
-            <div className="bg-bg-input border border-border-main rounded-lg p-4">
-              <p className="text-sm text-text-muted">
-                Notification permission denied. Please enable it in your browser
-                settings.
-              </p>
-            </div>
-          )}
-
-          {isSupported && permission === 'granted' && (
-            <>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-text-body">
-                    New Match Notifications
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    Get notified when you have a new match
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={notificationSettings.matchNotifications}
-                    onChange={(e) =>
-                      updateNotificationSetting(
-                        'matchNotifications',
-                        e.target.checked
-                      )
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-bg-input peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-main rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border-main after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-main"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-text-body">
-                    New Message Notifications
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    Get notified when you receive a new message
-                  </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={notificationSettings.messageNotifications}
-                    onChange={(e) =>
-                      updateNotificationSetting(
-                        'messageNotifications',
-                        e.target.checked
-                      )
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-bg-input peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-main rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border-main after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-main"></div>
-                </label>
-              </div>
-            </>
-          )}
         </div>
       </div>
 

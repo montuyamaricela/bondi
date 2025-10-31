@@ -30,13 +30,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 })
     }
 
-    if (match.status !== "ACTIVE") {
-      return NextResponse.json(
-        { error: "Match is not active" },
-        { status: 403 }
-      )
-    }
-
     if (match.user1Id !== session.user.id && match.user2Id !== session.user.id) {
       return NextResponse.json(
         { error: "You are not part of this match" },

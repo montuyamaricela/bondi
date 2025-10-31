@@ -16,9 +16,10 @@ export function ConversationCard({
   conversation,
   currentUserId,
 }: ConversationCardProps) {
-  const { matchId, otherUser, lastMessage, unreadCount } = conversation
+  const { matchId, otherUser, lastMessage, unreadCount, status } = conversation
 
   const isOwnMessage = lastMessage?.senderId === currentUserId
+  const isUnmatched = status === "UNMATCHED"
 
   const formattedTime = lastMessage
     ? formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })
@@ -73,6 +74,9 @@ export function ConversationCard({
             </span>
           </div>
 
+          {isUnmatched && (
+            <p className="text-xs text-text-muted mb-1 italic">Unmatched</p>
+          )}
           <p
             className={cn(
               "text-sm truncate",

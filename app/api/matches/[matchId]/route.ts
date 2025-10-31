@@ -66,10 +66,6 @@ export async function GET(
       return NextResponse.json({ error: "Match not found" }, { status: 404 })
     }
 
-    if (match.status !== "ACTIVE") {
-      return NextResponse.json({ error: "Match is not active" }, { status: 403 })
-    }
-
     if (match.user1Id !== session.user.id && match.user2Id !== session.user.id) {
       return NextResponse.json(
         { error: "Not authorized to view this match" },
@@ -82,6 +78,7 @@ export async function GET(
     return NextResponse.json({
       matchId: match.id,
       matchedAt: match.matchedAt,
+      status: match.status,
       otherUser: {
         id: otherUser.id,
         name: otherUser.profile?.name || otherUser.name || "Unknown",

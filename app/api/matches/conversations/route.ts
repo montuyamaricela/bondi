@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     const matches = await db.match.findMany({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
-        status: "ACTIVE",
       },
       include: {
         user1: {
@@ -85,6 +84,7 @@ export async function GET(request: NextRequest) {
       return {
         matchId: match.id,
         matchedAt: match.matchedAt,
+        status: match.status,
         otherUser: {
           id: otherUser.id,
           userId: otherUser.id,
