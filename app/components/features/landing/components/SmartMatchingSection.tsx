@@ -4,8 +4,8 @@ export function SmartMatchingSection() {
   return (
     <section id='labs' className='relative bg-white py-16 lg:py-20'>
       <div className=' px-4 sm:px-6 lg:px-0'>
-        <div className='relative flex flex-col lg:flex-row items-center justify-center gap-10'>
-          <div className='w-full max-w-lg'>
+        <div className='relative grid grid-cols-1 lg:grid-cols-2 items-center justify-center gap-10'>
+          <div className='w-full'>
             <Image
               src='/images/landing/hinge-labs-image.png'
               alt='Couple laughing with each other'
