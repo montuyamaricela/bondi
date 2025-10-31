@@ -11,6 +11,7 @@ interface Match {
     name: string
     age: number | null
     bio: string | null
+    interests: string[]
     image: string
   }
 }
@@ -24,7 +25,28 @@ interface MatchDetail {
     name: string
     age: number | null
     image: string | null
+    showOnlineStatus: boolean
   }
+}
+
+interface LikedByUser {
+  id: string | null
+  userId: string
+  name: string
+  age: number | null
+  bio: string | null
+  gender: string | null
+  location: string | null
+  interests: string[]
+  hobbies: string[]
+  lookingFor: string | null
+  relationshipType: string | null
+  photos: {
+    id: string
+    url: string
+    key: string
+  }[]
+  likedAt: Date
 }
 
 export function useMatches() {
@@ -60,6 +82,15 @@ export function useUnmatchMutation() {
       queryClient.invalidateQueries({ queryKey: ["matches"] })
       queryClient.invalidateQueries({ queryKey: ["match", data.matchId] })
       queryClient.invalidateQueries({ queryKey: ["conversations"] })
+    },
+  })
+}
+
+export function useReceivedLikes() {
+  return useQuery({
+    queryKey: ["receivedLikes"],
+    queryFn: async () => {
+      return await api.get<LikedByUser[]>("/api/likes/received")
     },
   })
 }

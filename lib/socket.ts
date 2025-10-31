@@ -9,6 +9,12 @@ export type ServerToClientEvents = {
     matchId: string
     senderId: string
     content: string
+    type: "TEXT" | "IMAGE" | "FILE"
+    fileUrl?: string | null
+    fileKey?: string | null
+    fileName?: string | null
+    fileSize?: number | null
+    fileType?: string | null
     createdAt: string
   }) => void
   "message:read": (data: { messageId: string; readAt: string }) => void
@@ -20,7 +26,17 @@ export type ServerToClientEvents = {
 }
 
 export type ClientToServerEvents = {
-  "message:send": (data: { matchId: string; content: string }) => void
+  "message:send": (data: {
+    matchId: string
+    content: string
+    file?: {
+      url: string
+      key: string
+      name: string
+      size: number
+      type: string
+    }
+  }) => void
   "message:read": (data: { messageId: string }) => void
   "typing:start": (data: { matchId: string }) => void
   "typing:stop": (data: { matchId: string }) => void
@@ -134,7 +150,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       console.log(`User ${userId} left match room: ${matchId}`)
     })
 
-    socket.on("message:send", async ({ matchId, content }) => {
+    socket.on("message:send", async ({ matchId, content, file }) => {
       try {
         const match = await db.match.findUnique({
           where: { id: matchId },
@@ -149,17 +165,34 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           return
         }
 
+        let messageType: "TEXT" | "IMAGE" | "FILE" = "TEXT"
+        if (file) {
+          messageType = file.type?.startsWith("image/") ? "IMAGE" : "FILE"
+        }
+
         const message = await db.message.create({
           data: {
             matchId,
             senderId: userId,
-            content,
+            content: content || "",
+            type: messageType,
+            fileUrl: file?.url || null,
+            fileKey: file?.key || null,
+            fileName: file?.name || null,
+            fileSize: file?.size || null,
+            fileType: file?.type || null,
           },
           select: {
             id: true,
             matchId: true,
             senderId: true,
             content: true,
+            type: true,
+            fileUrl: true,
+            fileKey: true,
+            fileName: true,
+            fileSize: true,
+            fileType: true,
             createdAt: true,
           },
         })
@@ -169,6 +202,12 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           matchId: message.matchId,
           senderId: message.senderId,
           content: message.content,
+          type: message.type,
+          fileUrl: message.fileUrl,
+          fileKey: message.fileKey,
+          fileName: message.fileName,
+          fileSize: message.fileSize,
+          fileType: message.fileType,
           createdAt: message.createdAt.toISOString(),
         })
 
@@ -179,11 +218,17 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           select: { name: true },
         })
 
+        const notificationContent = message.type === "IMAGE"
+          ? `${senderProfile?.name || "Someone"} sent you an image`
+          : message.type === "FILE"
+          ? `${senderProfile?.name || "Someone"} sent you a file`
+          : `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`
+
         await db.notification.create({
           data: {
             userId: receiverId,
             title: "New Message",
-            content: `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`,
+            content: notificationContent,
             type: "MESSAGE",
             entityId: matchId,
             actionUrl: `/messages/${matchId}`,

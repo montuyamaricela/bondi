@@ -40,28 +40,17 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
               <FormLabel className='text-text-heading'>
                 What are you looking for?
               </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
+                  <SelectTrigger className='w-full bg-bg-input text-text-heading'>
                     <SelectValue placeholder='Select relationship type' />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value='CASUAL'>
-                    Casual dating
-                  </SelectItem>
-                  <SelectItem value='SERIOUS'>
-                    Serious relationship
-                  </SelectItem>
-                  <SelectItem value='FRIENDSHIP'>
-                    Friendship
-                  </SelectItem>
-                  <SelectItem value='NOT_SURE'>
-                    Not sure yet
-                  </SelectItem>
+                  <SelectItem value='CASUAL'>Casual dating</SelectItem>
+                  <SelectItem value='SERIOUS'>Serious relationship</SelectItem>
+                  <SelectItem value='FRIENDSHIP'>Friendship</SelectItem>
+                  <SelectItem value='NOT_SURE'>Not sure yet</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -74,15 +63,10 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
           name='genderPreference'
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-text-heading'>
-                Show me
-              </FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <FormLabel className='text-text-heading'>Show me</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
+                  <SelectTrigger className='w-full bg-bg-input text-text-heading'>
                     <SelectValue placeholder='Select gender preference' />
                   </SelectTrigger>
                 </FormControl>
@@ -110,7 +94,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
               <Textarea
                 placeholder='Share what makes you unique...'
                 rows={3}
-                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                className='bg-bg-input text-text-heading'
                 {...field}
               />
             </FormControl>

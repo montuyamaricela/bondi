@@ -28,11 +28,12 @@ export async function GET(
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },
@@ -48,11 +49,12 @@ export async function GET(
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },
@@ -84,6 +86,7 @@ export async function GET(
         name: otherUser.profile?.name || otherUser.name || "Unknown",
         age: otherUser.profile?.age || null,
         image: otherUser.files[0]?.url || otherUser.image || null,
+        showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
       },
     })
   } catch (error) {

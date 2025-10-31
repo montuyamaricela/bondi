@@ -19,9 +19,6 @@ export function useDiscoverProfiles(filters: DiscoverFilters) {
   if (filters.distance !== undefined) {
     queryParams.append("distance", filters.distance.toString())
   }
-  if (filters.genderPreference !== undefined) {
-    queryParams.append("genderPreference", filters.genderPreference)
-  }
 
   return useQuery({
     queryKey: ["discover-profiles", filters],
@@ -42,6 +39,8 @@ export function useLikeActionMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discover-profiles"] })
+      queryClient.invalidateQueries({ queryKey: ["receivedLikes"] })
+      queryClient.invalidateQueries({ queryKey: ["matches"] })
     },
   })
 }

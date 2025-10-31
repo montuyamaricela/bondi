@@ -15,6 +15,7 @@ export interface DiscoverableProfile {
   showDistance: boolean
   distance: number | null
   photos: ProfilePhoto[]
+  compatibilityScore: number
 }
 
 export interface ProfilePhoto {
@@ -47,7 +48,6 @@ export interface DiscoverFilters {
   minAge?: number
   maxAge?: number
   distance?: number
-  genderPreference?: GenderPreference
 }
 
 export interface MatchNotification {

@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Heart, MessageCircle, User, Compass, Settings } from 'lucide-react';
+import { Heart, MessageCircle, Compass, ThumbsUp } from 'lucide-react';
 import { NotificationCenter } from '@/app/components/ui/custom/notifications/NotificationCenter';
+import { ProfileMenu } from './ProfileMenu';
 
 export function MainNav() {
   const pathname = usePathname();
@@ -16,6 +17,11 @@ export function MainNav() {
       icon: Compass,
     },
     {
+      href: '/likes',
+      label: 'Likes',
+      icon: ThumbsUp,
+    },
+    {
       href: '/matches',
       label: 'Matches',
       icon: Heart,
@@ -25,24 +31,19 @@ export function MainNav() {
       label: 'Messages',
       icon: MessageCircle,
     },
-    { href: '/', label: 'Bondi' },
-    {
-      href: '/profile',
-      label: 'Profile',
-      icon: User,
-    },
-    {
-      href: '/settings',
-      label: 'Settings',
-      icon: Settings,
-    },
   ];
 
   return (
-    <nav className='border-b border-border-main bg-bg-card'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+    <nav className='bg-bg-card border-b border-border-main/80'>
+      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           <div className='flex items-center space-x-8'>
+            <Link
+              href='/'
+              className='text-2xl font-bold text-secondary-text dark:text-primary-text transition-colors'
+            >
+              Bondi
+            </Link>
             <div className='hidden md:flex space-x-1'>
               {navItems.map((item) => {
                 const Icon = item?.icon || null;
@@ -53,10 +54,10 @@ export function MainNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                      'flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
                       isActive
-                        ? 'bg-primary-main/10 text-primary-main'
-                        : 'text-text-body hover:bg-bg-hover'
+                        ? 'text-primary-main border-primary-main dark:border-primary-text dark:text-primary-text'
+                        : 'text-text-body hover:text-primary-main hover:[&_svg]:text-primary-main border-transparent'
                     )}
                   >
                     {Icon && <Icon className='h-4 w-4' />}
@@ -69,6 +70,7 @@ export function MainNav() {
 
           <div className='flex items-center'>
             <NotificationCenter />
+            <ProfileMenu />
           </div>
         </div>
 
@@ -83,7 +85,9 @@ export function MainNav() {
                 href={item.href}
                 className={cn(
                   'flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-                  isActive ? 'text-primary-main' : 'text-text-muted'
+                  isActive
+                    ? 'text-primary-main bg-primary-main/10'
+                    : 'text-text-muted hover:text-primary-main hover:[&_svg]:text-primary-main'
                 )}
               >
                 {Icon && <Icon className='h-5 w-5' />}

@@ -29,11 +29,12 @@ export async function GET(request: NextRequest) {
                 name: true,
                 age: true,
                 bio: true,
+                interests: true,
               },
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },
@@ -50,11 +51,12 @@ export async function GET(request: NextRequest) {
                 name: true,
                 age: true,
                 bio: true,
+                interests: true,
               },
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
           name: otherUser.profile?.name || otherUser.name || "Unknown",
           age: otherUser.profile?.age,
           bio: otherUser.profile?.bio,
+          interests: otherUser.profile?.interests || [],
           image: otherUser.files[0]?.url || otherUser.image || "https://via.placeholder.com/400",
         },
       }

@@ -4,8 +4,6 @@ import { db } from '@/lib/db';
 import { handleApiError } from '@/lib/errors';
 import { UTApi } from 'uploadthing/server';
 
-const utapi = new UTApi();
-
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ key: string }> }
@@ -30,7 +28,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    await utapi.deleteFiles(key);
+    if (process.env.UPLOADTHING_TOKEN) {
+      try {
+        const utapi = new UTApi();
+        await utapi.deleteFiles(key);
+      } catch (uploadThingError) {
+        console.error('Failed to delete from UploadThing:', uploadThingError);
+      }
+    }
 
     await db.file.delete({
       where: { id: file.id },

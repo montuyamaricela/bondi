@@ -28,7 +28,7 @@ export function useProfileQuery(enabled = true) {
       return await api.get<ProfileResponse>("/api/profile")
     },
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - shorter staleTime for faster updates
     retry: 1,
   })
 }
@@ -50,7 +50,7 @@ export function useProfileWithPhotosQuery(enabled = true) {
       )
     },
     enabled,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds - shorter staleTime for faster updates
     retry: 1,
   })
 }
@@ -82,5 +82,19 @@ export function usePhotoDeleteMutation() {
       queryClient.invalidateQueries({ queryKey: ['profile'] })
       queryClient.invalidateQueries({ queryKey: ['profile', 'with-photos'] })
     },
+  })
+}
+
+export function useUserProfileQuery(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['user-profile', userId],
+    queryFn: async () => {
+      return await api.get<{ profile: ProfileWithPhotos | null }>(
+        `/api/profile/${userId}`
+      )
+    },
+    enabled: enabled && !!userId,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   })
 }

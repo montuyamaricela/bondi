@@ -20,4 +20,5 @@ export const profileEditSchema = z.object({
   lookingFor: z.string().optional(),
   relationshipType: z.enum(['CASUAL', 'SERIOUS', 'FRIENDSHIP', 'NOT_SURE']),
   genderPreference: z.enum(['MALE', 'FEMALE', 'EVERYONE']),
+  photoKeys: z.array(z.string()).optional(),
 });

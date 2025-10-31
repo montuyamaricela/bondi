@@ -23,7 +23,7 @@ export function ThemeToggle() {
             'flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
             theme === value
               ? 'bg-primary-main text-primary-text'
-              : 'bg-bg-input text-text-body hover:bg-bg-hover'
+              : 'bg-bg-input text-text-body hover:bg-primary-main hover:text-white hover:[&_svg]:text-white'
           )}
         >
           <Icon className="h-4 w-4" />

@@ -1,8 +1,16 @@
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE'
+
 export interface Message {
   id: string
   matchId: string
   senderId: string
   content: string
+  type: MessageType
+  fileUrl?: string | null
+  fileKey?: string | null
+  fileName?: string | null
+  fileSize?: number | null
+  fileType?: string | null
   createdAt: string | Date
   readAt: string | Date | null
   sender?: {

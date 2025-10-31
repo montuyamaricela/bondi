@@ -1,25 +1,67 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Send, Loader2, Paperclip, X, FileIcon, ImageIcon } from 'lucide-react';
 import { useSocket } from '@/app/components/providers/socket-provider';
 import { useMessages } from '../hooks';
 import { MessageBubble } from './MessageBubble';
 import { Button } from '@/app/components/ui/button';
 import type { Message } from '../types';
 import { cn } from '@/lib/utils';
+import { useUploadThing } from '@/app/api/uploadthing/route';
+import { toast } from 'sonner';
 
 interface ChatInterfaceProps {
   matchId: string;
   currentUserId: string;
   otherUserId: string;
+  otherUserImage?: string | null;
+  otherUserName?: string;
+  currentUserImage?: string | null;
+  currentUserName?: string;
   isUnmatched?: boolean;
+}
+
+// Group consecutive messages from the same sender within 10 seconds
+function groupMessages(messages: Message[]): Array<{ message: Message; group: Message[] }> {
+  const grouped: Array<{ message: Message; group: Message[] }> = [];
+  const TIME_THRESHOLD = 10000; // 10 seconds
+
+  for (let i = 0; i < messages.length; i++) {
+    const current = messages[i];
+    const group: Message[] = [current];
+
+    // Look ahead for messages from the same sender within the time threshold
+    let j = i + 1;
+    while (j < messages.length) {
+      const next = messages[j];
+      const timeDiff = new Date(next.createdAt).getTime() - new Date(current.createdAt).getTime();
+
+      // Group if same sender and within time threshold
+      if (next.senderId === current.senderId && timeDiff <= TIME_THRESHOLD) {
+        group.push(next);
+        j++;
+      } else {
+        break;
+      }
+    }
+
+    grouped.push({ message: current, group });
+    i = j - 1; // Skip the messages we've already grouped
+  }
+
+  return grouped;
 }
 
 export function ChatInterface({
   matchId,
   currentUserId,
   otherUserId,
+  otherUserImage,
+  otherUserName,
+  currentUserImage,
+  currentUserName,
   isUnmatched = false,
 }: ChatInterfaceProps) {
   const { socket, isConnected } = useSocket();
@@ -29,9 +71,26 @@ export function ChatInterface({
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<
+    { file: File; preview?: string }[]
+  >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const markedAsReadRef = useRef<Set<string>>(new Set<string>());
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { startUpload, isUploading } = useUploadThing('messageAttachment');
+
+  // Group messages for display
+  const groupedMessages = groupMessages(messages);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
 
   // Reset messages when matchId changes
   if (matchId !== currentMatchId) {
@@ -85,6 +144,12 @@ export function ChatInterface({
       matchId: string;
       senderId: string;
       content: string;
+      type: 'TEXT' | 'IMAGE' | 'FILE';
+      fileUrl?: string | null;
+      fileKey?: string | null;
+      fileName?: string | null;
+      fileSize?: number | null;
+      fileType?: string | null;
       createdAt: string;
     }) => {
       if (message.matchId === matchId) {
@@ -171,13 +236,102 @@ export function ChatInterface({
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Validate each file
+    const validFiles: File[] = [];
+    for (const file of files) {
+      // Check file size (max 32MB for videos, 16MB for PDFs, 8MB for images)
+      const maxSize = file.type.startsWith('video/')
+        ? 32 * 1024 * 1024
+        : file.type === 'application/pdf'
+        ? 16 * 1024 * 1024
+        : 8 * 1024 * 1024;
+
+      if (file.size > maxSize) {
+        toast.error(
+          `${file.name} is too large. Maximum size is ${
+            maxSize / (1024 * 1024)
+          }MB`
+        );
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) return;
+
+    // Append to existing files instead of replacing
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
+
+    // Create previews for images
+    const previews: { file: File; preview?: string }[] = [];
+    let loadedPreviews = 0;
+    const imageFilesCount = validFiles.filter((f) =>
+      f.type.startsWith('image/')
+    ).length;
+
+    validFiles.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          previews.push({ file, preview: reader.result as string });
+          loadedPreviews++;
+          if (loadedPreviews === imageFilesCount) {
+            // Add non-image files
+            validFiles.forEach((f) => {
+              if (!f.type.startsWith('image/')) {
+                previews.push({ file: f });
+              }
+            });
+            // Append to existing previews
+            setFilePreviews((prev) => [...prev, ...previews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previews.push({ file });
+      }
+    });
+
+    // If no images, set previews immediately
+    if (validFiles.every((f) => !f.type.startsWith('image/'))) {
+      setFilePreviews((prev) => [...prev, ...previews]);
+    }
+
+    // Clear the file input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveFile = (fileToRemove?: File) => {
+    if (fileToRemove) {
+      // Remove specific file
+      setSelectedFiles((prev) => prev.filter((f) => f !== fileToRemove));
+      setFilePreviews((prev) => prev.filter((p) => p.file !== fileToRemove));
+    } else {
+      // Remove all files
+      setSelectedFiles([]);
+      setFilePreviews([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || isSending || !socket || !isConnected || isUnmatched) return;
+    if (isSending || !socket || !isConnected || isUnmatched) return;
+
+    // Check if we have either a message or files
+    if (!newMessage.trim() && selectedFiles.length === 0) return;
 
     const messageContent = newMessage.trim();
-    setNewMessage('');
     setIsSending(true);
 
     if (typingTimeoutRef.current) {
@@ -185,12 +339,60 @@ export function ChatInterface({
     }
     socket.emit('typing:stop', { matchId });
 
-    socket.emit('message:send', {
-      matchId,
-      content: messageContent,
-    });
+    try {
+      // If there are files, upload and send each as a separate message
+      if (selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
 
-    setIsSending(false);
+          try {
+            console.log('Uploading file:', file.name);
+            const uploadResult = await startUpload([file]);
+            console.log('Upload result:', uploadResult);
+
+            if (uploadResult && uploadResult[0]) {
+              const fileData = {
+                url: uploadResult[0].url,
+                key: uploadResult[0].key,
+                name: uploadResult[0].name,
+                size: uploadResult[0].size,
+                type: uploadResult[0].type,
+              };
+
+              console.log('Sending message with file:', fileData);
+              // Send file message (include text content only with the first file)
+              socket.emit('message:send', {
+                matchId,
+                content: i === 0 && messageContent ? messageContent : '',
+                file: fileData,
+              });
+            } else {
+              console.error('Upload failed for file:', file.name);
+              toast.error(`Failed to upload ${file.name}`);
+            }
+          } catch (uploadError) {
+            console.error('Error uploading file:', file.name, uploadError);
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        }
+      } else if (messageContent) {
+        // Send text-only message
+        console.log('Sending text-only message');
+        socket.emit('message:send', {
+          matchId,
+          content: messageContent,
+        });
+      }
+
+      // Clear form
+      setNewMessage('');
+      handleRemoveFile();
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   if (isLoading) {
@@ -202,7 +404,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className='flex flex-col h-full overflow-hidden'>
+    <div className='flex flex-col h-full overflow-hidden custom-scrollbar'>
       <div className='flex-1 overflow-y-auto p-4 space-y-2'>
         {messages.length === 0 ? (
           <div className='flex items-center justify-center h-full'>
@@ -211,16 +413,36 @@ export function ChatInterface({
             </p>
           </div>
         ) : (
-          messages.map((message) => (
+          groupedMessages.map(({ message, group }) => (
             <MessageBubble
               key={message.id}
               message={message}
               isOwnMessage={message.senderId === currentUserId}
+              senderImage={otherUserImage}
+              senderName={otherUserName}
+              currentUserImage={currentUserImage}
+              currentUserName={currentUserName}
+              groupedMessages={group.length > 1 ? group : undefined}
             />
           ))
         )}
         {isTyping && (
-          <div className='flex justify-start mb-4'>
+          <div className='flex justify-start mb-4 gap-2 items-end'>
+            <div className='w-8 h-8 rounded-full overflow-hidden bg-bg-input shrink-0 relative'>
+              {otherUserImage ? (
+                <Image
+                  src={otherUserImage}
+                  alt={otherUserName || 'User'}
+                  fill
+                  className='object-cover'
+                  sizes='32px'
+                />
+              ) : (
+                <div className='w-full h-full flex items-center justify-center bg-primary-main text-primary-text text-sm font-semibold'>
+                  {otherUserName?.charAt(0).toUpperCase() || '?'}
+                </div>
+              )}
+            </div>
             <div className='bg-bg-card text-text-muted border border-border-main rounded-2xl px-4 py-2 rounded-bl-sm'>
               <div className='flex gap-1'>
                 <span className='w-2 h-2 bg-text-muted rounded-full animate-bounce'></span>
@@ -243,7 +465,8 @@ export function ChatInterface({
         {isUnmatched ? (
           <div className='text-center py-3 px-4 bg-bg-hover border border-border-main rounded-lg'>
             <p className='text-sm text-text-muted'>
-              You've unmatched with this person. You can view chat history but cannot send new messages.
+              You&apos;ve unmatched with this person. You can view chat history
+              but cannot send new messages.
             </p>
           </div>
         ) : (
@@ -253,14 +476,93 @@ export function ChatInterface({
                 Connecting to server...
               </div>
             )}
+
+            {/* File Previews */}
+            {filePreviews.length > 0 && (
+              <div className='mb-3'>
+                <div className='flex flex-wrap gap-2 mb-2'>
+                  {filePreviews.map((filePreview, index) => (
+                    <div key={index} className='relative group'>
+                      {filePreview.preview ? (
+                        <div className='w-32 h-32 rounded-lg overflow-hidden bg-bg-input relative border-2 border-border-main'>
+                          <Image
+                            src={filePreview.preview}
+                            alt='Preview'
+                            fill
+                            className='object-cover'
+                          />
+                          <button
+                            type='button'
+                            onClick={() => handleRemoveFile(filePreview.file)}
+                            className='absolute top-1 right-1 bg-bg-main/80 rounded-full p-1 text-text-muted hover:text-error transition-colors opacity-0 group-hover:opacity-100 cursor-pointer'
+                          >
+                            <X className='w-4 h-4' />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='p-3 bg-bg-hover border border-border-main rounded-lg'>
+                          <div className='flex items-center gap-3 min-w-[200px]'>
+                            <div className='w-12 h-12 rounded-lg bg-primary-main/10 dark:bg-primary-text/10 flex items-center justify-center'>
+                              <FileIcon className='w-6 h-6 text-primary-main dark:text-primary-text' />
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                              <p className='text-sm font-medium text-text-heading truncate'>
+                                {filePreview.file.name}
+                              </p>
+                              <p className='text-xs text-text-muted'>
+                                {formatFileSize(filePreview.file.size)}
+                              </p>
+                            </div>
+                            <button
+                              type='button'
+                              onClick={() => handleRemoveFile(filePreview.file)}
+                              className='text-text-muted hover:text-error transition-colors p-1'
+                            >
+                              <X className='w-5 h-5' />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {filePreviews.length > 1 && (
+                  <button
+                    type='button'
+                    onClick={() => handleRemoveFile()}
+                    className='text-sm text-error hover:underline'
+                  >
+                    Remove all ({filePreviews.length} files)
+                  </button>
+                )}
+              </div>
+            )}
+
             <form onSubmit={handleSendMessage} className='flex gap-2'>
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='image/*,application/pdf,video/*'
+                onChange={handleFileSelect}
+                className='hidden'
+                multiple
+              />
+              <Button
+                type='button'
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSending || !isConnected || isUploading}
+                variant='ghost'
+                className='rounded-full w-10 h-10 p-0 hover:bg-primary-main dark:hover:bg-secondary-main cursor-pointer'
+              >
+                <Paperclip className='w-5 h-5' />
+              </Button>
               <input
                 type='text'
                 value={newMessage}
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder='Type a message...'
                 className={cn(
-                  'flex-1 px-4 py-2 rounded-full border bg-bg-input text-text-body',
+                  'flex-1 px-4 py-2 rounded-full border dark:border-secondary-main bg-bg-input text-text-body',
                   'border-border-input focus:outline-none focus:border-primary-main',
                   'placeholder:text-text-muted'
                 )}
@@ -269,10 +571,15 @@ export function ChatInterface({
               />
               <Button
                 type='submit'
-                disabled={!newMessage.trim() || isSending || !isConnected}
-                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover'
+                disabled={
+                  (!newMessage.trim() && selectedFiles.length === 0) ||
+                  isSending ||
+                  !isConnected ||
+                  isUploading
+                }
+                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover dark:bg-secondary-main dark:text-secondary-text dark:hover:bg-secondary-hover cursor-pointer'
               >
-                {isSending ? (
+                {isSending || isUploading ? (
                   <Loader2 className='w-5 h-5 animate-spin' />
                 ) : (
                   <Send className='w-5 h-5' />

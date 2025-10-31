@@ -8,9 +8,18 @@ import { useUploadThing } from '@/app/api/uploadthing/route';
 import { Upload } from 'lucide-react';
 
 interface PhotoUploadProps {
-  endpoint: 'profileImage' | 'profilePhotos';
+  endpoint: 'profileImage' | 'profilePhotos' | 'messageAttachment';
   onClientUploadComplete?: (
-    res: { url: string; key: string }[] | undefined
+    res:
+      | {
+          url: string;
+          key: string;
+          fileId?: string;
+          name: string;
+          size: number;
+          type: string;
+        }[]
+      | undefined
   ) => void;
   onUploadError?: (error: Error) => void;
 }
@@ -34,10 +43,28 @@ export function PhotoUpload({
         const result = await startUpload(acceptedFiles);
 
         if (result && result.length > 0) {
-          const files = result.map((file) => ({
-            url: file.url,
-            key: file.key,
-          }));
+          const files = result.map((file) => {
+            const uploadedFile: {
+              url: string;
+              key: string;
+              fileId?: string;
+              name: string;
+              size: number;
+              type: string;
+            } = {
+              url: file.url,
+              key: file.key,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            };
+
+            if ('fileId' in file && file.fileId) {
+              uploadedFile.fileId = file.fileId as string;
+            }
+
+            return uploadedFile;
+          });
 
           onClientUploadComplete?.(files);
           toast.success('Upload successful!');
@@ -53,13 +80,24 @@ export function PhotoUpload({
     },
     disabled: isUploading,
     multiple: endpoint === 'profilePhotos',
-    accept: {
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/gif': ['.gif'],
-      'image/webp': ['.webp'],
-    },
-    maxFiles: endpoint === 'profileImage' ? 1 : 6,
+    accept:
+      endpoint === 'messageAttachment'
+        ? {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/gif': ['.gif'],
+            'image/webp': ['.webp'],
+            'application/pdf': ['.pdf'],
+            'video/mp4': ['.mp4'],
+            'video/quicktime': ['.mov'],
+          }
+        : {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/gif': ['.gif'],
+            'image/webp': ['.webp'],
+          },
+    maxFiles: endpoint === 'profilePhotos' ? 6 : 1,
   });
 
   return (
@@ -67,9 +105,7 @@ export function PhotoUpload({
       {...getRootProps()}
       className={cn(
         'cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all w-full',
-        isDragActive
-          ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
-          : 'border-border-input hover:border-gray-400 dark:hover:border-gray-600',
+
         isUploading && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -78,7 +114,7 @@ export function PhotoUpload({
       <div className='flex flex-col items-center justify-center space-y-2 text-center'>
         {isUploading ? (
           <>
-            <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-purple-600'></div>
+            <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-primary-main dark:border-secondary-main'></div>
             <p className='text-sm font-medium text-text-heading'>
               Uploading...
             </p>
@@ -89,16 +125,14 @@ export function PhotoUpload({
               className={cn(
                 'rounded-full p-3 transition-colors',
                 isDragActive
-                  ? 'bg-primary-main/10'
-                  : 'bg-bg-hover'
+                  ? 'bg-primary-main/10 dark:bg-text-muted/10'
+                  : 'bg-primary-main dark:bg-secondary-main'
               )}
             >
               <Upload
                 className={cn(
                   'h-6 w-6 transition-colors',
-                  isDragActive
-                    ? 'text-primary-main'
-                    : 'text-text-muted'
+                  isDragActive ? 'text-primary-main' : 'text-primary-text'
                 )}
               />
             </div>

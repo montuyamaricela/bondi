@@ -27,7 +27,8 @@ import {
 } from '@/app/components/ui/select';
 import { Button } from '@/app/components/ui/button';
 import { PhotoManager } from './PhotoManager';
-import { TagInput } from './TagInput';
+import { MultiSelect } from '@/app/components/ui/custom/MultiSelect';
+import { INTEREST_OPTIONS, HOBBY_OPTIONS } from '../constants';
 
 interface ProfileEditFormProps {
   profile: ProfileWithPhotos;
@@ -56,7 +57,11 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
   const onSubmit = async (data: ProfileEditFormData) => {
     try {
-      await mutation.mutateAsync(data);
+      const photoKeys = photos.map((photo) => photo.key);
+      await mutation.mutateAsync({
+        ...data,
+        photoKeys,
+      });
       toast.success('Profile updated successfully!');
       router.push('/profile');
     } catch (error) {
@@ -67,25 +72,23 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
   };
 
   return (
-    <div className="bg-bg-card rounded-lg shadow-md border border-border-main p-6">
+    <div className='bg-bg-card rounded-lg shadow-md border border-border-main p-6'>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
           <PhotoManager photos={photos} onPhotosChange={setPhotos} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <FormField
               control={form.control}
-              name="name"
+              name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
-                    Name
-                  </FormLabel>
+                  <FormLabel className='text-text-heading'>Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Your name"
+                      placeholder='Your name'
                       {...field}
-                      className="bg-bg-input border-border-input text-text-heading"
+                      className='bg-bg-input  text-text-heading'
                     />
                   </FormControl>
                   <FormMessage />
@@ -95,19 +98,17 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
             <FormField
               control={form.control}
-              name="age"
+              name='age'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
-                    Age
-                  </FormLabel>
+                  <FormLabel className='text-text-heading'>Age</FormLabel>
                   <FormControl>
                     <Input
-                      type="number"
-                      placeholder="Your age"
+                      type='number'
+                      placeholder='Your age'
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      className="bg-bg-input border-border-input text-text-heading"
+                      className='bg-bg-input text-text-heading'
                     />
                   </FormControl>
                   <FormMessage />
@@ -118,16 +119,14 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
           <FormField
             control={form.control}
-            name="bio"
+            name='bio'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text-heading">
-                  Bio
-                </FormLabel>
+                <FormLabel className='text-text-heading'>Bio</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Tell others about yourself..."
-                    className="resize-none bg-bg-input border-border-input text-text-heading"
+                    placeholder='Tell others about yourself...'
+                    className='resize-none bg-bg-input text-text-heading'
                     rows={4}
                     {...field}
                   />
@@ -137,29 +136,27 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <FormField
               control={form.control}
-              name="gender"
+              name='gender'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
-                    Gender
-                  </FormLabel>
+                  <FormLabel className='text-text-heading'>Gender</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-bg-input border-border-input text-text-heading">
-                        <SelectValue placeholder="Select your gender" />
+                      <SelectTrigger className='bg-bg-input text-text-heading'>
+                        <SelectValue placeholder='Select your gender' />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="MALE">Male</SelectItem>
-                      <SelectItem value="FEMALE">Female</SelectItem>
-                      <SelectItem value="NON_BINARY">Non-binary</SelectItem>
-                      <SelectItem value="OTHER">Other</SelectItem>
+                      <SelectItem value='MALE'>Male</SelectItem>
+                      <SelectItem value='FEMALE'>Female</SelectItem>
+                      <SelectItem value='NON_BINARY'>Non-binary</SelectItem>
+                      <SelectItem value='OTHER'>Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -169,17 +166,15 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
             <FormField
               control={form.control}
-              name="location"
+              name='location'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
-                    Location
-                  </FormLabel>
+                  <FormLabel className='text-text-heading'>Location</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="City, Country"
+                      placeholder='City, Country'
                       {...field}
-                      className="bg-bg-input border-border-input text-text-heading"
+                      className='bg-bg-input text-text-heading'
                     />
                   </FormControl>
                   <FormMessage />
@@ -190,17 +185,17 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
           <FormField
             control={form.control}
-            name="interests"
+            name='interests'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text-heading">
-                  Interests
-                </FormLabel>
+                <FormLabel className='text-text-heading'>Interests</FormLabel>
                 <FormControl>
-                  <TagInput
+                  <MultiSelect
+                    options={INTEREST_OPTIONS}
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Add interests (e.g., Music, Travel)"
+                    placeholder='Select your interests'
+                    maxSelections={10}
                   />
                 </FormControl>
                 <FormMessage />
@@ -210,17 +205,17 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
           <FormField
             control={form.control}
-            name="hobbies"
+            name='hobbies'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text-heading">
-                  Hobbies
-                </FormLabel>
+                <FormLabel className='text-text-heading'>Hobbies</FormLabel>
                 <FormControl>
-                  <TagInput
+                  <MultiSelect
+                    options={HOBBY_OPTIONS}
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Add hobbies (e.g., Reading, Hiking)"
+                    placeholder='Select your hobbies'
+                    maxSelections={10}
                   />
                 </FormControl>
                 <FormMessage />
@@ -228,13 +223,13 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <FormField
               control={form.control}
-              name="relationshipType"
+              name='relationshipType'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
+                  <FormLabel className='text-text-heading'>
                     Looking for
                   </FormLabel>
                   <Select
@@ -242,17 +237,17 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-bg-input border-border-input text-text-heading">
-                        <SelectValue placeholder="Select relationship type" />
+                      <SelectTrigger className='bg-bg-input text-text-heading'>
+                        <SelectValue placeholder='Select relationship type' />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="CASUAL">Casual</SelectItem>
-                      <SelectItem value="SERIOUS">
+                      <SelectItem value='CASUAL'>Casual</SelectItem>
+                      <SelectItem value='SERIOUS'>
                         Serious Relationship
                       </SelectItem>
-                      <SelectItem value="FRIENDSHIP">Friendship</SelectItem>
-                      <SelectItem value="NOT_SURE">Not Sure</SelectItem>
+                      <SelectItem value='FRIENDSHIP'>Friendship</SelectItem>
+                      <SelectItem value='NOT_SURE'>Not Sure</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -262,10 +257,10 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
             <FormField
               control={form.control}
-              name="genderPreference"
+              name='genderPreference'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text-heading">
+                  <FormLabel className='text-text-heading'>
                     Interested in
                   </FormLabel>
                   <Select
@@ -273,14 +268,14 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-bg-input border-border-input text-text-heading">
-                        <SelectValue placeholder="Select gender preference" />
+                      <SelectTrigger className='bg-bg-input text-text-heading'>
+                        <SelectValue placeholder='Select gender preference' />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="MALE">Men</SelectItem>
-                      <SelectItem value="FEMALE">Women</SelectItem>
-                      <SelectItem value="EVERYONE">Everyone</SelectItem>
+                      <SelectItem value='MALE'>Men</SelectItem>
+                      <SelectItem value='FEMALE'>Women</SelectItem>
+                      <SelectItem value='EVERYONE'>Everyone</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -291,16 +286,16 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
           <FormField
             control={form.control}
-            name="lookingFor"
+            name='lookingFor'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text-heading">
-                  What are you looking for?
+                <FormLabel className='text-text-heading'>
+                  What else should people know? (Optional)
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Optional: Describe what you're looking for in a match..."
-                    className="resize-none bg-bg-input border-border-input text-text-heading"
+                    className='resize-none bg-bg-input text-text-heading'
                     rows={3}
                     {...field}
                   />
@@ -310,16 +305,16 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
             )}
           />
 
-          <div className="flex justify-end space-x-4">
+          <div className='flex justify-end space-x-4'>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => router.push('/profile')}
               disabled={mutation.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type='submit' disabled={mutation.isPending}>
               {mutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>

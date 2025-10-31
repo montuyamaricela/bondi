@@ -1,9 +1,18 @@
 model Message {
-  id        String    @id @default(cuid())
+  id        String       @id @default(cuid())
   matchId   String
   senderId  String
-  content   String    @db.Text
-  createdAt DateTime  @default(now())
+  content   String       @db.Text
+  type      MessageType  @default(TEXT)
+
+  // File attachment fields (optional)
+  fileUrl   String?
+  fileKey   String?      // UploadThing key for deletion
+  fileName  String?
+  fileSize  Int?
+  fileType  String?      // MIME type (e.g., "image/jpeg", "application/pdf")
+
+  createdAt DateTime     @default(now())
   readAt    DateTime?
 
   // Relations
@@ -13,4 +22,10 @@ model Message {
   @@index([matchId])
   @@index([senderId])
   @@index([createdAt])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
 }

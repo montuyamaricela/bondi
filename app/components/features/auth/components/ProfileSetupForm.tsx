@@ -11,7 +11,7 @@ import { getFieldsToValidate } from '../types';
 import { Form } from '@/app/components/ui/form';
 import { FetchError } from '@/lib/fetch-wrapper';
 import { useProfileSetupMutation } from '@/lib/client/profile';
-import Stepper, { Step } from '@/app/components/Stepper';
+import Stepper, { Step } from '@/app/components/ui/custom/stepper/Stepper';
 import { useLocalStorage } from '@/app/components/hooks/useLocalStorage';
 import { toast } from 'sonner';
 import { SuccessModal } from '@/app/components/ui/custom/SuccessModal';

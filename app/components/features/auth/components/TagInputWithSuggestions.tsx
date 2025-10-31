@@ -100,7 +100,7 @@ export function TagInputWithSuggestions({
                 type="button"
                 onClick={() => toggleSuggestion(suggestion)}
                 disabled={value.length >= maxTags}
-                className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-gray-100 text-gray-700 hover:bg-secondary-main dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-secondary-main text-secondary-text hover:bg-primary-main hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {suggestion}
               </button>

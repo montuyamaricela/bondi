@@ -108,7 +108,7 @@ io.on("connection", async (socket) => {
     console.log(`User ${userId} left match room: ${matchId}`)
   })
 
-  socket.on("message:send", async ({ matchId, content }) => {
+  socket.on("message:send", async ({ matchId, content, file }) => {
     try {
       const match = await db.match.findUnique({
         where: { id: matchId },
@@ -123,17 +123,35 @@ io.on("connection", async (socket) => {
         return
       }
 
+      // Determine message type based on file
+      let messageType: "TEXT" | "IMAGE" | "FILE" = "TEXT"
+      if (file) {
+        messageType = file.type?.startsWith("image/") ? "IMAGE" : "FILE"
+      }
+
       const message = await db.message.create({
         data: {
           matchId,
           senderId: userId,
-          content,
+          content: content || "",
+          type: messageType,
+          fileUrl: file?.url || null,
+          fileKey: file?.key || null,
+          fileName: file?.name || null,
+          fileSize: file?.size || null,
+          fileType: file?.type || null,
         },
         select: {
           id: true,
           matchId: true,
           senderId: true,
           content: true,
+          type: true,
+          fileUrl: true,
+          fileKey: true,
+          fileName: true,
+          fileSize: true,
+          fileType: true,
           createdAt: true,
         },
       })
@@ -143,6 +161,12 @@ io.on("connection", async (socket) => {
         matchId: message.matchId,
         senderId: message.senderId,
         content: message.content,
+        type: message.type,
+        fileUrl: message.fileUrl,
+        fileKey: message.fileKey,
+        fileName: message.fileName,
+        fileSize: message.fileSize,
+        fileType: message.fileType,
         createdAt: message.createdAt.toISOString(),
       })
 
@@ -153,11 +177,17 @@ io.on("connection", async (socket) => {
         select: { name: true },
       })
 
+      const notificationContent = message.type === "IMAGE"
+        ? `${senderProfile?.name || "Someone"} sent you an image`
+        : message.type === "FILE"
+        ? `${senderProfile?.name || "Someone"} sent you a file`
+        : `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`
+
       await db.notification.create({
         data: {
           userId: receiverId,
           title: "New Message",
-          content: `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`,
+          content: notificationContent,
           type: "MESSAGE",
           entityId: matchId,
           actionUrl: `/messages/${matchId}`,
