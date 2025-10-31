@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const alreadyInteractedWith = await db.like.findMany({
+    const alreadyInteractedWith: { targetUserId: string }[] = await db.like.findMany({
       where: { userId: currentUserId },
       select: { targetUserId: true },
     })
 
     const interactedUserIds = alreadyInteractedWith.map((like) => like.targetUserId)
 
-    const matchedUserIds = await db.match.findMany({
+    const matchedUserIds: { user1Id: string; user2Id: string }[] = await db.match.findMany({
       where: {
         OR: [{ user1Id: currentUserId }, { user2Id: currentUserId }],
         status: "ACTIVE",
