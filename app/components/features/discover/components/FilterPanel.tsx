@@ -12,15 +12,7 @@ import {
 import { Button } from '@/app/components/ui/button';
 import { Label } from '@/app/components/ui/label';
 import { Slider } from '@/app/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/app/components/ui/select';
 import type { DiscoverFilters } from '../types';
-import type { GenderPreference } from '@prisma/client';
 
 interface FilterPanelProps {
   filters: DiscoverFilters;
@@ -41,7 +33,6 @@ export function FilterPanel({ filters, onApplyFilters }: FilterPanelProps) {
       minAge: 18,
       maxAge: 100,
       distance: undefined,
-      genderPreference: 'EVERYONE',
     };
     setLocalFilters(defaultFilters);
     onApplyFilters(defaultFilters);
@@ -50,8 +41,7 @@ export function FilterPanel({ filters, onApplyFilters }: FilterPanelProps) {
   const hasActiveFilters =
     filters.minAge !== 18 ||
     filters.maxAge !== 100 ||
-    filters.distance !== undefined ||
-    filters.genderPreference !== 'EVERYONE';
+    filters.distance !== undefined;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -122,29 +112,6 @@ export function FilterPanel({ filters, onApplyFilters }: FilterPanelProps) {
                 className='w-full'
               />
             </div>
-          </div>
-
-          {/* Gender Preference */}
-          <div className='space-y-3'>
-            <Label className='text-base font-semibold'>Show me</Label>
-            <Select
-              value={localFilters.genderPreference ?? 'EVERYONE'}
-              onValueChange={(value: GenderPreference) => {
-                setLocalFilters({
-                  ...localFilters,
-                  genderPreference: value,
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder='Select gender preference' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='EVERYONE'>Everyone</SelectItem>
-                <SelectItem value='MALE'>Men</SelectItem>
-                <SelectItem value='FEMALE'>Women</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Action Buttons */}

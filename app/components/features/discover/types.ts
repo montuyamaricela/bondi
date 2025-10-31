@@ -48,7 +48,6 @@ export interface DiscoverFilters {
   minAge?: number
   maxAge?: number
   distance?: number
-  genderPreference?: GenderPreference
 }
 
 export interface MatchNotification {

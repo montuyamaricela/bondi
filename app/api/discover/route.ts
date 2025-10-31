@@ -18,8 +18,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const minAge = searchParams.get("minAge")
     const maxAge = searchParams.get("maxAge")
-    const distance = searchParams.get("distance")
-    const genderPreference = searchParams.get("genderPreference")
+    const maxDistance = searchParams.get("distance")
 
     const currentUserId = session.user.id
 
@@ -69,8 +68,8 @@ export async function GET(request: NextRequest) {
         : {}
 
     const genderFilter =
-      genderPreference && genderPreference !== "EVERYONE"
-        ? { gender: genderPreference as "MALE" | "FEMALE" }
+      currentUserProfile.genderPreference && currentUserProfile.genderPreference !== "EVERYONE"
+        ? { gender: currentUserProfile.genderPreference as "MALE" | "FEMALE" }
         : {}
 
     const profiles = await db.profile.findMany({
@@ -95,49 +94,57 @@ export async function GET(request: NextRequest) {
       take: 50,
     })
 
-    const profilesWithScores = profiles.map((profile) => {
-      let distance: number | null = null;
+    const profilesWithScores = profiles
+      .map((profile) => {
+        let distance: number | null = null;
 
-      if (
-        profile.showDistance &&
-        profile.latitude &&
-        profile.longitude &&
-        currentUserProfile.latitude &&
-        currentUserProfile.longitude
-      ) {
-        distance = calculateDistance(
-          { latitude: currentUserProfile.latitude, longitude: currentUserProfile.longitude },
-          { latitude: profile.latitude, longitude: profile.longitude }
-        );
-      }
+        if (
+          profile.latitude &&
+          profile.longitude &&
+          currentUserProfile.latitude &&
+          currentUserProfile.longitude
+        ) {
+          distance = calculateDistance(
+            { latitude: currentUserProfile.latitude, longitude: currentUserProfile.longitude },
+            { latitude: profile.latitude, longitude: profile.longitude }
+          );
+        }
 
-      const compatibilityScore = calculateCompatibilityScore(
-        currentUserProfile,
-        profile
-      )
+        if (maxDistance && distance !== null && distance > parseInt(maxDistance)) {
+          return null;
+        }
 
-      return {
-        id: profile.id,
-        userId: profile.userId,
-        name: profile.name,
-        age: profile.age,
-        bio: profile.bio,
-        gender: profile.gender,
-        location: profile.location,
-        interests: profile.interests,
-        hobbies: profile.hobbies,
-        lookingFor: profile.lookingFor,
-        relationshipType: profile.relationshipType,
-        showDistance: profile.showDistance,
-        distance,
-        photos: profile.user.files.map((file) => ({
-          id: file.id,
-          url: file.url,
-          key: file.key,
-        })),
-        compatibilityScore,
-      };
-    })
+        const compatibilityScore = calculateCompatibilityScore(
+          currentUserProfile,
+          profile
+        )
+
+        const distanceScore = distance !== null ? Math.max(0, 100 - distance / 5) : 0;
+        const finalScore = compatibilityScore * 0.7 + distanceScore * 0.3;
+
+        return {
+          id: profile.id,
+          userId: profile.userId,
+          name: profile.name,
+          age: profile.age,
+          bio: profile.bio,
+          gender: profile.gender,
+          location: profile.location,
+          interests: profile.interests,
+          hobbies: profile.hobbies,
+          lookingFor: profile.lookingFor,
+          relationshipType: profile.relationshipType,
+          showDistance: profile.showDistance,
+          distance: profile.showDistance ? distance : null,
+          photos: profile.user.files.map((file) => ({
+            id: file.id,
+            url: file.url,
+            key: file.key,
+          })),
+          compatibilityScore: finalScore,
+        };
+      })
+      .filter((profile): profile is NonNullable<typeof profile> => profile !== null)
 
     const rankedProfiles = profilesWithScores
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore)

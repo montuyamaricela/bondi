@@ -97,6 +97,7 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
             )}
           </AnimatePresence>
 
+
           {/* Photo indicators */}
           {profile.photos.length > 1 && (
             <div className='absolute top-4 left-0 right-0 flex justify-center gap-1 px-4 z-20'>

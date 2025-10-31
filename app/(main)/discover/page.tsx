@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -12,6 +12,8 @@ import {
   useLikeActionMutation,
 } from '@/lib/client/discover';
 import { useNotifications } from '@/app/components/hooks/useNotifications';
+import { useGeolocation } from '@/app/components/hooks/useGeolocation';
+import { api } from '@/lib/fetch-wrapper';
 import type {
   DiscoverFilters,
   MatchNotification,
@@ -21,11 +23,11 @@ export default function DiscoverPage() {
   const [filters, setFilters] = useState<DiscoverFilters>({
     minAge: 18,
     maxAge: 100,
-    genderPreference: 'EVERYONE',
   });
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
   const [matchNotification, setMatchNotification] =
     useState<MatchNotification | null>(null);
+  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
 
   const {
     data: profiles,
@@ -35,6 +37,34 @@ export default function DiscoverPage() {
   } = useDiscoverProfiles(filters);
   const likeActionMutation = useLikeActionMutation();
   const { showMatchNotification, permission } = useNotifications();
+  const { requestLocation } = useGeolocation();
+
+  useEffect(() => {
+    const autoRequestLocation = async () => {
+      const locationRequested = localStorage.getItem('locationRequested');
+
+      if (!locationRequested && !hasRequestedLocation) {
+        setHasRequestedLocation(true);
+
+        try {
+          const coords = await requestLocation();
+          await api.patch('/api/profile/location', {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          });
+          localStorage.setItem('locationRequested', 'true');
+          toast.success('Location enabled successfully!');
+        } catch (error) {
+          if (error instanceof Error && error.message.includes('denied')) {
+            toast.info('Location permission denied. You can enable it later in Settings.');
+          }
+          localStorage.setItem('locationRequested', 'true');
+        }
+      }
+    };
+
+    autoRequestLocation();
+  }, [requestLocation, hasRequestedLocation]);
 
   const currentProfile = profiles?.[currentProfileIndex];
 
