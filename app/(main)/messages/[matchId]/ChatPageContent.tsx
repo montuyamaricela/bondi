@@ -56,6 +56,7 @@ export function ChatPageContent({
           matchId={matchId}
           currentUserId={currentUserId}
           otherUserId={match.otherUser.id}
+          isUnmatched={match.status === 'UNMATCHED'}
         />
       </div>
     </div>

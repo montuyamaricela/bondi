@@ -12,6 +12,8 @@ export interface DiscoverableProfile {
   hobbies: string[]
   lookingFor: string | null
   relationshipType: RelationshipType
+  showDistance: boolean
+  distance: number | null
   photos: ProfilePhoto[]
 }
 

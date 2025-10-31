@@ -16,6 +16,7 @@ export type ServerToClientEvents = {
   "typing:stop": (data: { userId: string; matchId: string }) => void
   "user:online": (data: { userId: string }) => void
   "user:offline": (data: { userId: string }) => void
+  "notification:new": (data: { type: string; matchId?: string }) => void
 }
 
 export type ClientToServerEvents = {
@@ -86,12 +87,21 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     }
   })
 
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const userId = socket.data.userId
 
     console.log(`User connected: ${userId}`)
 
-    socket.broadcast.emit("user:online", { userId })
+    const profile = await db.profile.findUnique({
+      where: { userId },
+      select: { showOnlineStatus: true },
+    })
+
+    if (profile?.showOnlineStatus) {
+      socket.broadcast.emit("user:online", { userId })
+    }
+
+    socket.join(`user:${userId}`)
 
     socket.on("match:join", async ({ matchId }) => {
       try {
@@ -162,6 +172,30 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           createdAt: message.createdAt.toISOString(),
         })
 
+        const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id
+
+        const senderProfile = await db.profile.findUnique({
+          where: { userId },
+          select: { name: true },
+        })
+
+        await db.notification.create({
+          data: {
+            userId: receiverId,
+            title: "New Message",
+            content: `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`,
+            type: "MESSAGE",
+            entityId: matchId,
+            actionUrl: `/messages/${matchId}`,
+            isRead: false,
+          },
+        })
+
+        io.to(`user:${receiverId}`).emit("notification:new", {
+          type: "MESSAGE",
+          matchId,
+        })
+
         console.log(`Message sent in match ${matchId} by user ${userId}`)
       } catch (error) {
         console.error("Error sending message:", error)
@@ -224,9 +258,17 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       socket.to(`match:${matchId}`).emit("typing:stop", { userId, matchId })
     })
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(`User disconnected: ${userId}`)
-      socket.broadcast.emit("user:offline", { userId })
+
+      const profile = await db.profile.findUnique({
+        where: { userId },
+        select: { showOnlineStatus: true },
+      })
+
+      if (profile?.showOnlineStatus) {
+        socket.broadcast.emit("user:offline", { userId })
+      }
     })
   })
 

@@ -2,25 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  Heart,
-  MessageCircle,
-  User,
-  Compass,
-  LogOut,
-} from 'lucide-react';
+import { Heart, MessageCircle, User, Compass, Settings } from 'lucide-react';
+import { NotificationCenter } from '@/app/components/ui/custom/notifications/NotificationCenter';
 
 export function MainNav() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    await authClient.signOut();
-    router.push('/login');
-  };
 
   const navItems = [
     {
@@ -38,28 +25,27 @@ export function MainNav() {
       label: 'Messages',
       icon: MessageCircle,
     },
+    { href: '/', label: 'Bondi' },
     {
       href: '/profile',
       label: 'Profile',
       icon: User,
     },
+    {
+      href: '/settings',
+      label: 'Settings',
+      icon: Settings,
+    },
   ];
 
   return (
-    <nav className="border-b border-border-main bg-bg-card">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-8">
-            <Link
-              href="/discover"
-              className="text-2xl font-bold text-primary-main"
-            >
-              Bondi
-            </Link>
-
-            <div className="hidden md:flex space-x-1">
+    <nav className='border-b border-border-main bg-bg-card'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+        <div className='flex justify-between items-center h-16'>
+          <div className='flex items-center space-x-8'>
+            <div className='hidden md:flex space-x-1'>
               {navItems.map((item) => {
-                const Icon = item.icon;
+                const Icon = item?.icon || null;
                 const isActive = pathname === item.href;
 
                 return (
@@ -73,7 +59,7 @@ export function MainNav() {
                         : 'text-text-body hover:bg-bg-hover'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
+                    {Icon && <Icon className='h-4 w-4' />}
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -81,18 +67,14 @@ export function MainNav() {
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium text-text-body hover:bg-bg-hover transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
+          <div className='flex items-center'>
+            <NotificationCenter />
+          </div>
         </div>
 
-        <div className="md:hidden flex justify-around border-t border-border-main py-2">
+        <div className='md:hidden flex justify-around border-t border-border-main py-2'>
           {navItems.map((item) => {
-            const Icon = item.icon;
+            const Icon = item?.icon || null;
             const isActive = pathname === item.href;
 
             return (
@@ -101,12 +83,10 @@ export function MainNav() {
                 href={item.href}
                 className={cn(
                   'flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-                  isActive
-                    ? 'text-primary-main'
-                    : 'text-text-muted'
+                  isActive ? 'text-primary-main' : 'text-text-muted'
                 )}
               >
-                <Icon className="h-5 w-5" />
+                {Icon && <Icon className='h-5 w-5' />}
                 <span>{item.label}</span>
               </Link>
             );

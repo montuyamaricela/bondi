@@ -13,9 +13,9 @@ export default async function MessagesPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row">
       {/* Left Sidebar - Conversation List */}
-      <div className="w-96 border-r border-border-main bg-bg-card flex flex-col">
+      <div className="w-full md:w-96 border-r border-border-main bg-bg-card flex flex-col">
         <div className="p-4 border-b border-border-main">
           <h1 className="text-2xl font-bold text-text-heading">Messages</h1>
           <p className="text-text-muted text-sm mt-1">
@@ -28,7 +28,7 @@ export default async function MessagesPage() {
       </div>
 
       {/* Right Side - Empty State (Select a conversation) */}
-      <div className="flex-1 flex items-center justify-center bg-bg-main">
+      <div className="hidden md:flex flex-1 items-center justify-center bg-bg-main">
         <div className="text-center px-4">
           <MessageCircle className="w-24 h-24 text-text-muted mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-text-heading mb-2">
