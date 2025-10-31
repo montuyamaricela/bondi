@@ -64,7 +64,7 @@ export function MatchesList() {
           className="bg-bg-card border border-border-main rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group"
         >
           <Link href={`/messages/${match.matchId}`}>
-            <div className="aspect-[3/4] relative overflow-hidden bg-bg-hover">
+            <div className="aspect-[4/3] relative overflow-hidden bg-bg-hover">
               <img
                 src={match.user.image}
                 alt={match.user.name}

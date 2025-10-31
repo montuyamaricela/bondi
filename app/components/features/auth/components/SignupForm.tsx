@@ -162,7 +162,7 @@ export function SignupForm() {
         </span>
         <Link
           href='/login'
-          className='font-medium text-primary-main hover:text-purple-700 dark:hover:text-purple-300'
+          className='font-medium text-primary-main hover:text-primary-hover transition-colors'
         >
           Sign in
         </Link>

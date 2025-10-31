@@ -28,9 +28,9 @@ export function ConversationCard({
   return (
     <Link
       href={`/messages/${matchId}`}
-      className="block hover:bg-bg-hover transition-colors"
+      className="group block hover:bg-primary-main transition-colors"
     >
-      <div className="flex items-start gap-4 p-4 border-b border-border-main">
+      <div className="flex items-start gap-4 p-4 border-b border-border-main group-hover:border-white">
         <div className="relative flex-shrink-0">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-bg-input relative">
             {otherUser.image ? (
@@ -63,33 +63,33 @@ export function ConversationCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-text-heading truncate">
+            <h3 className="font-semibold text-text-heading group-hover:text-white truncate">
               {otherUser.name}
               {otherUser.age && (
-                <span className="text-text-muted font-normal">, {otherUser.age}</span>
+                <span className="text-text-muted group-hover:text-white font-normal">, {otherUser.age}</span>
               )}
             </h3>
-            <span className="text-xs text-text-muted flex-shrink-0">
+            <span className="text-xs text-text-muted group-hover:text-white flex-shrink-0">
               {formattedTime}
             </span>
           </div>
 
           {isUnmatched && (
-            <p className="text-xs text-text-muted mb-1 italic">Unmatched</p>
+            <p className="text-xs text-text-muted group-hover:text-white mb-1 italic">Unmatched</p>
           )}
           <p
             className={cn(
-              "text-sm truncate",
+              "text-sm truncate group-hover:text-white",
               unreadCount > 0 ? "font-semibold text-text-body" : "text-text-muted"
             )}
           >
             {lastMessage ? (
               <>
-                {isOwnMessage && <span className="text-text-muted">You: </span>}
+                {isOwnMessage && <span className="text-text-muted group-hover:text-white">You: </span>}
                 {lastMessage.content}
               </>
             ) : (
-              <span className="text-text-muted italic">Start a conversation!</span>
+              <span className="text-text-muted group-hover:text-white italic">Start a conversation!</span>
             )}
           </p>
         </div>

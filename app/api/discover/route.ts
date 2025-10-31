@@ -5,6 +5,7 @@ import { handleApiError, createAppError } from "@/lib/errors"
 import { likeActionSchema } from "@/app/components/features/discover/validation"
 import { calculateDistance } from "@/lib/geolocation"
 import { getSocketInstance } from "@/lib/socket-instance"
+import { calculateCompatibilityScore } from "@/lib/matching-utils"
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,13 +92,10 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      take: 10,
-      orderBy: {
-        createdAt: "desc",
-      },
+      take: 50,
     })
 
-    const discoverableProfiles = profiles.map((profile) => {
+    const profilesWithScores = profiles.map((profile) => {
       let distance: number | null = null;
 
       if (
@@ -112,6 +110,11 @@ export async function GET(request: NextRequest) {
           { latitude: profile.latitude, longitude: profile.longitude }
         );
       }
+
+      const compatibilityScore = calculateCompatibilityScore(
+        currentUserProfile,
+        profile
+      )
 
       return {
         id: profile.id,
@@ -132,10 +135,15 @@ export async function GET(request: NextRequest) {
           url: file.url,
           key: file.key,
         })),
+        compatibilityScore,
       };
     })
 
-    return NextResponse.json(discoverableProfiles)
+    const rankedProfiles = profilesWithScores
+      .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
+      .slice(0, 10)
+
+    return NextResponse.json(rankedProfiles)
   } catch (error) {
     return handleApiError(error)
   }

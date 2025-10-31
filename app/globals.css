@@ -92,8 +92,8 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: oklch(0.35 0.16 320);
+  --accent-foreground: oklch(0.999 0.001 85);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -112,39 +112,39 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* App Color System - Light Mode */
-  --primary-main: oklch(0.55 0.25 285); /* Purple 600 */
-  --primary-text: oklch(1 0 0); /* White text on primary */
-  --primary-hover: oklch(0.48 0.25 285); /* Purple 700 */
-  --secondary-main: oklch(0.97 0 0); /* Gray 100 */
-  --secondary-text: oklch(0.35 0 0); /* Gray 700 text on secondary */
-  --secondary-hover: oklch(0.94 0 0); /* Gray 200 */
-  --app-accent: oklch(0.60 0.22 330); /* Pink/Rose accent */
-  --app-accent-text: oklch(1 0 0); /* White text on accent */
+  /* App Color System - Light Mode - Hinge Brand Colors */
+  --primary-main: oklch(0.35 0.16 320); /* Aubergine #67295F */
+  --primary-text: #FFFEFD; /* Hinge White */
+  --primary-hover: oklch(0.28 0.18 295); /* Midnight purple #3E1768 */
+  --secondary-main: oklch(0.91 0.02 55); /* Pebble #EEE1DB */
+  --secondary-text: #1A1A1A; /* Hinge Black */
+  --secondary-hover: oklch(0.75 0.04 55); /* Sand #CCAC9F */
+  --app-accent: oklch(0.43 0.12 305); /* Lilac #75457D */
+  --app-accent-text: #FFFEFD; /* Hinge White */
 
-  /* Status Colors - Light Mode */
-  --success: oklch(0.55 0.18 145); /* Green 600 */
-  --success-light: oklch(0.95 0.08 145); /* Green 50 */
-  --error: oklch(0.55 0.22 25); /* Red 600 */
-  --error-light: oklch(0.95 0.10 25); /* Red 50 */
-  --warning: oklch(0.70 0.18 85); /* Yellow 500 */
-  --info: oklch(0.55 0.18 240); /* Blue 600 */
+  /* Status Colors - Light Mode - Hinge Brand Colors */
+  --success: oklch(0.42 0.08 195); /* Kelp #097270 */
+  --success-light: oklch(0.95 0.04 195); /* Light teal */
+  --error: oklch(0.62 0.16 35); /* Coral #D45847 */
+  --error-light: oklch(0.95 0.08 35); /* Light coral */
+  --warning: oklch(0.70 0.18 85); /* Yellow (keeping original) */
+  --info: oklch(0.32 0.08 195); /* Forest #025656 */
 
-  /* Text Colors - Light Mode */
-  --text-heading: oklch(0.15 0 0); /* Gray 900 */
-  --text-body: oklch(0.35 0 0); /* Gray 700 */
-  --text-muted: oklch(0.50 0 0); /* Gray 600 */
-  --text-on-primary: oklch(1 0 0); /* White */
+  /* Text Colors - Light Mode - Simple Black/White Only */
+  --text-heading: #1A1A1A; /* Hinge Black - all text */
+  --text-body: #1A1A1A; /* Hinge Black - all text */
+  --text-muted: #1A1A1A; /* Hinge Black - all text */
+  --text-on-primary: #FFFEFD; /* Hinge White - text on colored backgrounds */
 
-  /* Background Colors - Light Mode */
-  --bg-main: oklch(0.98 0 0); /* Gray 50 */
-  --bg-card: oklch(1 0 0); /* White */
-  --bg-hover: oklch(0.97 0 0); /* Gray 100 */
-  --bg-input: oklch(1 0 0); /* White */
+  /* Background Colors - Light Mode - Hinge Brand Colors */
+  --bg-main: #FFFEFD; /* Hinge White */
+  --bg-card: #FFFEFD; /* Hinge White */
+  --bg-hover: oklch(0.91 0.02 55); /* Pebble #EEE1DB */
+  --bg-input: #FFFEFD; /* Hinge White */
 
-  /* Border Colors - Light Mode */
-  --border-main: oklch(0.90 0 0); /* Gray 200 */
-  --border-input: oklch(0.85 0 0); /* Gray 300 */
+  /* Border Colors - Light Mode - Hinge Brand Colors */
+  --border-main: oklch(0.75 0.04 55); /* Sand #CCAC9F */
+  --border-input: oklch(0.60 0.08 310); /* Mauve #9F81A5 */
 }
 
 .dark {
@@ -160,8 +160,8 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.43 0.12 305);
+  --accent-foreground: oklch(0.999 0.001 85);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
@@ -180,39 +180,39 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* App Color System - Dark Mode */
-  --primary-main: oklch(0.62 0.25 285); /* Purple 500 (lighter for dark bg) */
-  --primary-text: oklch(1 0 0); /* White text on primary */
-  --primary-hover: oklch(0.55 0.25 285); /* Purple 600 */
-  --secondary-main: oklch(0.25 0 0); /* Gray 800 */
-  --secondary-text: oklch(0.85 0 0); /* Gray 300 text on secondary */
-  --secondary-hover: oklch(0.30 0 0); /* Gray 700 */
-  --app-accent: oklch(0.65 0.22 330); /* Pink/Rose accent (lighter) */
-  --app-accent-text: oklch(1 0 0); /* White text on accent */
+  /* App Color System - Dark Mode - Hinge Brand Colors */
+  --primary-main: oklch(0.72 0.15 310); /* Brighter purple for dark mode visibility */
+  --primary-text: #FFFEFD; /* Hinge White */
+  --primary-hover: oklch(0.82 0.12 310); /* Even lighter on hover */
+  --secondary-main: oklch(0.35 0 0); /* Stone #484848 */
+  --secondary-text: #FFFEFD; /* Hinge White */
+  --secondary-hover: oklch(0.20 0 0); /* Darker than Stone */
+  --app-accent: oklch(0.82 0.06 285); /* Mist #C7C7E5 (lightest purple) */
+  --app-accent-text: #1A1A1A; /* Hinge Black */
 
-  /* Status Colors - Dark Mode */
-  --success: oklch(0.60 0.18 145); /* Green 500 (lighter) */
-  --success-light: oklch(0.20 0.12 145); /* Green 950 */
-  --error: oklch(0.60 0.22 25); /* Red 500 (lighter) */
-  --error-light: oklch(0.20 0.15 25); /* Red 950 */
-  --warning: oklch(0.75 0.18 85); /* Yellow 400 */
-  --info: oklch(0.60 0.18 240); /* Blue 500 */
+  /* Status Colors - Dark Mode - Hinge Brand Colors */
+  --success: oklch(0.42 0.08 195); /* Kelp #097270 */
+  --success-light: oklch(0.20 0.08 195); /* Dark teal */
+  --error: oklch(0.62 0.16 35); /* Coral #D45847 */
+  --error-light: oklch(0.20 0.12 35); /* Dark coral */
+  --warning: oklch(0.75 0.18 85); /* Yellow (keeping original) */
+  --info: oklch(0.32 0.08 195); /* Forest #025656 */
 
-  /* Text Colors - Dark Mode */
-  --text-heading: oklch(0.98 0 0); /* Gray 100 */
-  --text-body: oklch(0.85 0 0); /* Gray 300 */
-  --text-muted: oklch(0.60 0 0); /* Gray 500 */
-  --text-on-primary: oklch(1 0 0); /* White */
+  /* Text Colors - Dark Mode - Simple Black/White Only */
+  --text-heading: #FFFEFD; /* Hinge White - all text */
+  --text-body: #FFFEFD; /* Hinge White - all text */
+  --text-muted: #FFFEFD; /* Hinge White - all text */
+  --text-on-primary: #1A1A1A; /* Hinge Black - text on colored backgrounds */
 
-  /* Background Colors - Dark Mode */
-  --bg-main: oklch(0.10 0 0); /* Gray 950 */
-  --bg-card: oklch(0.18 0 0); /* Gray 900 */
-  --bg-hover: oklch(0.25 0 0); /* Gray 800 */
-  --bg-input: oklch(0.25 0 0); /* Gray 800 */
+  /* Background Colors - Dark Mode - Hinge Brand Colors */
+  --bg-main: #1A1A1A; /* Exact Hinge Black */
+  --bg-card: oklch(0.22 0 0); /* Slightly lighter card background */
+  --bg-hover: oklch(0.28 0 0); /* Hover state */
+  --bg-input: oklch(0.22 0 0); /* Same as card */
 
-  /* Border Colors - Dark Mode */
-  --border-main: oklch(0.30 0 0); /* Gray 800 */
-  --border-input: oklch(0.35 0 0); /* Gray 700 */
+  /* Border Colors - Dark Mode - Hinge Brand Colors */
+  --border-main: oklch(0.35 0 0); /* Stone #484848 */
+  --border-input: oklch(0.43 0.12 305); /* Lilac #75457D */
 }
 
 @layer base {
@@ -221,5 +221,15 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  ::selection {
+    background-color: var(--color-primary-main);
+    color: var(--color-primary-text);
+  }
+
+  ::-moz-selection {
+    background-color: var(--color-primary-main);
+    color: var(--color-primary-text);
   }
 }

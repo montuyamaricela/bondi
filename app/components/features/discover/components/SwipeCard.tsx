@@ -1,18 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
-  ChevronLeft,
-  ChevronRight,
   Heart,
   MapPin,
   Briefcase,
   Check,
 } from 'lucide-react';
 import type { DiscoverableProfile } from '../types';
-import { Button } from '@/app/components/ui/button';
 import { formatDistance } from '@/lib/geolocation';
 
 interface SwipeCardProps {
@@ -29,6 +26,21 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
 
+  useEffect(() => {
+    if (profile.photos.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentPhotoIndex((prev) => {
+        if (prev >= profile.photos.length - 1) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [profile.photos.length]);
+
   const handleDragEnd = (_: unknown, info: { offset: { x: number } }) => {
     if (Math.abs(info.offset.x) > 100) {
       setExitX(info.offset.x > 0 ? 200 : -200);
@@ -37,18 +49,6 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
       } else {
         onPass();
       }
-    }
-  };
-
-  const handleNextPhoto = () => {
-    if (currentPhotoIndex < profile.photos.length - 1) {
-      setCurrentPhotoIndex((prev) => prev + 1);
-    }
-  };
-
-  const handlePreviousPhoto = () => {
-    if (currentPhotoIndex > 0) {
-      setCurrentPhotoIndex((prev) => prev - 1);
     }
   };
 
@@ -73,67 +73,48 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
     >
       <div className='relative h-full w-full overflow-hidden rounded-2xl bg-bg-card shadow-2xl'>
         {/* Photo Display */}
-        <div className='relative h-3/5 w-full'>
-          {currentPhoto ? (
-            <img
-              src={currentPhoto.url}
-              alt={profile.name}
-              className='h-full w-full object-cover'
-            />
-          ) : (
-            <div className='flex h-full w-full items-center justify-center bg-bg-hover'>
-              <p className='text-text-muted'>No photo available</p>
+        <div className='relative h-full w-full'>
+          <AnimatePresence initial={false}>
+            {currentPhoto ? (
+              <motion.img
+                key={currentPhoto.url}
+                src={currentPhoto.url}
+                alt={profile.name}
+                className='absolute inset-0 h-full w-full object-cover'
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: 'easeInOut' }}
+              />
+            ) : (
+              <div className='flex h-full w-full items-center justify-center bg-bg-hover'>
+                <p className='text-text-muted'>No photo available</p>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Photo indicators */}
+          {profile.photos.length > 1 && (
+            <div className='absolute top-4 left-0 right-0 flex justify-center gap-1 px-4 z-20'>
+              {profile.photos.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 flex-1 rounded-full transition-colors ${
+                    index === currentPhotoIndex
+                      ? 'bg-primary-main'
+                      : 'bg-white/50'
+                  }`}
+                />
+              ))}
             </div>
           )}
 
-          {/* Photo navigation */}
-          {profile.photos.length > 1 && (
-            <>
-              <div className='absolute top-1/2 left-4 -translate-y-1/2'>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={handlePreviousPhoto}
-                  disabled={currentPhotoIndex === 0}
-                  className='h-10 w-10 rounded-full bg-bg-card/80 backdrop-blur-sm hover:bg-bg-hover disabled:opacity-50'
-                >
-                  <ChevronLeft className='h-6 w-6 text-text-body' />
-                </Button>
-              </div>
-              <div className='absolute top-1/2 right-4 -translate-y-1/2'>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={handleNextPhoto}
-                  disabled={currentPhotoIndex === profile.photos.length - 1}
-                  className='h-10 w-10 rounded-full bg-bg-card/80 backdrop-blur-sm hover:bg-bg-hover disabled:opacity-50'
-                >
-                  <ChevronRight className='h-6 w-6 text-text-body' />
-                </Button>
-              </div>
-
-              {/* Photo indicators */}
-              <div className='absolute top-4 left-0 right-0 flex justify-center gap-1 px-4'>
-                {profile.photos.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 flex-1 rounded-full transition-colors ${
-                      index === currentPhotoIndex
-                        ? 'bg-primary-main'
-                        : 'bg-bg-card/50'
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-
           {/* Gradient Overlay */}
-          <div className='absolute bottom-0 left-0 right-0 h-2/3 bg-linear-to-t from-black/90 via-black/50 to-transparent'></div>
+          <div className='absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10'></div>
         </div>
 
         {/* Profile Info - Absolute positioned over image */}
-        <div className='absolute bottom-0 left-0 right-0 p-6 space-y-4'>
+        <div className='absolute bottom-0 left-0 right-0 p-6 space-y-4 z-20'>
           {/* Name with Verification Badge and Details */}
           <div className='space-y-2'>
             <div className='flex items-center gap-2'>

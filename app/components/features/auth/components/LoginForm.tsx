@@ -128,7 +128,7 @@ export function LoginForm() {
                     type='checkbox'
                     checked={field.value}
                     onChange={field.onChange}
-                    className='w-4 h-4 rounded border-border-input text-purple-600 focus:ring-purple-500 dark:bg-gray-800'
+                    className='w-4 h-4 rounded border-border-input text-primary-main focus:ring-primary-main bg-bg-input'
                   />
                 </FormControl>
                 <FormLabel className='font-normal cursor-pointer mt-0!'>
@@ -154,7 +154,7 @@ export function LoginForm() {
         </span>
         <Link
           href='/signup'
-          className='font-medium text-primary-main hover:text-purple-700 dark:hover:text-purple-300'
+          className='font-medium text-primary-main hover:text-primary-hover transition-colors'
         >
           Sign up
         </Link>

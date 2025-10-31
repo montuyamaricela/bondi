@@ -15,6 +15,7 @@ export interface DiscoverableProfile {
   showDistance: boolean
   distance: number | null
   photos: ProfilePhoto[]
+  compatibilityScore: number
 }
 
 export interface ProfilePhoto {
