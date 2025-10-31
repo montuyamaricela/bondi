@@ -8,6 +8,9 @@ export function useConversations() {
     queryFn: async () => {
       return await api.get<Conversation[]>("/api/matches/conversations")
     },
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 
@@ -19,6 +22,9 @@ export function useMessages(matchId: string | null) {
       return await api.get<Message[]>(`/api/messages?matchId=${matchId}`)
     },
     enabled: !!matchId,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 }
 

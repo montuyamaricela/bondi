@@ -32,8 +32,8 @@ export default async function MessagesPage() {
       <div className='hidden md:flex flex-1 items-center justify-center bg-bg-main relative overflow-hidden'>
         <div className='text-center px-4 relative z-10 max-w-md'>
           <div className='relative inline-block mb-6'>
-            <MessageCircle className='w-24 h-24 text-text-muted opacity-20' />
-            <Sparkles className='w-8 h-8 text-primary-main absolute -top-2 -right-2 animate-pulse' />
+            <MessageCircle className='w-24 h-24 text-text-muted opacity-20 dark:text-primary-text' />
+            <Sparkles className='w-8 h-8 text-primary-main absolute -top-2 -right-2 animate-pulse dark:text-primary-text' />
           </div>
 
           <h2 className='text-3xl font-bold text-text-heading mb-3'>

@@ -56,7 +56,7 @@ export function MainNav() {
                     className={cn(
                       'flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
                       isActive
-                        ? 'text-primary-main border-primary-main'
+                        ? 'text-primary-main border-primary-main dark:border-primary-text dark:text-primary-text'
                         : 'text-text-body hover:text-primary-main hover:[&_svg]:text-primary-main border-transparent'
                     )}
                   >

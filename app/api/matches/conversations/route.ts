@@ -71,6 +71,16 @@ export async function GET(request: NextRequest) {
             readAt: true,
           },
         },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                readAt: null,
+                senderId: { not: userId },
+              },
+            },
+          },
+        },
       },
       orderBy: { matchedAt: "desc" },
     })
@@ -79,7 +89,7 @@ export async function GET(request: NextRequest) {
       const otherUser = match.user1Id === userId ? match.user2 : match.user1
       const lastMessage = match.messages[0] || null
 
-      const unreadCount = lastMessage && !lastMessage.readAt && lastMessage.senderId !== userId ? 1 : 0
+      const unreadCount = match._count.messages
 
       return {
         matchId: match.id,

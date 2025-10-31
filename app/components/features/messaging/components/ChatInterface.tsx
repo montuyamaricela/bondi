@@ -23,6 +23,37 @@ interface ChatInterfaceProps {
   isUnmatched?: boolean;
 }
 
+// Group consecutive messages from the same sender within 10 seconds
+function groupMessages(messages: Message[]): Array<{ message: Message; group: Message[] }> {
+  const grouped: Array<{ message: Message; group: Message[] }> = [];
+  const TIME_THRESHOLD = 10000; // 10 seconds
+
+  for (let i = 0; i < messages.length; i++) {
+    const current = messages[i];
+    const group: Message[] = [current];
+
+    // Look ahead for messages from the same sender within the time threshold
+    let j = i + 1;
+    while (j < messages.length) {
+      const next = messages[j];
+      const timeDiff = new Date(next.createdAt).getTime() - new Date(current.createdAt).getTime();
+
+      // Group if same sender and within time threshold
+      if (next.senderId === current.senderId && timeDiff <= TIME_THRESHOLD) {
+        group.push(next);
+        j++;
+      } else {
+        break;
+      }
+    }
+
+    grouped.push({ message: current, group });
+    i = j - 1; // Skip the messages we've already grouped
+  }
+
+  return grouped;
+}
+
 export function ChatInterface({
   matchId,
   currentUserId,
@@ -50,6 +81,16 @@ export function ChatInterface({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { startUpload, isUploading } = useUploadThing('messageAttachment');
+
+  // Group messages for display
+  const groupedMessages = groupMessages(messages);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(2)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
 
   // Reset messages when matchId changes
   if (matchId !== currentMatchId) {
@@ -224,12 +265,14 @@ export function ChatInterface({
     if (validFiles.length === 0) return;
 
     // Append to existing files instead of replacing
-    setSelectedFiles(prev => [...prev, ...validFiles]);
+    setSelectedFiles((prev) => [...prev, ...validFiles]);
 
     // Create previews for images
     const previews: { file: File; preview?: string }[] = [];
     let loadedPreviews = 0;
-    const imageFilesCount = validFiles.filter((f) => f.type.startsWith('image/')).length;
+    const imageFilesCount = validFiles.filter((f) =>
+      f.type.startsWith('image/')
+    ).length;
 
     validFiles.forEach((file) => {
       if (file.type.startsWith('image/')) {
@@ -245,7 +288,7 @@ export function ChatInterface({
               }
             });
             // Append to existing previews
-            setFilePreviews(prev => [...prev, ...previews]);
+            setFilePreviews((prev) => [...prev, ...previews]);
           }
         };
         reader.readAsDataURL(file);
@@ -256,7 +299,7 @@ export function ChatInterface({
 
     // If no images, set previews immediately
     if (validFiles.every((f) => !f.type.startsWith('image/'))) {
-      setFilePreviews(prev => [...prev, ...previews]);
+      setFilePreviews((prev) => [...prev, ...previews]);
     }
 
     // Clear the file input so the same file can be selected again
@@ -361,7 +404,7 @@ export function ChatInterface({
   }
 
   return (
-    <div className='flex flex-col h-full overflow-hidden'>
+    <div className='flex flex-col h-full overflow-hidden custom-scrollbar'>
       <div className='flex-1 overflow-y-auto p-4 space-y-2'>
         {messages.length === 0 ? (
           <div className='flex items-center justify-center h-full'>
@@ -370,7 +413,7 @@ export function ChatInterface({
             </p>
           </div>
         ) : (
-          messages.map((message) => (
+          groupedMessages.map(({ message, group }) => (
             <MessageBubble
               key={message.id}
               message={message}
@@ -379,6 +422,7 @@ export function ChatInterface({
               senderName={otherUserName}
               currentUserImage={currentUserImage}
               currentUserName={currentUserName}
+              groupedMessages={group.length > 1 ? group : undefined}
             />
           ))
         )}
@@ -458,18 +502,15 @@ export function ChatInterface({
                       ) : (
                         <div className='p-3 bg-bg-hover border border-border-main rounded-lg'>
                           <div className='flex items-center gap-3 min-w-[200px]'>
-                            <div className='w-12 h-12 rounded-lg bg-primary-main/10 flex items-center justify-center'>
-                              <FileIcon className='w-6 h-6 text-primary-main' />
+                            <div className='w-12 h-12 rounded-lg bg-primary-main/10 dark:bg-primary-text/10 flex items-center justify-center'>
+                              <FileIcon className='w-6 h-6 text-primary-main dark:text-primary-text' />
                             </div>
                             <div className='flex-1 min-w-0'>
                               <p className='text-sm font-medium text-text-heading truncate'>
                                 {filePreview.file.name}
                               </p>
                               <p className='text-xs text-text-muted'>
-                                {(filePreview.file.size / 1024 / 1024).toFixed(
-                                  2
-                                )}{' '}
-                                MB
+                                {formatFileSize(filePreview.file.size)}
                               </p>
                             </div>
                             <button
@@ -511,7 +552,7 @@ export function ChatInterface({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isSending || !isConnected || isUploading}
                 variant='ghost'
-                className='rounded-full w-10 h-10 p-0 hover:bg-primary-main cursor-pointer'
+                className='rounded-full w-10 h-10 p-0 hover:bg-primary-main dark:hover:bg-secondary-main cursor-pointer'
               >
                 <Paperclip className='w-5 h-5' />
               </Button>
@@ -521,7 +562,7 @@ export function ChatInterface({
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder='Type a message...'
                 className={cn(
-                  'flex-1 px-4 py-2 rounded-full border bg-bg-input text-text-body',
+                  'flex-1 px-4 py-2 rounded-full border dark:border-secondary-main bg-bg-input text-text-body',
                   'border-border-input focus:outline-none focus:border-primary-main',
                   'placeholder:text-text-muted'
                 )}
@@ -536,7 +577,7 @@ export function ChatInterface({
                   !isConnected ||
                   isUploading
                 }
-                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover cursor-pointer'
+                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover dark:bg-secondary-main dark:text-secondary-text dark:hover:bg-secondary-hover cursor-pointer'
               >
                 {isSending || isUploading ? (
                   <Loader2 className='w-5 h-5 animate-spin' />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -38,10 +38,6 @@ export default function DiscoverPage() {
 
   const currentProfile = profiles?.[currentProfileIndex];
 
-  useEffect(() => {
-    setCurrentProfileIndex(0);
-  }, [profiles]);
-
   const handleLike = async () => {
     if (!currentProfile) return;
 
@@ -76,6 +72,7 @@ export default function DiscoverPage() {
       if (currentProfileIndex < (profiles?.length ?? 0) - 1) {
         setCurrentProfileIndex((prev) => prev + 1);
       } else {
+        setCurrentProfileIndex(0);
         refetch();
       }
     } catch (error) {
@@ -96,6 +93,7 @@ export default function DiscoverPage() {
       if (currentProfileIndex < (profiles?.length ?? 0) - 1) {
         setCurrentProfileIndex((prev) => prev + 1);
       } else {
+        setCurrentProfileIndex(0);
         refetch();
       }
     } catch (error) {
@@ -109,51 +107,36 @@ export default function DiscoverPage() {
     setCurrentProfileIndex(0);
   };
 
-  const handleRefresh = () => {
-    setCurrentProfileIndex(0);
-    refetch();
-  };
-
   return (
     <div className='flex flex-col '>
       {/* Header */}
       <div className='flex items-center justify-end border-b border-border-main bg-bg-card px-6 py-4'>
-        <div className='flex gap-3'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw className='h-4 w-4' />
-          </Button>
+        <div className='flex gap-3 justify-end container mx-auto px-4 sm:px-6 lg:px-8'>
           <FilterPanel filters={filters} onApplyFilters={handleApplyFilters} />
         </div>
       </div>
 
       {/* Main Content */}
-      <div className='flex flex-1 items-center justify-center bg-bg-main p-6'>
+      <div className='flex flex-1 items-center justify-center bg-bg-main  p-6'>
         {isLoading && (
-          <div className='flex flex-col items-center gap-4'>
+          <div className='flex flex-col items-center gap-4 h-[calc(100vh-200px)] justify-center'>
             <Loader2 className='h-12 w-12 animate-spin text-primary-main' />
             <p className='text-text-muted'>Loading profiles...</p>
           </div>
         )}
 
         {error && (
-          <div className='flex flex-col items-center gap-4'>
+          <div className='flex flex-col items-center gap-4 h-[calc(100vh-200px)] justify-center'>
             <p className='text-error'>Failed to load profiles</p>
-            <Button onClick={handleRefresh}>Try Again</Button>
           </div>
         )}
 
         {!isLoading && !error && profiles && profiles.length === 0 && (
-          <div className='flex flex-col items-center gap-4 text-center'>
+          <div className='flex flex-col items-center gap-4 text-center h-[calc(100vh-200px)] justify-center'>
             <p className='text-xl text-text-heading'>No more profiles</p>
             <p className='text-text-muted'>
               Check back later or adjust your filters
             </p>
-            <Button onClick={handleRefresh}>Refresh</Button>
           </div>
         )}
 

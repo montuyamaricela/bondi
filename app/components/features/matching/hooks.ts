@@ -11,6 +11,7 @@ interface Match {
     name: string
     age: number | null
     bio: string | null
+    interests: string[]
     image: string
   }
 }
@@ -24,6 +25,7 @@ interface MatchDetail {
     name: string
     age: number | null
     image: string | null
+    showOnlineStatus: boolean
   }
 }
 

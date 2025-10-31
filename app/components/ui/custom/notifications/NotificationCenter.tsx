@@ -124,7 +124,7 @@ export function NotificationCenter({
         <Button
           variant='ghost'
           size='icon'
-          className='relative rounded-full h-8 w-8 hover:bg-primary-main hover:text-white hover:[&_svg]:text-white transition-colors'
+          className='relative rounded-full h-8 w-8 hover:bg-primary-main hover:text-white hover:[&_svg]:text-white transition-colors cursor-pointer dark:hover:bg-secondary-main dark:hover:text-secondary-text'
         >
           <Bell className='h-4 w-4' />
           {unreadCount > 0 && (

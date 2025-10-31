@@ -152,7 +152,7 @@ export default function Stepper({
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     currentStep === 1
                       ? 'pointer-events-none opacity-50 text-text-muted'
-                      : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                      : 'text-text-body hover:text-text-heading'
                   }`}
                   {...backButtonProps}
                 >
@@ -162,7 +162,7 @@ export default function Stepper({
               <button
                 type='button'
                 onClick={isLastStep ? handleComplete : handleNext}
-                className='px-6 py-2 cursor-pointer rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900'
+                className='px-6 py-2 cursor-pointer rounded-md bg-primary-main text-primary-text hover:bg-primary-main/70 font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-main focus:ring-offset-2'
                 {...nextButtonProps}
               >
                 {isLastStep ? 'Complete' : nextButtonText}
@@ -219,16 +219,16 @@ function StepIndicator({
       <div
         className={`flex h-8 w-8 items-center justify-center rounded-full font-semibold transition-colors ${
           status === 'complete'
-            ? 'bg-purple-600 text-white'
+            ? 'bg-primary-main text-primary-text '
             : status === 'active'
-            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400'
-            : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+            ? 'bg-primary-main text-primary-text'
+            : 'bg-bg-hover text-text-muted'
         }`}
       >
         {status === 'complete' ? (
           <Check className='h-4 w-4' />
         ) : status === 'active' ? (
-          <div className='h-3 w-3 rounded-full bg-purple-600 dark:bg-purple-400' />
+          <div className='h-3 w-3 rounded-full bg-primary-text' />
         ) : (
           <span className='text-sm'>{step}</span>
         )}
@@ -243,10 +243,10 @@ interface StepConnectorProps {
 
 function StepConnector({ isComplete }: StepConnectorProps) {
   return (
-    <div className='relative mx-2 h-0.5 flex-1 overflow-hidden rounded bg-gray-300 dark:bg-gray-600'>
+    <div className='relative mx-2 h-0.5 flex-1 overflow-hidden rounded bg-border-main'>
       <div
         className={`absolute left-0 top-0 h-full transition-all duration-300 ${
-          isComplete ? 'w-full bg-purple-600' : 'w-0 bg-transparent'
+          isComplete ? 'w-full bg-primary-main' : 'w-0 bg-transparent'
         }`}
       />
     </div>

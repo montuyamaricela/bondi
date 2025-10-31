@@ -105,9 +105,7 @@ export function PhotoUpload({
       {...getRootProps()}
       className={cn(
         'cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all w-full',
-        isDragActive
-          ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/20'
-          : 'border-border-input hover:border-gray-400 dark:hover:border-gray-600',
+
         isUploading && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -116,7 +114,7 @@ export function PhotoUpload({
       <div className='flex flex-col items-center justify-center space-y-2 text-center'>
         {isUploading ? (
           <>
-            <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-purple-600'></div>
+            <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-primary-main dark:border-secondary-main'></div>
             <p className='text-sm font-medium text-text-heading'>
               Uploading...
             </p>
@@ -126,7 +124,9 @@ export function PhotoUpload({
             <div
               className={cn(
                 'rounded-full p-3 transition-colors',
-                isDragActive ? 'bg-primary-main/10' : 'bg-primary-main'
+                isDragActive
+                  ? 'bg-primary-main/10 dark:bg-text-muted/10'
+                  : 'bg-primary-main dark:bg-secondary-main'
               )}
             >
               <Upload

@@ -66,23 +66,17 @@ export function LoginForm() {
   };
 
   return (
-    <div className='max-w-md mx-auto bg-bg-card rounded-2xl shadow-xl p-8 space-y-6'>
+    <div className='max-w-md mx-auto rounded-2xl shadow-xl dark:shadow-none p-8 space-y-6'>
       <div className='space-y-2 text-center'>
-        <h2 className='text-3xl font-bold text-text-heading'>
-          Welcome back
-        </h2>
-        <p className='text-text-muted'>
-          Sign in to your account to continue
-        </p>
+        <h2 className='text-3xl font-bold text-text-heading'>Welcome back</h2>
+        <p className='text-text-muted'>Sign in to your account to continue</p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
           {apiError && (
             <div className='p-3 rounded-lg bg-error-light border border-error'>
-              <p className='text-sm text-error'>
-                {apiError}
-              </p>
+              <p className='text-sm text-error'>{apiError}</p>
             </div>
           )}
 
@@ -140,7 +134,7 @@ export function LoginForm() {
 
           <Button
             type='submit'
-            className='w-full'
+            className='w-full bg-primary-main text-primary-text hover:bg-primary-main/70'
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? 'Signing in...' : 'Sign in'}
@@ -149,12 +143,10 @@ export function LoginForm() {
       </Form>
 
       <div className='text-center text-sm'>
-        <span className='text-text-muted'>
-          Don&apos;t have an account?{' '}
-        </span>
+        <span className='text-text-muted'>Don&apos;t have an account? </span>
         <Link
           href='/signup'
-          className='font-medium text-primary-main hover:text-primary-hover transition-colors'
+          className='font-medium text-primary-main hover:text-primary-main/70 transition-colors dark:text-primary-text underline'
         >
           Sign up
         </Link>

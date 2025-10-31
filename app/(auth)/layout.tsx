@@ -2,10 +2,10 @@ import { ReactNode } from 'react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className='min-h-screen flex flex-col bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:bg-bg-main'>
+    <div className='min-h-screen flex flex-col bg-bg-main'>
       <header className='p-6'>
         <div className='max-w-7xl mx-auto'>
-          <h1 className='text-3xl font-bold text-primary-main'>
+          <h1 className='text-3xl font-bold text-secondary-text dark:text-primary-text'>
             Bondi
           </h1>
         </div>
@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </main>
 
       <footer className='p-6 text-center text-sm text-text-muted'>
-        <p>&copy; 2024 Bondi. All rights reserved.</p>
+        <p>&copy; 2025 Bondi. All rights reserved.</p>
       </footer>
     </div>
   );

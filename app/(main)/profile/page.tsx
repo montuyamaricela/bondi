@@ -48,7 +48,7 @@ export default function ProfilePage() {
         <div className='flex justify-between items-center mb-6'>
           <h1 className='text-3xl font-bold text-text-heading'>My Profile</h1>
           <Link href='/profile/edit'>
-            <Button className='flex items-center space-x-2 cursor-pointer'>
+            <Button className='flex items-center space-x-2 cursor-pointer bg-primary-main dark:bg-secondary-main text-primary-text dark:text-secondary-text'>
               <Edit className='h-4 w-4' />
               <span>Edit Profile</span>
             </Button>

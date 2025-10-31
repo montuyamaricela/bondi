@@ -53,14 +53,15 @@ export function BasicInformationStep({
             <FormLabel className='text-text-heading'>Profile Picture</FormLabel>
             <FormControl>
               <div className='flex flex-col items-center gap-4'>
-                <div className='w-56 h-56 rounded-full flex items-center justify-center overflow-hidden border-2 border-border-input'>
+                <div className='w-56 h-56 rounded-full flex items-center justify-center overflow-hidden border-2 border-border-input dark:border-secondary-main'>
                   {uploadedImage ? (
-                    <img
+                    <Image
                       src={uploadedImage}
                       alt='Profile'
                       width={128}
                       height={128}
                       className='w-full h-full object-cover'
+                      priority
                     />
                   ) : (
                     <User className='w-16 h-16 text-text-muted' />
@@ -98,7 +99,7 @@ export function BasicInformationStep({
             <FormControl>
               <Input
                 placeholder='John Doe'
-                className='bg-bg-input border-border-input text-text-heading'
+                className='bg-bg-input text-text-heading'
                 {...field}
               />
             </FormControl>
@@ -120,7 +121,7 @@ export function BasicInformationStep({
                     type='number'
                     min='18'
                     max='100'
-                    className='bg-bg-input border-border-input text-text-heading'
+                    className='bg-bg-input text-text-heading'
                     {...field}
                     onChange={(e) =>
                       field.onChange(parseInt(e.target.value) || 18)
@@ -142,7 +143,7 @@ export function BasicInformationStep({
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className='bg-bg-input border-border-input text-text-heading w-full'>
+                    <SelectTrigger className='bg-bg-input text-text-heading w-full'>
                       <SelectValue placeholder='Select gender' />
                     </SelectTrigger>
                   </FormControl>
@@ -169,7 +170,7 @@ export function BasicInformationStep({
               <FormControl>
                 <Input
                   placeholder='New York, NY'
-                  className='bg-bg-input border-border-input text-text-heading'
+                  className='bg-bg-input text-text-heading'
                   {...field}
                 />
               </FormControl>
@@ -191,25 +192,12 @@ export function BasicInformationStep({
               <Textarea
                 placeholder='Tell us about yourself... (minimum 10 characters)'
                 rows={4}
-                className='bg-bg-input border-border-input text-text-heading'
+                className='bg-bg-input text-text-heading'
                 {...field}
               />
             </FormControl>
-            <FormDescription
-              className={`text-xs ${
-                field.value.length < 10
-                  ? 'text-error font-medium'
-                  : field.value.length > 500
-                  ? 'text-error font-medium'
-                  : 'text-text-muted'
-              }`}
-            >
+            <FormDescription className={`text-xs`}>
               {field.value.length}/500 characters
-              {field.value.length < 10 && (
-                <span className='ml-2'>
-                  (Need {10 - field.value.length} more)
-                </span>
-              )}
             </FormDescription>
             <FormMessage className='text-error' />
           </FormItem>

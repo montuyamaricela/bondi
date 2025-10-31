@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 age: true,
                 bio: true,
+                interests: true,
               },
             },
             files: {
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 age: true,
                 bio: true,
+                interests: true,
               },
             },
             files: {
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
           name: otherUser.profile?.name || otherUser.name || "Unknown",
           age: otherUser.profile?.age,
           bio: otherUser.profile?.bio,
+          interests: otherUser.profile?.interests || [],
           image: otherUser.files[0]?.url || otherUser.image || "https://via.placeholder.com/400",
         },
       }

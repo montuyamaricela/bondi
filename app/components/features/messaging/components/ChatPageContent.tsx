@@ -40,7 +40,7 @@ export function ChatPageContent({
       <div className='hidden md:flex w-96 border-r border-border-main bg-bg-card flex-col shadow-sm'>
         <div className='p-4 border-b border-border-main bg-bg-card sticky top-0 z-10'>
           <div className='flex items-center gap-2 mb-1'>
-            <MessageCircle className='w-6 h-6 text-primary-main' />
+            <MessageCircle className='w-6 h-6 text-primary-main dark:text-primary-text' />
             <h1 className='text-2xl font-bold text-text-heading'>Messages</h1>
           </div>
           <p className='text-text-muted text-sm'>Chat with your matches</p>
@@ -58,6 +58,7 @@ export function ChatPageContent({
           image={match.otherUser.image}
           userId={match.otherUser.id}
           matchId={matchId}
+          showOnlineStatus={match.otherUser.showOnlineStatus}
         />
         <ChatInterface
           matchId={matchId}

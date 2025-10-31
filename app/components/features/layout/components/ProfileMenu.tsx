@@ -18,12 +18,14 @@ import {
 import { User, Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils/initials';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function ProfileMenu() {
   const { data: session, isPending: sessionLoading } = useSession();
   const { data: profileData, isPending: profileLoading } =
     useProfileWithPhotosQuery(!!session?.user);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   if (sessionLoading || profileLoading) {
     return (
@@ -44,6 +46,7 @@ export function ProfileMenu() {
   const userInitials = getInitials(user.name || user.email || 'User');
 
   const handleSignOut = async () => {
+    queryClient.clear();
     await signOut();
     router.push('/login');
   };
@@ -52,17 +55,18 @@ export function ProfileMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger className='flex items-center outline-none focus:outline-none'>
         <div className='flex items-center space-x-3 cursor-pointer rounded-lg p-1 md:px-3 md:py-2 transition-colors group'>
-          <Avatar className='h-10 w-10'>
+          <Avatar className='h-10 w-10 border border-primary-main/40'>
             <AvatarImage
               src={profilePicture || user.image || undefined}
               alt={user.name || 'User'}
+              className='w-full h-full object-cover '
             />
             <AvatarFallback className='bg-primary-main text-primary-text'>
               {userInitials}
             </AvatarFallback>
           </Avatar>
           <div className='hidden md:flex flex-col items-end'>
-            <span className='text-sm font-medium text-text-heading group-hover:text-primary-main'>
+            <span className='text-sm font-medium text-text-heading group-hover:text-primary-main dark:group-hover:text-primary-text'>
               {user.name || user.email}
             </span>
           </div>

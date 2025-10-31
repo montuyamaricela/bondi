@@ -74,9 +74,7 @@ export function SignupForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
           {apiError && (
             <div className='p-3 rounded-lg bg-error-light border border-error'>
-              <p className='text-sm text-error'>
-                {apiError}
-              </p>
+              <p className='text-sm text-error'>{apiError}</p>
             </div>
           )}
 
@@ -146,7 +144,7 @@ export function SignupForm() {
 
           <Button
             type='submit'
-            className='w-full'
+            className='w-full bg-primary-main text-primary-text hover:bg-primary-main/70'
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting
@@ -157,12 +155,10 @@ export function SignupForm() {
       </Form>
 
       <div className='text-center text-sm'>
-        <span className='text-text-muted'>
-          Already have an account?{' '}
-        </span>
+        <span className='text-text-muted'>Already have an account? </span>
         <Link
           href='/login'
-          className='font-medium text-primary-main hover:text-primary-hover transition-colors'
+          className='font-medium text-primary-main hover:text-primary-main/70 transition-colors dark:text-primary-text underline'
         >
           Sign in
         </Link>

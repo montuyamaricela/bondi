@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MoreVertical, User, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSocket } from '@/app/components/providers/socket-provider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ interface ChatHeaderProps {
   image: string | null;
   userId: string;
   matchId: string;
+  showOnlineStatus?: boolean;
 }
 
 export function ChatHeader({
@@ -30,11 +32,38 @@ export function ChatHeader({
   image,
   userId,
   matchId,
+  showOnlineStatus = true,
 }: ChatHeaderProps) {
   const router = useRouter();
+  const { socket, isConnected } = useSocket();
+  const [isOnline, setIsOnline] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUnmatchModalOpen, setIsUnmatchModalOpen] = useState(false);
   const unmatchMutation = useUnmatchMutation();
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleUserOnline = (data: { userId: string }) => {
+      if (data.userId === userId) {
+        setIsOnline(true);
+      }
+    };
+
+    const handleUserOffline = (data: { userId: string }) => {
+      if (data.userId === userId) {
+        setIsOnline(false);
+      }
+    };
+
+    socket.on('user:online', handleUserOnline);
+    socket.on('user:offline', handleUserOffline);
+
+    return () => {
+      socket.off('user:online', handleUserOnline);
+      socket.off('user:offline', handleUserOffline);
+    };
+  }, [socket, isConnected, userId]);
 
   const handleUnmatchClick = () => {
     setIsDropdownOpen(false);
@@ -70,7 +99,7 @@ export function ChatHeader({
         onClick={handleViewProfile}
         className='flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer'
       >
-        <div className='w-12 h-12 rounded-full overflow-hidden bg-bg-input flex-shrink-0 relative ring-2 ring-border-main hover:ring-primary-main transition-all duration-200'>
+        <div className='w-12 h-12 rounded-full overflow-hidden bg-bg-input shrink-0 relative ring-2 ring-border-main hover:ring-primary-main transition-all duration-200'>
           {image ? (
             <Image
               src={image}
@@ -93,7 +122,16 @@ export function ChatHeader({
               <span className='text-text-muted font-normal'>, {age}</span>
             )}
           </h2>
-          <p className='text-xs text-text-muted'>Active now</p>
+          {showOnlineStatus && (
+            <div className='flex items-center gap-1.5'>
+              {isOnline && (
+                <span className='w-2 h-2 rounded-full bg-success animate-pulse' />
+              )}
+              <p className='text-xs text-text-muted'>
+                {isOnline ? 'Active now' : 'Offline'}
+              </p>
+            </div>
+          )}
         </div>
       </button>
 

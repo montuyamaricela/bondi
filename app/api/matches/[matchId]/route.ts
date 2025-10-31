@@ -28,6 +28,7 @@ export async function GET(
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
@@ -48,6 +49,7 @@ export async function GET(
               select: {
                 name: true,
                 age: true,
+                showOnlineStatus: true,
               },
             },
             files: {
@@ -84,6 +86,7 @@ export async function GET(
         name: otherUser.profile?.name || otherUser.name || "Unknown",
         age: otherUser.profile?.age || null,
         image: otherUser.files[0]?.url || otherUser.image || null,
+        showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
       },
     })
   } catch (error) {
