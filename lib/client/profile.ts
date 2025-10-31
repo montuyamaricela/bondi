@@ -84,3 +84,17 @@ export function usePhotoDeleteMutation() {
     },
   })
 }
+
+export function useUserProfileQuery(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['user-profile', userId],
+    queryFn: async () => {
+      return await api.get<{ profile: ProfileWithPhotos | null }>(
+        `/api/profile/${userId}`
+      )
+    },
+    enabled: enabled && !!userId,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  })
+}

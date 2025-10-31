@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { LogOut, User, Palette, Shield, MapPin } from 'lucide-react';
+import { User, Palette, Shield, MapPin } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useGeolocation } from '@/app/components/hooks/useGeolocation';
 import { Button } from '@/app/components/ui/button';
@@ -27,7 +26,6 @@ interface SettingsContentProps {
 
 export function SettingsContent({ user, profile }: SettingsContentProps) {
   const router = useRouter();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { requestLocation, isLoading: isLoadingLocation } = useGeolocation();
 
   const [privacySettings, setPrivacySettings] = useState({
@@ -71,18 +69,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
       } else {
         toast.error('Failed to update location');
       }
-    }
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await authClient.signOut();
-      toast.success('Logged out successfully');
-      router.push('/login');
-    } catch (error) {
-      toast.error('Failed to logout');
-      setIsLoggingOut(false);
     }
   };
 
@@ -214,16 +200,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
         </div>
       </div>
 
-      <div className="bg-bg-card border border-border-main rounded-lg p-6">
-        <button
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-error text-white rounded-lg font-medium hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
-        </button>
-      </div>
     </div>
   );
 }

@@ -80,8 +80,19 @@ export default function Stepper({
     }
   };
 
-  const handleComplete = () => {
-    updateStep(totalSteps + 1);
+  const handleComplete = async () => {
+    if (onStepValidation) {
+      try {
+        const isValid = await onStepValidation(currentStep);
+        if (!isValid) {
+          return;
+        }
+      } catch (error) {
+        console.error('Step validation error:', error);
+        return;
+      }
+    }
+    onFinalStepCompleted();
   };
 
   return (

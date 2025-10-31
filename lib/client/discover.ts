@@ -42,6 +42,8 @@ export function useLikeActionMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discover-profiles"] })
+      queryClient.invalidateQueries({ queryKey: ["receivedLikes"] })
+      queryClient.invalidateQueries({ queryKey: ["matches"] })
     },
   })
 }

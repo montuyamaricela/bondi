@@ -7,11 +7,13 @@ model File {
   name      String
   size      Int
   type      String
+  order     Int      @default(0) // Order of photos (0 = first/profile picture)
   createdAt DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, order])
   @@index([createdAt])
 }

@@ -158,6 +158,7 @@ export async function PATCH(request: NextRequest) {
       lookingFor,
       relationshipType,
       genderPreference,
+      photoKeys,
     } = result.data;
 
     if (name !== session.user.name) {
@@ -183,9 +184,25 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    if (photoKeys && photoKeys.length > 0) {
+      await Promise.all(
+        photoKeys.map((key, index) =>
+          db.file.updateMany({
+            where: {
+              userId: session.user.id,
+              key,
+            },
+            data: {
+              order: index,
+            },
+          })
+        )
+      );
+    }
+
     const photos = await db.file.findMany({
       where: { userId: session.user.id },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { order: 'asc' },
     });
 
     return NextResponse.json({

@@ -50,12 +50,10 @@ export function BasicInformationStep({
         name='profileImage'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>
-              Profile Picture
-            </FormLabel>
+            <FormLabel className='text-text-heading'>Profile Picture</FormLabel>
             <FormControl>
               <div className='flex flex-col items-center gap-4'>
-                <div className='w-32 h-32 rounded-full bg-secondary-main flex items-center justify-center overflow-hidden border-2 border-gray-300 dark:border-gray-600'>
+                <div className='w-56 h-56 rounded-full flex items-center justify-center overflow-hidden border-2 border-border-input'>
                   {uploadedImage ? (
                     <img
                       src={uploadedImage}
@@ -96,13 +94,11 @@ export function BasicInformationStep({
         name='name'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>
-              Name
-            </FormLabel>
+            <FormLabel className='text-text-heading'>Name</FormLabel>
             <FormControl>
               <Input
                 placeholder='John Doe'
-                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                className='bg-bg-input border-border-input text-text-heading'
                 {...field}
               />
             </FormControl>
@@ -118,15 +114,13 @@ export function BasicInformationStep({
             name='age'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-text-heading'>
-                  Age
-                </FormLabel>
+                <FormLabel className='text-text-heading'>Age</FormLabel>
                 <FormControl>
                   <Input
                     type='number'
                     min='18'
                     max='100'
-                    className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                    className='bg-bg-input border-border-input text-text-heading'
                     {...field}
                     onChange={(e) =>
                       field.onChange(parseInt(e.target.value) || 18)
@@ -142,24 +136,20 @@ export function BasicInformationStep({
             name='gender'
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-text-heading'>
-                  Gender
-                </FormLabel>
+                <FormLabel className='text-text-heading'>Gender</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading w-full'>
+                    <SelectTrigger className='bg-bg-input border-border-input text-text-heading w-full'>
                       <SelectValue placeholder='Select gender' />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value='MALE'>Male</SelectItem>
                     <SelectItem value='FEMALE'>Female</SelectItem>
-                    <SelectItem value='NON_BINARY'>
-                      Non-binary
-                    </SelectItem>
+                    <SelectItem value='NON_BINARY'>Non-binary</SelectItem>
                     <SelectItem value='OTHER'>Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -179,7 +169,7 @@ export function BasicInformationStep({
               <FormControl>
                 <Input
                   placeholder='New York, NY'
-                  className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                  className='bg-bg-input border-border-input text-text-heading'
                   {...field}
                 />
               </FormControl>
@@ -201,7 +191,7 @@ export function BasicInformationStep({
               <Textarea
                 placeholder='Tell us about yourself... (minimum 10 characters)'
                 rows={4}
-                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                className='bg-bg-input border-border-input text-text-heading'
                 {...field}
               />
             </FormControl>

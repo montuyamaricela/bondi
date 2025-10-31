@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { Photo } from '../types';
 import { PhotoUpload } from '@/app/components/ui/custom/PhotoUpload';
 import { usePhotoDeleteMutation } from '@/lib/client/profile';
-import { Button } from '@/app/components/ui/button';
-import { X, Upload as UploadIcon } from 'lucide-react';
+import { X, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PhotoManagerProps {
@@ -14,24 +13,34 @@ interface PhotoManagerProps {
 }
 
 export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
-  const [isUploadVisible, setIsUploadVisible] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const deleteMutation = usePhotoDeleteMutation();
 
   const handleUploadComplete = (
-    res: { url: string; key: string }[] | undefined
+    res:
+      | {
+          url: string;
+          key: string;
+          fileId?: string;
+          name: string;
+          size: number;
+          type: string;
+        }[]
+      | undefined
   ) => {
     if (res && res.length > 0) {
-      const newPhotos = res.map((file) => ({
-        id: file.key,
-        url: file.url,
-        key: file.key,
-        name: 'uploaded-photo',
-        size: 0,
-        type: 'image',
-        createdAt: new Date().toISOString(),
-      }));
+      const newPhotos = res
+        .filter((file) => file.fileId)
+        .map((file) => ({
+          id: file.fileId!,
+          url: file.url,
+          key: file.key,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          createdAt: new Date().toISOString(),
+        }));
       onPhotosChange([...photos, ...newPhotos]);
-      setIsUploadVisible(false);
     }
   };
 
@@ -47,6 +56,29 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
     }
   };
 
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newPhotos = [...photos];
+    const draggedPhoto = newPhotos[draggedIndex];
+
+    newPhotos.splice(draggedIndex, 1);
+    newPhotos.splice(index, 0, draggedPhoto);
+
+    onPhotosChange(newPhotos);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   const canAddMore = photos.length < 6;
 
   return (
@@ -56,8 +88,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
           Photos
         </h3>
         <p className="text-sm text-text-muted mb-4">
-          Upload up to 6 photos. The first photo will be your main profile
-          picture.
+          Upload up to 6 photos. Drag to reorder. The first photo will be your main profile picture.
         </p>
       </div>
 
@@ -66,23 +97,37 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
           {photos.map((photo, index) => (
             <div
               key={photo.id}
-              className="relative aspect-square rounded-lg overflow-hidden border-2 border-border-main"
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`relative aspect-square rounded-lg overflow-hidden border-2 border-border-main cursor-move transition-opacity ${
+                draggedIndex === index ? 'opacity-50' : 'opacity-100'
+              }`}
             >
               <img
                 src={photo.url}
                 alt={photo.name}
                 className="w-full h-full object-cover"
               />
+              <div className="absolute top-2 left-2 bg-bg-main/80 p-1 rounded">
+                <GripVertical className="h-4 w-4 text-text-muted" />
+              </div>
               {index === 0 && (
-                <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded">
+                <div className="absolute bottom-2 left-2 bg-primary-main text-primary-text text-xs px-2 py-1 rounded">
                   Main
                 </div>
               )}
               <button
                 type="button"
-                onClick={() => handleDelete(photo.key)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(photo.key);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onDragStart={(e) => e.preventDefault()}
                 disabled={deleteMutation.isPending}
-                className="absolute top-2 right-2 bg-error hover:bg-error text-white p-1.5 rounded-full transition-colors disabled:opacity-50"
+                className="absolute top-2 right-2 bg-error hover:bg-error/90 text-white p-1.5 rounded-full transition-colors disabled:opacity-50 z-10 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -91,39 +136,15 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
         </div>
       )}
 
-      {canAddMore && !isUploadVisible && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIsUploadVisible(true)}
-          className="w-full"
-        >
-          <UploadIcon className="h-4 w-4 mr-2" />
-          Add Photos ({photos.length}/6)
-        </Button>
-      )}
-
-      {canAddMore && isUploadVisible && (
-        <div className="space-y-2">
-          <PhotoUpload
-            endpoint="profilePhotos"
-            onClientUploadComplete={handleUploadComplete}
-            onUploadError={(error: Error) => {
-              toast.error(`Upload failed: ${error.message}`);
-            }}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setIsUploadVisible(false)}
-            className="w-full"
-          >
-            Cancel
-          </Button>
-        </div>
-      )}
-
-      {!canAddMore && (
+      {canAddMore ? (
+        <PhotoUpload
+          endpoint="profilePhotos"
+          onClientUploadComplete={handleUploadComplete}
+          onUploadError={(error: Error) => {
+            toast.error(`Upload failed: ${error.message}`);
+          }}
+        />
+      ) : (
         <p className="text-sm text-text-muted text-center">
           Maximum of 6 photos reached. Delete a photo to add more.
         </p>

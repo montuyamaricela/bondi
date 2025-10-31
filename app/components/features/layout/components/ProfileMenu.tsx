@@ -17,6 +17,7 @@ import {
 } from '@/app/components/ui/dropdown-menu';
 import { User, Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getInitials } from '@/lib/utils/initials';
 
 export function ProfileMenu() {
   const { data: session, isPending: sessionLoading } = useSession();
@@ -40,13 +41,7 @@ export function ProfileMenu() {
   const profile = profileData?.profile;
   const profilePicture = profile?.photos?.[0]?.url;
 
-  const userInitials = user.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : user.email?.charAt(0).toUpperCase() || 'U';
+  const userInitials = getInitials(user.name || user.email || 'User');
 
   const handleSignOut = async () => {
     await signOut();

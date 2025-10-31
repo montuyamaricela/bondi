@@ -1,14 +1,18 @@
 'use client';
 
-import { useProfileWithPhotosQuery } from '@/lib/client/profile';
+import { useParams, useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { useUserProfileQuery } from '@/lib/client/profile';
 import { ProfileView } from '@/app/components/features/profile/components/ProfileView';
 import { ProfileSkeleton } from '@/app/components/features/profile/components/ProfileSkeleton';
-import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
-import { Edit } from 'lucide-react';
 
-export default function ProfilePage() {
-  const { data, isLoading, error } = useProfileWithPhotosQuery();
+export default function UserProfilePage() {
+  const params = useParams();
+  const router = useRouter();
+  const userId = params.userId as string;
+
+  const { data, isLoading, error } = useUserProfileQuery(userId);
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -24,6 +28,7 @@ export default function ProfilePage() {
           <p className='text-text-muted'>
             {error instanceof Error ? error.message : 'An error occurred'}
           </p>
+          <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
     );
@@ -36,7 +41,10 @@ export default function ProfilePage() {
           <h2 className='text-2xl font-bold text-text-heading'>
             Profile not found
           </h2>
-          <p className='text-text-muted'>Please complete your profile setup</p>
+          <p className='text-text-muted'>
+            This user&apos;s profile could not be found
+          </p>
+          <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
     );
@@ -45,14 +53,18 @@ export default function ProfilePage() {
   return (
     <div className='min-h-screen bg-bg-main py-8'>
       <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex justify-between items-center mb-6'>
-          <h1 className='text-3xl font-bold text-text-heading'>My Profile</h1>
-          <Link href='/profile/edit'>
-            <Button className='flex items-center space-x-2 cursor-pointer'>
-              <Edit className='h-4 w-4' />
-              <span>Edit Profile</span>
-            </Button>
-          </Link>
+        <div className='flex items-center gap-4 mb-6'>
+          <Button
+            variant='ghost'
+            onClick={() => router.back()}
+            className='hover:text-primary-main bg-transparent cursor-pointer hover:bg-transparent'
+          >
+            <ArrowLeft className='h-5 w-5 mr-2' />
+            Back
+          </Button>
+          <h1 className='text-3xl font-bold text-text-heading'>
+            {data.profile.name}&apos;s Profile
+          </h1>
         </div>
 
         <ProfileView profile={data.profile} />

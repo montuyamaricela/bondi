@@ -244,12 +244,12 @@ export async function POST(request: NextRequest) {
 
           const currentUserPhoto = await db.file.findFirst({
             where: { userId: currentUserId },
-            orderBy: { createdAt: "asc" },
+            orderBy: { order: "asc" },
           })
 
           const targetUserPhoto = await db.file.findFirst({
             where: { userId: targetUserId },
-            orderBy: { createdAt: "asc" },
+            orderBy: { order: "asc" },
           })
 
           await db.notification.create({

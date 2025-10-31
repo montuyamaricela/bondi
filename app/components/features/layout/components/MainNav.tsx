@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Heart, MessageCircle, Compass } from 'lucide-react';
+import { Heart, MessageCircle, Compass, ThumbsUp } from 'lucide-react';
 import { NotificationCenter } from '@/app/components/ui/custom/notifications/NotificationCenter';
 import { ProfileMenu } from './ProfileMenu';
 
@@ -15,6 +15,11 @@ export function MainNav() {
       href: '/discover',
       label: 'Discover',
       icon: Compass,
+    },
+    {
+      href: '/likes',
+      label: 'Likes',
+      icon: ThumbsUp,
     },
     {
       href: '/matches',
@@ -29,7 +34,7 @@ export function MainNav() {
   ];
 
   return (
-    <nav className='bg-bg-card'>
+    <nav className='bg-bg-card border-b border-border-main/80'>
       <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           <div className='flex items-center space-x-8'>
@@ -63,7 +68,7 @@ export function MainNav() {
             </div>
           </div>
 
-          <div className='flex items-center space-x-4'>
+          <div className='flex items-center'>
             <NotificationCenter />
             <ProfileMenu />
           </div>

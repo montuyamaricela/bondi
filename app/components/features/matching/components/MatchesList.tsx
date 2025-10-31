@@ -6,6 +6,8 @@ import { Loader2, UserX } from "lucide-react"
 import { useMatches, useUnmatchMutation } from "../hooks"
 import { Button } from "@/app/components/ui/button"
 import { toast } from "sonner"
+import { formatMatchDate } from "@/lib/date-utils"
+import { getInitials } from "@/lib/utils/initials"
 
 export function MatchesList() {
   const { data: matchesData, isLoading, error } = useMatches()
@@ -22,7 +24,7 @@ export function MatchesList() {
 
   if (error) {
     return (
-      <div className="bg-bg-card border border-border-main rounded-lg p-12 text-center">
+      <div className="bg-bg-card rounded-lg p-12 text-center shadow-md">
         <p className="text-error text-lg">Failed to load matches</p>
         <p className="text-text-muted mt-2">Please try again later</p>
       </div>
@@ -43,7 +45,7 @@ export function MatchesList() {
 
   if (!matchesData || matchesData.length === 0) {
     return (
-      <div className="bg-bg-card border border-border-main rounded-lg p-12 text-center">
+      <div className="bg-bg-card rounded-lg p-12 text-center shadow-md">
         <p className="text-text-muted text-lg">No matches yet</p>
         <p className="text-text-muted mt-2">
           Start swiping in{" "}
@@ -61,15 +63,23 @@ export function MatchesList() {
       {matchesData.map((match) => (
         <div
           key={match.matchId}
-          className="bg-bg-card border border-border-main rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group"
+          className="bg-bg-card rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all group"
         >
           <Link href={`/messages/${match.matchId}`}>
             <div className="aspect-[4/3] relative overflow-hidden bg-bg-hover">
-              <img
-                src={match.user.image}
-                alt={match.user.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+              {match.user.image ? (
+                <img
+                  src={match.user.image}
+                  alt={match.user.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary-main flex items-center justify-center">
+                  <span className="text-6xl font-bold text-primary-text">
+                    {getInitials(match.user.name)}
+                  </span>
+                </div>
+              )}
             </div>
           </Link>
           <div className="p-4">
@@ -88,7 +98,7 @@ export function MatchesList() {
                 </p>
               )}
               <p className="text-text-muted text-xs mt-3">
-                Matched {new Date(match.matchedAt).toLocaleDateString()}
+                {formatMatchDate(match.matchedAt)}
               </p>
             </Link>
 
@@ -111,7 +121,7 @@ export function MatchesList() {
                     <Button
                       size="sm"
                       onClick={() => handleUnmatch(match.matchId, match.user.name)}
-                      className="flex-1 bg-error hover:bg-error/90 text-white"
+                      className="flex-1 bg-primary-main hover:bg-primary-hover text-white"
                       disabled={isPending}
                     >
                       {isPending ? "Unmatching..." : "Confirm"}
@@ -123,7 +133,7 @@ export function MatchesList() {
                   size="sm"
                   variant="outline"
                   onClick={() => setConfirmingUnmatch(match.matchId)}
-                  className="w-full text-error border-error hover:bg-error/10"
+                  className="w-full text-primary-main border border-primary-main hover:bg-primary-main hover:text-white transition-colors"
                 >
                   <UserX className="h-4 w-4 mr-2" />
                   Unmatch

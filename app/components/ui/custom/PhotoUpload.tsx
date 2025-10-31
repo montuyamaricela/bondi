@@ -8,9 +8,18 @@ import { useUploadThing } from '@/app/api/uploadthing/route';
 import { Upload } from 'lucide-react';
 
 interface PhotoUploadProps {
-  endpoint: 'profileImage' | 'profilePhotos';
+  endpoint: 'profileImage' | 'profilePhotos' | 'messageAttachment';
   onClientUploadComplete?: (
-    res: { url: string; key: string }[] | undefined
+    res:
+      | {
+          url: string;
+          key: string;
+          fileId?: string;
+          name: string;
+          size: number;
+          type: string;
+        }[]
+      | undefined
   ) => void;
   onUploadError?: (error: Error) => void;
 }
@@ -34,10 +43,28 @@ export function PhotoUpload({
         const result = await startUpload(acceptedFiles);
 
         if (result && result.length > 0) {
-          const files = result.map((file) => ({
-            url: file.url,
-            key: file.key,
-          }));
+          const files = result.map((file) => {
+            const uploadedFile: {
+              url: string;
+              key: string;
+              fileId?: string;
+              name: string;
+              size: number;
+              type: string;
+            } = {
+              url: file.url,
+              key: file.key,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+            };
+
+            if ('fileId' in file && file.fileId) {
+              uploadedFile.fileId = file.fileId as string;
+            }
+
+            return uploadedFile;
+          });
 
           onClientUploadComplete?.(files);
           toast.success('Upload successful!');
@@ -53,13 +80,24 @@ export function PhotoUpload({
     },
     disabled: isUploading,
     multiple: endpoint === 'profilePhotos',
-    accept: {
-      'image/jpeg': ['.jpg', '.jpeg'],
-      'image/png': ['.png'],
-      'image/gif': ['.gif'],
-      'image/webp': ['.webp'],
-    },
-    maxFiles: endpoint === 'profileImage' ? 1 : 6,
+    accept:
+      endpoint === 'messageAttachment'
+        ? {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/gif': ['.gif'],
+            'image/webp': ['.webp'],
+            'application/pdf': ['.pdf'],
+            'video/mp4': ['.mp4'],
+            'video/quicktime': ['.mov'],
+          }
+        : {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+            'image/gif': ['.gif'],
+            'image/webp': ['.webp'],
+          },
+    maxFiles: endpoint === 'profilePhotos' ? 6 : 1,
   });
 
   return (
@@ -88,17 +126,13 @@ export function PhotoUpload({
             <div
               className={cn(
                 'rounded-full p-3 transition-colors',
-                isDragActive
-                  ? 'bg-primary-main/10'
-                  : 'bg-bg-hover'
+                isDragActive ? 'bg-primary-main/10' : 'bg-primary-main'
               )}
             >
               <Upload
                 className={cn(
                   'h-6 w-6 transition-colors',
-                  isDragActive
-                    ? 'text-primary-main'
-                    : 'text-text-muted'
+                  isDragActive ? 'text-primary-main' : 'text-primary-text'
                 )}
               />
             </div>

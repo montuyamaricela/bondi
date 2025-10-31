@@ -45,7 +45,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
+                  <SelectTrigger className='w-full bg-bg-input border-border-input text-text-heading'>
                     <SelectValue placeholder='Select relationship type' />
                   </SelectTrigger>
                 </FormControl>
@@ -82,7 +82,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger className='w-full bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'>
+                  <SelectTrigger className='w-full bg-bg-input border-border-input text-text-heading'>
                     <SelectValue placeholder='Select gender preference' />
                   </SelectTrigger>
                 </FormControl>
@@ -110,7 +110,7 @@ export function DatingPreferencesStep({ form }: DatingPreferencesStepProps) {
               <Textarea
                 placeholder='Share what makes you unique...'
                 rows={3}
-                className='bg-bg-input border-gray-300 dark:border-gray-600 text-text-heading'
+                className='bg-bg-input border-border-input text-text-heading'
                 {...field}
               />
             </FormControl>

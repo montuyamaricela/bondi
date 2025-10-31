@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { createdAt: "asc" },
+              orderBy: { order: "asc" },
               select: {
                 url: true,
               },

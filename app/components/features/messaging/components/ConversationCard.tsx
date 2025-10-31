@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns"
 import type { Conversation } from "../types"
 import { cn } from "@/lib/utils"
 import { OnlineStatusIndicator } from "@/app/components/ui/custom/OnlineStatusIndicator"
+import { usePathname } from "next/navigation"
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -16,10 +17,12 @@ export function ConversationCard({
   conversation,
   currentUserId,
 }: ConversationCardProps) {
+  const pathname = usePathname()
   const { matchId, otherUser, lastMessage, unreadCount, status } = conversation
 
   const isOwnMessage = lastMessage?.senderId === currentUserId
   const isUnmatched = status === "UNMATCHED"
+  const isActive = pathname === `/messages/${matchId}`
 
   const formattedTime = lastMessage
     ? formatDistanceToNow(new Date(lastMessage.createdAt), { addSuffix: true })
@@ -28,17 +31,30 @@ export function ConversationCard({
   return (
     <Link
       href={`/messages/${matchId}`}
-      className="group block hover:bg-primary-main transition-colors"
+      className={cn(
+        "group block transition-all duration-200",
+        !isActive && "hover:bg-primary-main",
+        isActive && "bg-primary-main/10 border-l-4 border-l-primary-main"
+      )}
     >
-      <div className="flex items-start gap-4 p-4 border-b border-border-main group-hover:border-white">
+      <div className={cn(
+        "flex items-start gap-4 p-4 transition-colors duration-200",
+        !isActive && "border-b border-border-main group-hover:border-transparent"
+      )}>
         <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-bg-input relative">
+          <div className={cn(
+            "w-14 h-14 rounded-full overflow-hidden bg-bg-input relative ring-2 ring-transparent transition-all duration-200",
+            !isActive && "group-hover:ring-white/20"
+          )}>
             {otherUser.image ? (
               <Image
                 src={otherUser.image}
                 alt={otherUser.name}
                 fill
-                className="object-cover"
+                className={cn(
+                  "object-cover transition-transform duration-200",
+                  !isActive && "group-hover:scale-110"
+                )}
                 sizes="56px"
               />
             ) : (
@@ -55,41 +71,70 @@ export function ConversationCard({
             />
           </div>
           {unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-app-accent text-app-accent-text flex items-center justify-center text-xs font-bold">
-              {unreadCount}
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-app-accent text-app-accent-text flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
+              {unreadCount > 9 ? "9+" : unreadCount}
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2 mb-1">
-            <h3 className="font-semibold text-text-heading group-hover:text-white truncate">
+            <h3 className={cn(
+              "font-semibold truncate transition-colors duration-200",
+              isActive && "text-primary-main",
+              !isActive && "text-text-heading group-hover:text-white"
+            )}>
               {otherUser.name}
               {otherUser.age && (
-                <span className="text-text-muted group-hover:text-white font-normal">, {otherUser.age}</span>
+                <span className={cn(
+                  "font-normal transition-colors duration-200",
+                  isActive && "text-text-muted",
+                  !isActive && "text-text-muted group-hover:text-white/80"
+                )}>, {otherUser.age}</span>
               )}
             </h3>
-            <span className="text-xs text-text-muted group-hover:text-white flex-shrink-0">
+            <span className={cn(
+              "text-xs flex-shrink-0 transition-colors duration-200",
+              isActive && "text-primary-main font-medium",
+              !isActive && "text-text-muted group-hover:text-white/80"
+            )}>
               {formattedTime}
             </span>
           </div>
 
           {isUnmatched && (
-            <p className="text-xs text-text-muted group-hover:text-white mb-1 italic">Unmatched</p>
+            <p className={cn(
+              "text-xs text-text-muted mb-1 italic transition-colors duration-200",
+              !isActive && "group-hover:text-white/70"
+            )}>
+              Unmatched
+            </p>
           )}
           <p
             className={cn(
-              "text-sm truncate group-hover:text-white",
-              unreadCount > 0 ? "font-semibold text-text-body" : "text-text-muted"
+              "text-sm truncate transition-colors duration-200",
+              unreadCount > 0 ? "font-semibold text-text-body" : "text-text-muted",
+              isActive && "text-text-body",
+              !isActive && "group-hover:text-white/90"
             )}
           >
             {lastMessage ? (
               <>
-                {isOwnMessage && <span className="text-text-muted group-hover:text-white">You: </span>}
+                {isOwnMessage && (
+                  <span className={cn(
+                    "transition-colors duration-200",
+                    isActive && "text-text-muted",
+                    !isActive && "text-text-muted group-hover:text-white/70"
+                  )}>You: </span>
+                )}
                 {lastMessage.content}
               </>
             ) : (
-              <span className="text-text-muted group-hover:text-white italic">Start a conversation!</span>
+              <span className={cn(
+                "italic transition-colors duration-200",
+                isActive && "text-text-muted",
+                !isActive && "text-text-muted group-hover:text-white/70"
+              )}>Start a conversation!</span>
             )}
           </p>
         </div>

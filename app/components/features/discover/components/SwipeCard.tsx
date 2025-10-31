@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { DiscoverableProfile } from '../types';
 import { formatDistance } from '@/lib/geolocation';
+import { getInitials } from '@/lib/utils/initials';
 
 interface SwipeCardProps {
   profile: DiscoverableProfile;
@@ -21,6 +22,7 @@ interface SwipeCardProps {
 export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [exitX, setExitX] = useState(0);
+  const initials = getInitials(profile.name);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
@@ -87,8 +89,10 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
                 transition={{ duration: 0.8, ease: 'easeInOut' }}
               />
             ) : (
-              <div className='flex h-full w-full items-center justify-center bg-bg-hover'>
-                <p className='text-text-muted'>No photo available</p>
+              <div className='flex h-full w-full items-center justify-center bg-primary-main'>
+                <span className='text-9xl font-bold text-primary-text'>
+                  {initials}
+                </span>
               </div>
             )}
           </AnimatePresence>

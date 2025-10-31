@@ -112,15 +112,15 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* App Color System - Light Mode - Hinge Brand Colors */
-  --primary-main: oklch(0.35 0.16 320); /* Aubergine #67295F */
-  --primary-text: #FFFEFD; /* Hinge White */
-  --primary-hover: oklch(0.28 0.18 295); /* Midnight purple #3E1768 */
+  /* App Color System - Light Mode - Purple Accent */
+  --primary-main: #5C076C; /* Purple accent color */
+  --primary-text: #FFFEFD; /* White text on purple */
+  --primary-hover: #4A055A; /* Darker purple on hover */
   --secondary-main: oklch(0.91 0.02 55); /* Pebble #EEE1DB */
-  --secondary-text: #1A1A1A; /* Hinge Black */
+  --secondary-text: #1A1A1A; /* Black text */
   --secondary-hover: oklch(0.75 0.04 55); /* Sand #CCAC9F */
-  --app-accent: oklch(0.43 0.12 305); /* Lilac #75457D */
-  --app-accent-text: #FFFEFD; /* Hinge White */
+  --app-accent: #5C076C; /* Purple accent */
+  --app-accent-text: #FFFEFD; /* White text on accent */
 
   /* Status Colors - Light Mode - Hinge Brand Colors */
   --success: oklch(0.42 0.08 195); /* Kelp #097270 */
@@ -142,9 +142,9 @@
   --bg-hover: oklch(0.91 0.02 55); /* Pebble #EEE1DB */
   --bg-input: #FFFEFD; /* Hinge White */
 
-  /* Border Colors - Light Mode - Hinge Brand Colors */
-  --border-main: oklch(0.75 0.04 55); /* Sand #CCAC9F */
-  --border-input: oklch(0.60 0.08 310); /* Mauve #9F81A5 */
+  /* Border Colors - Light Mode */
+  --border-main: oklch(0.85 0.02 0); /* Light gray border */
+  --border-input: #5C076C; /* Purple accent for input borders */
 }
 
 .dark {
@@ -180,15 +180,15 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* App Color System - Dark Mode - Hinge Brand Colors */
-  --primary-main: oklch(0.72 0.15 310); /* Brighter purple for dark mode visibility */
-  --primary-text: #FFFEFD; /* Hinge White */
-  --primary-hover: oklch(0.82 0.12 310); /* Even lighter on hover */
+  /* App Color System - Dark Mode - Purple Accent */
+  --primary-main: #8B0BA8; /* Lighter purple for dark mode visibility */
+  --primary-text: #FFFEFD; /* White text on purple */
+  --primary-hover: #A50CC4; /* Even lighter purple on hover */
   --secondary-main: oklch(0.35 0 0); /* Stone #484848 */
-  --secondary-text: #FFFEFD; /* Hinge White */
+  --secondary-text: #FFFEFD; /* White text */
   --secondary-hover: oklch(0.20 0 0); /* Darker than Stone */
-  --app-accent: oklch(0.82 0.06 285); /* Mist #C7C7E5 (lightest purple) */
-  --app-accent-text: #1A1A1A; /* Hinge Black */
+  --app-accent: #8B0BA8; /* Lighter purple accent */
+  --app-accent-text: #FFFEFD; /* White text on accent */
 
   /* Status Colors - Dark Mode - Hinge Brand Colors */
   --success: oklch(0.42 0.08 195); /* Kelp #097270 */
@@ -210,9 +210,9 @@
   --bg-hover: oklch(0.28 0 0); /* Hover state */
   --bg-input: oklch(0.22 0 0); /* Same as card */
 
-  /* Border Colors - Dark Mode - Hinge Brand Colors */
-  --border-main: oklch(0.35 0 0); /* Stone #484848 */
-  --border-input: oklch(0.43 0.12 305); /* Lilac #75457D */
+  /* Border Colors - Dark Mode */
+  --border-main: oklch(0.35 0 0); /* Dark gray border */
+  --border-input: #8B0BA8; /* Lighter purple accent for input borders */
 }
 
 @layer base {

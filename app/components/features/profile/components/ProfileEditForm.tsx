@@ -27,7 +27,8 @@ import {
 } from '@/app/components/ui/select';
 import { Button } from '@/app/components/ui/button';
 import { PhotoManager } from './PhotoManager';
-import { TagInput } from './TagInput';
+import { MultiSelect } from '@/app/components/ui/custom/MultiSelect';
+import { INTEREST_OPTIONS, HOBBY_OPTIONS } from '../constants';
 
 interface ProfileEditFormProps {
   profile: ProfileWithPhotos;
@@ -56,7 +57,11 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
 
   const onSubmit = async (data: ProfileEditFormData) => {
     try {
-      await mutation.mutateAsync(data);
+      const photoKeys = photos.map((photo) => photo.key);
+      await mutation.mutateAsync({
+        ...data,
+        photoKeys,
+      });
       toast.success('Profile updated successfully!');
       router.push('/profile');
     } catch (error) {
@@ -197,10 +202,12 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                   Interests
                 </FormLabel>
                 <FormControl>
-                  <TagInput
+                  <MultiSelect
+                    options={INTEREST_OPTIONS}
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Add interests (e.g., Music, Travel)"
+                    placeholder="Select your interests"
+                    maxSelections={10}
                   />
                 </FormControl>
                 <FormMessage />
@@ -217,10 +224,12 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                   Hobbies
                 </FormLabel>
                 <FormControl>
-                  <TagInput
+                  <MultiSelect
+                    options={HOBBY_OPTIONS}
                     value={field.value}
                     onChange={field.onChange}
-                    placeholder="Add hobbies (e.g., Reading, Hiking)"
+                    placeholder="Select your hobbies"
+                    maxSelections={10}
                   />
                 </FormControl>
                 <FormMessage />
