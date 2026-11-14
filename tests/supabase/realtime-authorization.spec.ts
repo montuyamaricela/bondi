@@ -20,6 +20,8 @@ test('native private subscriptions enforce session capabilities, signing keys an
   browser,
   baseURL,
 }) => {
+  // Seven denied joins plus send/track/cleanup can each consume their 4s limit.
+  test.setTimeout(60_000);
   const target = assertTestDatabase();
   if (!target.native) throw new Error('Native Supabase required.');
   const db = new PrismaClient({ log: [] });
@@ -197,6 +199,7 @@ test('native private subscriptions enforce session capabilities, signing keys an
     });
     expect(received).toBe(1);
     expect((await join(clientFor(owner.token), owner.topic)).status).not.toBe('SUBSCRIBED');
+    expect((await join(clientFor(other.token), other.topic)).status).toBe('SUBSCRIBED');
   } finally {
     await Promise.allSettled(
       clients.map(async (client) => {
