@@ -267,3 +267,21 @@ the displayed primary photo while intercepting image optimization requests with 
 synthetic pixel. Legacy ties resolve by ID. These checks cover gallery registration,
 not provider-side orphan cleanup or signed webhook delivery. Uploads that race past
 preflight may be rejected at completion after a provider object already exists.
+
+### Explicit location lifecycle verification
+
+`tests/e2e/location-lifecycle.spec.ts` controls one-shot native callbacks while
+exercising actual browser navigation, authenticated HTTP and PostgreSQL. Discovery
+entry makes zero location calls; Settings Enable saves a fresh fix and its server
+timestamp, and returning through the client navigation reloads the invalidated feed
+without a document reload. Zero coordinates survive a new Settings mount as last-known.
+Native error codes 1/2/3, unsupported geolocation and insecure context have retryable
+feedback. A scoped Profile-update trigger proves save failure leaves stored state
+unchanged; Retry save succeeds without another geolocation call.
+
+A delayed result after cookies switch accounts receives 409 before writing; refreshing
+identity mounts clean account-owned state. Leaving Settings ignores a later callback
+without another PATCH. Missing/expired sessions, invalid/out-of-range coordinates and
+malformed JSON remain rejected; a forged body owner cannot select another profile.
+Native GPS/permission dialogs and mobile hardware are outside these callback-controlled
+cases. Browser abort cannot undo an HTTP write already accepted for its original owner.

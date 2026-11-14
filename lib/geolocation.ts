@@ -3,32 +3,6 @@ export interface Coordinates {
   longitude: number;
 }
 
-export async function getCurrentPosition(): Promise<Coordinates> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation is not supported by this browser'));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      },
-      (error) => {
-        reject(error);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000,
-      },
-    );
-  });
-}
-
 export function calculateDistance(coords1: Coordinates, coords2: Coordinates): number {
   const R = 6371;
 

@@ -272,6 +272,16 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Location is requested only through Settings Enable/Refresh, with no background
+tracking. Saved coordinates remain last-known with an update timestamp; zero is a
+valid coordinate. Denial, unavailable position, timeout and unsupported/insecure
+contexts have recoverable feedback. Save failures offer Retry save without another
+device request. Successful saves invalidate the discovery cache before client navigation.
+Browser cases use controlled native geolocation callbacks with real authenticated
+HTTP/PostgreSQL writes: they cover cached-feed refresh, account switches, unmount,
+retry and rejected sessions/payloads. They do not measure real GPS hardware or the
+operating system permission dialog. City-only/clear controls remain #43.
+
 Profile-photo cases race twelve completions across both profile uploaders and verify
 six saved rows, unique append order, owned replay, foreign rejection, account-local
 capacity and slot reuse after deletion. Actual authenticated upload middleware rejects
@@ -294,7 +304,7 @@ Use a local disposable database whose name contains a `test`, `e2e`, or `harness
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
 distance, form validation, and upload-handler access with mocked adapters. External
-storage uploads, swipe gestures, idle socket termination, mobile layouts, and other browsers remain
+storage uploads, idle socket termination, mobile layouts, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and

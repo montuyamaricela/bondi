@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -8,10 +8,9 @@ import { MatchModal } from '@/app/components/features/discover/components/MatchM
 import { FilterPanel } from '@/app/components/features/discover/components/FilterPanel';
 import { useDiscoverProfiles, useLikeActionMutation } from '@/lib/client/discover';
 import { useNotifications } from '@/app/components/hooks/useNotifications';
-import { useGeolocation } from '@/app/components/hooks/useGeolocation';
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/button';
-import { api, FetchError } from '@/lib/fetch-wrapper';
+import { FetchError } from '@/lib/fetch-wrapper';
 import type { DiscoverFilters, MatchNotification } from '@/app/components/features/discover/types';
 
 export default function DiscoverPage() {
@@ -22,40 +21,10 @@ export default function DiscoverPage() {
   const [handledUserIds, setHandledUserIds] = useState<Set<string>>(() => new Set());
   const actionInFlight = useRef(false);
   const [matchNotification, setMatchNotification] = useState<MatchNotification | null>(null);
-  const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
 
   const { data: profiles, isLoading, isFetching, error } = useDiscoverProfiles(filters);
   const likeActionMutation = useLikeActionMutation();
   const { showMatchNotification, permission } = useNotifications();
-  const { requestLocation } = useGeolocation();
-
-  useEffect(() => {
-    const autoRequestLocation = async () => {
-      const locationRequested = localStorage.getItem('locationRequested');
-
-      if (!locationRequested && !hasRequestedLocation) {
-        setHasRequestedLocation(true);
-
-        try {
-          const coords = await requestLocation();
-          await api.patch('/api/profile/location', {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          });
-          localStorage.setItem('locationRequested', 'true');
-          toast.success('Location enabled successfully!');
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('denied')) {
-            toast.info('Location permission denied. You can enable it later in Settings.');
-          }
-          localStorage.setItem('locationRequested', 'true');
-        }
-      }
-    };
-
-    autoRequestLocation();
-  }, [requestLocation, hasRequestedLocation]);
-
   const currentProfile = profiles?.find((profile) => !handledUserIds.has(profile.userId));
   const waitingForProfiles = isLoading || (!currentProfile && isFetching);
   const locationRequired =
