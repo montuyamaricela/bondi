@@ -13,8 +13,25 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const unreadOnly = searchParams.get('unreadOnly') === 'true';
+    const rawLimit = searchParams.get('limit');
+    const limit = rawLimit === null ? 20 : /^\d+$/.test(rawLimit) ? Number(rawLimit) : NaN;
+    const rawUnreadOnly = searchParams.get('unreadOnly');
+    if (
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100 ||
+      searchParams.getAll('limit').length > 1 ||
+      searchParams.getAll('unreadOnly').length > 1 ||
+      (rawUnreadOnly !== null && rawUnreadOnly !== 'true' && rawUnreadOnly !== 'false')
+    )
+      return NextResponse.json(
+        {
+          error: 'Use a notification limit from 1–100 and unreadOnly true or false.',
+          code: 'INVALID_NOTIFICATION_QUERY',
+        },
+        { status: 400 },
+      );
+    const unreadOnly = rawUnreadOnly === 'true';
 
     const where = {
       userId: session.user.id,
@@ -23,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     const notifications = await db.notification.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
     });
 
@@ -33,8 +50,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const notificationId = z
+  .string()
+  .min(1)
+  .max(128)
+  .refine((value) => value.trim().length > 0);
 const markAsReadSchema = z.object({
-  ids: z.union([z.string(), z.array(z.string())]),
+  ids: z.union([notificationId, z.array(notificationId).max(100)]),
   isRead: z.boolean(),
 });
 

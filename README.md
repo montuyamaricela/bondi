@@ -272,6 +272,12 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Notification lists preserve their 20-item default and accept only limits from 1–100.
+Bulk read-state changes accept up to 100 nonblank IDs of at most 128 characters;
+empty-array updates remain no-ops. Authenticated API cases cover invalid/duplicate
+parameters, cap boundaries, deterministic ties, owner-only reads and mixed foreign
+IDs, plus missing/expired sessions. Mark-all remains limited to the signed-in owner.
+
 Login preserves a safe internal return path and query through profile resolution
 and, when needed, onboarding. External/protocol-relative and auth-loop callbacks
 fall back to discovery. A failed profile request offers recovery instead of treating
