@@ -4,6 +4,12 @@ import type { Message, Conversation, SendMessageData } from './types';
 import { mergeSavedMessages } from './message-state';
 import { shareMessagePages } from './message-pages';
 import { uniquePageItems, type CursorPage } from '@/lib/pagination';
+import type { ChatOwner } from './activity-input';
+import { expectedChatOwner } from '@/lib/client/chat-activity';
+
+export function messageQueryKey(matchId: string | null, owner?: ChatOwner) {
+  return owner ? ['messages', matchId, owner.userId, owner.sessionId] : ['messages', matchId];
+}
 
 export function useConversations(search = '') {
   return useInfiniteQuery({
@@ -22,13 +28,13 @@ export function useConversations(search = '') {
   });
 }
 
-export function useMessages(matchId: string | null) {
+export function useMessages(matchId: string | null, owner?: ChatOwner) {
   return useInfiniteQuery({
-    queryKey: ['messages', matchId],
+    queryKey: messageQueryKey(matchId, owner),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) =>
       api.get<CursorPage<Message>>(
-        `/api/messages?${new URLSearchParams({ matchId: matchId ?? '', ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        `/api/messages?${new URLSearchParams({ matchId: matchId ?? '', ...(owner ? expectedChatOwner(owner) : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
         { signal },
       ),
     getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -49,11 +55,12 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: SendMessageData) => {
-      return await api.post<Message>('/api/messages', data);
+    retry: false,
+    mutationFn: async ({ signal, ...data }: SendMessageData & { signal: AbortSignal }) => {
+      return await api.post<Message>('/api/messages', data, { signal });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['messages', variables.matchId] });
+      if (variables.signal.aborted) return;
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });

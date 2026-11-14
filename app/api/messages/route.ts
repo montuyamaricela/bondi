@@ -7,6 +7,7 @@ import { getSocketInstance } from '@/lib/socket-instance';
 import { readPagination } from '@/lib/server/cursor-pagination';
 import { readMessageHistory } from '@/lib/server/message-history';
 import { handleApiError } from '@/lib/errors';
+import { assertOptionalChatOwner } from '@/lib/server/chat-activity';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
+    if (['expectedUserId', 'expectedSessionId'].some((key) => searchParams.getAll(key).length > 1))
+      return NextResponse.json({ error: 'Use one session owner' }, { status: 400 });
+    assertOptionalChatOwner(
+      { userId: session.user.id, sessionId: session.session.id },
+      Object.fromEntries(searchParams),
+    );
     const matchId = searchParams.get('matchId');
 
     if (!matchId) {
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid JSON', code: 'INVALID_MESSAGE' }, { status: 400 });
     }
+    assertOptionalChatOwner({ userId: session.user.id, sessionId: session.session.id }, body);
     const { message } = await writeMessage(session.user.id, body);
     wakeMessageDelivery(getSocketInstance());
     return NextResponse.json(message, { status: 201 });

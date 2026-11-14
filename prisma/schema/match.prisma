@@ -10,6 +10,7 @@ model Match {
   user1    User      @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
   user2    User      @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
   messages Message[]
+  typing   TypingLease[]
 
   @@unique([user1Id, user2Id])
   // SQL migration also enforces unordered pair uniqueness, including legacy orientation.

@@ -190,7 +190,7 @@ export function MessageBubble({
         >
           <span>{formattedTime}</span>
           {isOwnMessage && (
-            <span className="ml-1">
+            <span role="img" aria-label={messageReadAt ? 'Read' : 'Sent'} className="ml-1">
               {messageReadAt ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />}
             </span>
           )}

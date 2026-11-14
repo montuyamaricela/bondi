@@ -103,6 +103,60 @@ References: [database Broadcast](https://supabase.com/docs/guides/realtime/broad
 [native send implementation](https://github.com/supabase/realtime/blob/main/priv/repo/tenant_schema/realtime/functions/send.sql),
 [managed Cron](https://supabase.com/docs/guides/cron/quickstart).
 
+## HTTP chat commands and typing
+
+In native mode, chat sends, read receipts and typing use HTTP. A subscription outage
+does not disable durable sending: the accepted HTTP response supplies the canonical
+saved row, while private hints and authorized history repair missed updates.
+`Retry live updates` replaces the owned subscription; an expired/replaced session
+or denied match stops restricted actions and offers `Refresh chat`.
+
+Native message POSTs include `expectedUserId` and `expectedSessionId` with the
+existing content, optional owned file key and stable `clientRequestId`. GET history
+binds the same expected owner. A stale cookie/owner combination returns 409 without
+writing or returning another owner's result. Legacy requests without these fields
+remain supported for the outgoing transport. A failed/unconfirmed attempt keeps
+the draft and operation ID for manual retry; no invalid mutation retries
+automatically. Only the accepted current account/session/conversation/draft
+generation clears. Native message cache keys also include the account/session.
+
+`POST /api/matches/:matchId/read` requires those owner fields and 1–100 raw `ids`.
+All IDs must belong to this match; a mixed foreign batch fails atomically. Own-sent
+rows are ignored. Incoming unread rows receive one monotonic server timestamp;
+replays retain it. The bounded response contains `{updated, receipts:[{id,readAt}]}`.
+The browser marks mounted, visible history and merges canonical receipts by ID.
+Read receipts and typing require a live session and active membership every time;
+ended-match history remains readable without communication writes.
+
+`GET /api/matches/:matchId/typing` requires the two expected owner query parameters
+and returns only `{typing, expiresAt}` for the active peer. POST requires the owner,
+owned live `leaseId`, a chat-view UUID `viewId`, positive integer `sequence` and
+boolean `typing`. Client actor/timestamp/expiry fields are rejected. The server
+caps typing at five seconds and at the subscription/session expiry. Newer sequences
+replace older ones; a delayed start cannot override a newer stop. Multiple views
+combine using their effective expiry, without exposing peer session/device IDs.
+
+Typing sends are throttled to at most one start per second, stop after two seconds
+of idle input, and stop on send, hidden document, unmount or connection cleanup.
+The peer clears the indicator on the returned expiry even if a stop hint is missed.
+Abrupt loss therefore has a five-second typing bound; it is not instant disconnect
+detection. Only current ephemeral state and ordering markers are stored; there is
+no typing text or activity log.
+
+Private `TypingLease` rows retain ordering markers until their parent capability
+expires, preventing a delayed request from recreating a stopped view. Lease deletion
+cascades them. The owned `bondi-typing-retention` cron job removes at most 1000 rows
+per minute for expired capabilities/sessions, skipping locked rows and parents so
+renewal cannot lose ordering state. Typing writes hold the owned lease while
+checking/updating state. All HTTP writes serialize with unmatch; network publishing
+runs after the transaction. Lost receipt/typing hints repair through authorized
+current-state reads; they do not change already-persisted read receipts.
+
+The explicit ordinary-PostgreSQL UI still uses its legacy commands until retirement.
+Socket.IO continues to supply presence and other outgoing consumers in native mode
+until their dependent tickets land. This is a staged transition, with no automatic
+transport fallback or replacement event framework.
+
 ## Signing-key rotation
 
 Import a new standby ES256 key through Supabase's supported signing-key settings.

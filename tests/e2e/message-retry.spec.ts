@@ -139,6 +139,23 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     let joinProbeAcknowledged = false;
     let probeJoin: (() => void) | undefined;
     const operationIds: string[] = [];
+    const native = process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true';
+    if (native)
+      await page.route('**/api/messages', async (route) => {
+        if (route.request().method() !== 'POST') {
+          await route.continue();
+          return;
+        }
+        const payload = route.request().postDataJSON();
+        operationIds.push(payload.clientRequestId);
+        const response = await route.fetch();
+        if (!dropped && response.status() === 201) {
+          dropped = true;
+          await route.abort();
+          return;
+        }
+        await route.fulfill({ response });
+      });
     await page.route('**/socket.io/**', (route) =>
       dropped && !allowReconnect ? route.abort() : route.continue(),
     );
@@ -234,7 +251,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill(rejectedDraft);
     await page.getByRole('button', { name: 'Send message', exact: true }).click();
     await expect(page.getByRole('alert', { name: 'Message send error' })).toContainText(
-      'could not be sent',
+      native ? 'not confirmed' : 'could not be sent',
     );
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue(
       rejectedDraft,

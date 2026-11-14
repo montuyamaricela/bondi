@@ -46,6 +46,9 @@ export interface SendMessageData {
   matchId: string;
   content: string;
   clientRequestId?: string;
+  file?: { key: string };
+  expectedUserId?: string;
+  expectedSessionId?: string;
 }
 
 export interface TypingUser {

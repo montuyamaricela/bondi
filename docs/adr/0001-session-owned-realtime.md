@@ -24,6 +24,8 @@ and validates trusted top-level claims against the live session and topic. The
 only supported native-schema modification is a SELECT policy on
 `realtime.messages`; application tables remain Prisma-owned and API-denied.
 
-Socket.IO remains the explicit command transport during the dependent migration
-slices. The separately enabled Supabase owner has no transport fallback. Remove
+Native chat commands use authenticated HTTP, with private hints prompting authorized
+reads. Socket.IO remains for the ordinary command path and outgoing presence
+consumers during the dependent migration slices. The separately enabled Supabase
+owner has no transport fallback. Remove
 the old owner after HTTP commands, durable delivery and privacy behavior migrate.
