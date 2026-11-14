@@ -1,6 +1,7 @@
 import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
+import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
 
 export type ServerToClientEvents = {
@@ -82,10 +83,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
         return next(new Error('Authentication required'));
       }
 
-      const cookieName =
-        process.env.NODE_ENV === 'production'
-          ? '__Secure-better-auth.session_token'
-          : 'better-auth.session_token';
+      const cookieName = getCookies(auth.options).sessionToken.name;
 
       const session = await auth.api.getSession({
         headers: {

@@ -15,18 +15,9 @@ export function useSignupMutation() {
         throw new Error(signupResponse.error.message || 'Failed to create account');
       }
 
-      const loginResponse = await signIn.email({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (loginResponse.error) {
-        throw new Error(loginResponse.error.message || 'Account created but failed to sign in');
-      }
-
       return {
         success: true,
-        user: loginResponse.data?.user,
+        user: signupResponse.data?.user,
       };
     },
   });

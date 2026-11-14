@@ -3,6 +3,7 @@ import next from 'next';
 import { parse } from 'url';
 import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
+import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
 import { setSocketInstance } from '@/lib/socket-instance';
 import type {
@@ -56,10 +57,7 @@ app.prepare().then(() => {
         return next(new Error('Authentication required'));
       }
 
-      const cookieName =
-        process.env.NODE_ENV === 'production'
-          ? '__Secure-better-auth.session_token'
-          : 'better-auth.session_token';
+      const cookieName = getCookies(auth.options).sessionToken.name;
 
       const session = await auth.api.getSession({
         headers: {
