@@ -307,6 +307,20 @@ bypass redaction; these correlation logs do not provide a private exception arch
 in the formerly unguarded application routes. Existing profile/discovery/message
 JSON errors retain their existing safe 400 contracts. Authentication runs first.
 
+Discovery exposes native Like/Pass controls alongside the existing drag gestures.
+Both paths call the same identity-based action handler and share its immediate guard
+and pending state. Visible buttons provide 48-pixel touch height and stay disabled
+until a write resolves; rejected actions retain the same candidate. Password visibility
+is a named, tabbable native button, and selected-option removal names the actual item.
+Those controls and gallery openers retain visible keyboard focus styling.
+
+`Lightbox` uses the local Radix-backed Dialog primitive for focus entry/trapping,
+Escape, background isolation and scroll-lock cleanup. Arrow navigation stays on the
+dialog content and preserves wraparound. The gallery opens it programmatically, so
+the viewer snapshots the prior focused element on mount and restores that connected
+opener through `onCloseAutoFocus`. No global key/overflow manager remains in the
+viewer. Explicit close/previous/next controls support keyboard and touch.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

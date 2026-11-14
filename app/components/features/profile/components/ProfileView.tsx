@@ -197,7 +197,7 @@ export function ProfileView({ profile }: ProfileViewProps) {
                     type="button"
                     aria-label={`View photo ${index + 1}`}
                     key={photo.id}
-                    className="relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-opacity hover:opacity-90"
+                    className="relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary-main focus-visible:outline-none"
                     onClick={() => openLightbox(index)}
                   >
                     <Image

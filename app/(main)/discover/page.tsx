@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -20,11 +20,20 @@ export default function DiscoverPage() {
   });
   const [handledUserIds, setHandledUserIds] = useState<Set<string>>(() => new Set());
   const actionInFlight = useRef(false);
+  const keyboardAction = useRef<HTMLButtonElement | null>(null);
   const [matchNotification, setMatchNotification] = useState<MatchNotification | null>(null);
 
   const { data: profiles, isLoading, isFetching, error } = useDiscoverProfiles(filters);
   const likeActionMutation = useLikeActionMutation();
   const { showMatchNotification, permission } = useNotifications();
+
+  useLayoutEffect(() => {
+    if (likeActionMutation.isPending) return;
+    const trigger = keyboardAction.current;
+    keyboardAction.current = null;
+    // Disabling a pending action can drop focus; preserve deliberate focus moves.
+    if (trigger?.isConnected && document.activeElement === document.body) trigger.focus();
+  }, [likeActionMutation.isPending]);
   const currentProfile = profiles?.find((profile) => !handledUserIds.has(profile.userId));
   const waitingForProfiles = isLoading || (!currentProfile && isFetching);
   const locationRequired =
@@ -124,18 +133,49 @@ export default function DiscoverPage() {
         )}
 
         {!waitingForProfiles && !error && currentProfile && (
-          <div className="relative h-[calc(100vh-200px)] w-full max-w-md">
-            <SwipeCard
-              key={currentProfile.id}
-              profile={currentProfile}
-              isPending={likeActionMutation.isPending}
-              onLike={() => {
-                void handleAction('LIKE');
-              }}
-              onPass={() => {
-                void handleAction('PASS');
-              }}
-            />
+          <div className="flex w-full max-w-md flex-col gap-4">
+            <div className="relative h-[calc(100dvh-280px)] min-h-80">
+              <SwipeCard
+                key={currentProfile.id}
+                profile={currentProfile}
+                isPending={likeActionMutation.isPending}
+                onLike={() => {
+                  keyboardAction.current = null;
+                  void handleAction('LIKE');
+                }}
+                onPass={() => {
+                  keyboardAction.current = null;
+                  void handleAction('PASS');
+                }}
+              />
+            </div>
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 flex-1"
+                aria-label="Pass profile"
+                disabled={likeActionMutation.isPending}
+                onClick={(event) => {
+                  keyboardAction.current = event.detail === 0 ? event.currentTarget : null;
+                  void handleAction('PASS');
+                }}
+              >
+                Pass
+              </Button>
+              <Button
+                type="button"
+                className="h-12 flex-1"
+                aria-label="Like profile"
+                disabled={likeActionMutation.isPending}
+                onClick={(event) => {
+                  keyboardAction.current = event.detail === 0 ? event.currentTarget : null;
+                  void handleAction('LIKE');
+                }}
+              >
+                Like
+              </Button>
+            </div>
           </div>
         )}
       </div>

@@ -334,3 +334,21 @@ successful no-ops; within-bound duplicates, a single ID and mixed owned/foreign 
 retain existing ownership behavior. Mark-all modifies only the actor's unread set.
 The pre-fix list regression stops at a negative limit returning 200, before reaching
 the oversized test values; no production-sized query is used for reproduction.
+
+### Keyboard, dialog and emulated touch verification
+
+`tests/e2e/keyboard-controls.spec.ts` uses native Tab/Shift+Tab, Enter, Space and arrow
+keys. Password visibility retains its value without submitting login; a named Music
+removal preserves other selections and saves the owned profile. Discovery buttons
+exercise a scoped PostgreSQL Like-insert failure, retry and an actual held response:
+both controls remain disabled until the accepted write resolves, then Like/Pass
+records and candidate progression agree. Unique synthetic interests isolate ranking
+without deleting other test data.
+
+The photo dialog initially focuses Close, traps forward/backward Tab, navigates/wraps
+images, closes by Escape or its button, and restores the opener and body overflow
+through repeated openings. A 390×844 Chromium touch context taps discovery actions
+with at least 44-pixel targets and navigates/closes photos. Native avatar image URLs
+and Next image-optimization requests are both fulfilled with a synthetic pixel in
+these cases; no provider asset is used. These checks establish targeted browser
+behavior, not assistive-device certification or physical-device coverage.
