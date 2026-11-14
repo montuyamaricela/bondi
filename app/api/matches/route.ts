@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: 'asc' },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
               select: {
                 url: true,
               },
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: 'asc' },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
               select: {
                 url: true,
               },

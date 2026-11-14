@@ -47,7 +47,7 @@ export async function discoverProfiles(current: Profile, filters: DiscoverFilter
           select: {
             files: {
               select: { id: true, url: true, key: true },
-              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
             },
           },
         },

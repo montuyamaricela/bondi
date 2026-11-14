@@ -249,3 +249,21 @@ privacy, notification and presence requests plus safe validation failure.
 non-Error/SyntaxError handling while retaining trusted validation, access, conflict
 and photo-deletion-style retry responses. It does not assert third-party SDK logging
 or a separate private telemetry pipeline. Raw Prisma query/error logging is disabled.
+
+### Profile-photo quota and ordering verification
+
+`tests/e2e/profile-photos.spec.ts` exercises both actual upload completion callbacks
+against PostgreSQL. Twelve concurrent calls accept exactly six registered photos,
+with distinct sequential append positions. Owned replay at capacity returns the
+same row; foreign claims fail without writes. Repeated single-photo requests use
+the same cap; deletion permits another append without reusing a conflicting order.
+The authenticated UploadThing handler uses a synthetic token and controlled metadata
+fetch to verify remaining-capacity rejection before provider contact, session identity,
+anonymous denial and expired-session denial. No real provider asset is contacted.
+
+An authenticated profile reorder is read through discovery, owned/public profiles,
+incoming likes, match creation, match list/detail and conversations. A browser checks
+the displayed primary photo while intercepting image optimization requests with a
+synthetic pixel. Legacy ties resolve by ID. These checks cover gallery registration,
+not provider-side orphan cleanup or signed webhook delivery. Uploads that race past
+preflight may be rejected at completion after a provider object already exists.

@@ -1,94 +1,38 @@
 import { createUploadthing, type FileRouter } from 'uploadthing/next';
 import { UploadThingError } from 'uploadthing/server';
 import { getServerSession } from '@/lib/session';
-import { db } from '@/lib/db';
+import { checkProfilePhotoCapacity, registerProfilePhoto } from '@/lib/server/profile-photos';
 import { registerMessageAttachment } from '@/lib/server/messages';
 
 const f = createUploadthing();
 
+async function authorizeProfileUpload({ req, files }: { req: Request; files: readonly unknown[] }) {
+  const session = await getServerSession(req.headers);
+  if (!session?.user) throw new UploadThingError({ code: 'FORBIDDEN', message: 'Unauthorized' });
+  await checkProfilePhotoCapacity(session.user.id, files.length);
+  return { userId: session.user.id };
+}
+
 export const uploadRouter = {
-  // Profile image uploader - single image for main profile picture
+  // Both entry points count toward the same owned gallery limit.
   profileImage: f({ image: { maxFileSize: '8MB', maxFileCount: 1 } })
-    .middleware(async ({ req }) => {
-      const session = await getServerSession(req.headers);
-
-      if (!session?.user) {
-        throw new UploadThingError({ code: 'FORBIDDEN', message: 'Unauthorized' });
-      }
-
-      return { userId: session.user.id };
-    })
+    .middleware(authorizeProfileUpload)
     .onUploadComplete(async ({ metadata, file }) => {
-      const uploadedFile = await db.file.create({
-        data: {
-          userId: metadata.userId,
-          url: file.url,
-          key: file.key,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        },
-      });
-
-      return { url: file.url, key: file.key, fileId: uploadedFile.id };
+      const saved = await registerProfilePhoto(metadata.userId, file);
+      return { url: saved.url, key: saved.key, fileId: saved.id };
     }),
-
-  // Profile photos uploader - multiple images for profile gallery (up to 6)
   profilePhotos: f({ image: { maxFileSize: '8MB', maxFileCount: 6 } })
-    .middleware(async ({ req }) => {
-      try {
-        const session = await getServerSession(req.headers);
-
-        if (!session?.user) {
-          console.error('Upload failed: No session found');
-          throw new UploadThingError({ code: 'FORBIDDEN', message: 'Unauthorized' });
-        }
-
-        console.log('Upload authorized for user:', session.user.id);
-        return { userId: session.user.id };
-      } catch (error) {
-        console.error('Upload middleware error:', error);
-        throw error;
-      }
-    })
+    .middleware(authorizeProfileUpload)
     .onUploadComplete(async ({ metadata, file }) => {
-      try {
-        console.log('Upload complete, saving to DB:', file.name);
-
-        const maxOrderFile = await db.file.findFirst({
-          where: { userId: metadata.userId },
-          orderBy: { order: 'desc' },
-          select: { order: true },
-        });
-
-        const nextOrder = (maxOrderFile?.order ?? -1) + 1;
-
-        const uploadedFile = await db.file.create({
-          data: {
-            userId: metadata.userId,
-            url: file.url,
-            key: file.key,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            order: nextOrder,
-          },
-        });
-
-        console.log('File saved to DB with ID:', uploadedFile.id);
-
-        return {
-          url: file.url,
-          key: file.key,
-          fileId: uploadedFile.id,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        };
-      } catch (error) {
-        console.error('Upload onUploadComplete error:', error);
-        throw error;
-      }
+      const saved = await registerProfilePhoto(metadata.userId, file);
+      return {
+        url: saved.url,
+        key: saved.key,
+        fileId: saved.id,
+        name: saved.name,
+        size: saved.size,
+        type: saved.type,
+      };
     }),
 
   // Message attachment uploader - images and files for chat messages

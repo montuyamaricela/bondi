@@ -171,6 +171,20 @@ to these expression/partial index definitions in migration SQL; tests exercise t
 against PostgreSQL. Duplicate preflight checks stop migration
 for a separately reviewed repair plan; they do not delete/reassign history.
 
+`lib/server/profile-photos.ts` owns the shared six-photo gallery limit for both
+UploadThing profile entry points. Middleware rejects requests exceeding current
+remaining capacity before provider authorization. Completion locks the account,
+returns the canonical row for an owned replay, checks the total again and appends
+a unique next order in one transaction. The profile editor takes the same lock,
+so complete reorders and appends serialize. Foreign-key replay claims fail closed.
+Raw upload diagnostics are disabled; private filenames and keys are not logged.
+Every gallery/primary-photo query uses saved order then ID, including discovery,
+profiles, matching responses and inboxes. Legacy order ties remain deterministic;
+legacy over-cap galleries remain readable/reorderable and reject further additions.
+The limit governs registered gallery rows. Concurrent provider authorizations are
+not reservations: an upload rejected at completion can leave an unregistered remote
+object. Provider-side orphan cleanup is outside this metadata repair.
+
 `lib/server/profile-photo-delete.ts` owns photo deletion ordering: validate the key,
 resolve an owned File, require storage confirmation, then remove owned metadata.
 Missing configuration, SDK failure/negative confirmation and database cleanup failure
@@ -193,7 +207,7 @@ including an empty set only for an empty gallery. Ownership/set validation, acco
 name, profile and every order update share the transaction. Missing concurrent file
 updates abort it. Returned photos reflect the same transaction. Failed writes leave
 prior state intact; explicit conflicts ask the editor to refresh saved photos.
-The six-photo upload quota and callback ordering remain the separate #34 slice.
+Both profile uploaders enforce the six-photo quota through the shared registration operation.
 
 Onboarding waits for a resolved session before mounting its account-keyed form.
 `lib/client/profile-drafts.ts` owns draft key names and cleanup: retain only the
