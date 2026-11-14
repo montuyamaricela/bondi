@@ -321,6 +321,12 @@ the viewer snapshots the prior focused element on mount and restores that connec
 opener through `onCloseAutoFocus`. No global key/overflow manager remains in the
 viewer. Explicit close/previous/next controls support keyboard and touch.
 
+The landing page describes the implemented shared-interest/hobby/preference matching
+and age/distance filters without claiming a learned recommendation model. How we do
+it uses a native section anchor; the existing How It Works section accepts keyboard
+focus and clears the fixed navigation with a scroll margin. Get started is a single
+signup link, without a nested button. Public navigation does not create a session.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,
