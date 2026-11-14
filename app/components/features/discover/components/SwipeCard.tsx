@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { Heart, MapPin, Briefcase, Check } from 'lucide-react';
+import { Heart, MapPin, Briefcase } from 'lucide-react';
 import type { DiscoverableProfile } from '../types';
 import { formatDistance } from '@/lib/geolocation';
 import { getInitials } from '@/lib/utils/initials';
@@ -117,15 +117,12 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
 
         {/* Profile Info - Absolute positioned over image */}
         <div className="absolute right-0 bottom-0 left-0 z-20 space-y-4 p-6">
-          {/* Name with Verification Badge and Details */}
+          {/* Name and Details */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <h2 className="text-3xl font-bold text-white">
                 {profile.name}, {profile.age}
               </h2>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-                <Check className="h-4 w-4 text-white" />
-              </div>
             </div>
 
             {/* Location, Distance and Relationship Type */}
