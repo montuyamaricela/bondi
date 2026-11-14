@@ -36,7 +36,7 @@ model MessageDelivery {
   // A live hint was attempted, or communication ended; this is not a read receipt.
   completedAt DateTime?
   attempts Int @default(0)
-  nextAttemptAt DateTime @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+  nextAttemptAt DateTime @default(dbgenerated("date_trunc('milliseconds', (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))"))
   createdAt DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)

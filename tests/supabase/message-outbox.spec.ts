@@ -3,6 +3,51 @@ import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
 import { assertTestDatabase } from '../helpers/test-database';
 
+test('new outbox intents are due in their accepting transaction at a rounding-up boundary', async () => {
+  if (!assertTestDatabase().native) throw new Error('Native Supabase required.');
+  const db = new PrismaClient({ log: [] });
+  const suffix = randomUUID();
+  const emails = [0, 1].map((index) => `bondi-e2e-${suffix}-precision-${index}@example.test`);
+  try {
+    const users = await Promise.all(emails.map((email) => db.user.create({ data: { email } })));
+    const match = await db.match.create({ data: { user1Id: users[0].id, user2Id: users[1].id } });
+    let exercised = false;
+    for (let attempt = 0; attempt < 50 && !exercised; attempt++) {
+      exercised = await db.$transaction(async (tx) => {
+        const [clock] = await tx.$queryRaw<Array<{ roundsUp: boolean }>>`SELECT
+          (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::timestamp(3)
+            > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') AS "roundsUp"`;
+        if (!clock.roundsUp) return false;
+        const message = await tx.message.create({
+          data: {
+            matchId: match.id,
+            senderId: users[0].id,
+            content: 'Synthetic precision boundary.',
+          },
+        });
+        await tx.messageDelivery.create({ data: { messageId: message.id, userId: users[1].id } });
+        const [intent] = await tx.$queryRaw<Array<{ due: boolean }>>`SELECT
+          "nextAttemptAt" <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') AS due
+          FROM "MessageDelivery" WHERE "messageId" = ${message.id} AND "userId" = ${users[1].id}`;
+        expect(intent.due).toBe(true);
+        const [dispatch] = await tx.$queryRaw<Array<{ processed: number }>>`
+          SELECT bondi_private.dispatch_message_hints(${message.id}) AS processed`;
+        expect(dispatch.processed).toBe(1);
+        expect(
+          await tx.messageDelivery.findUniqueOrThrow({
+            where: { messageId_userId: { messageId: message.id, userId: users[1].id } },
+          }),
+        ).toMatchObject({ attempts: 1, completedAt: expect.any(Date) });
+        return true;
+      });
+    }
+    expect(exercised, 'exercise a real transaction whose millisecond cast rounds up').toBe(true);
+  } finally {
+    await db.user.deleteMany({ where: { email: { in: emails } } });
+    await db.$disconnect();
+  }
+});
+
 test('native managed outbox bounds claims, skips locked work and suppresses ended matches', async () => {
   if (!assertTestDatabase().native) throw new Error('Native Supabase required.');
   const db = new PrismaClient({ log: [] });

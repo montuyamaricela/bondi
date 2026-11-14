@@ -49,7 +49,9 @@ Because `realtime.send` warns and returns on insert failure, the dispatcher veri
 that its opaque hint was inserted before completing that intent.
 
 The `bondi-message-delivery` pg_cron job runs once per second. Each invocation claims
-at most 100 due intents with `FOR UPDATE SKIP LOCKED`. A failed intent rolls back its
+at most 100 due intents with `FOR UPDATE SKIP LOCKED`. New intent timestamps truncate
+to milliseconds so column rounding cannot place them after their accepting
+transaction's clock. A failed intent rolls back its
 native enqueues, increments `attempts` and reschedules with exponential backoff capped
 at 60 seconds; other intents continue. Pending work survives application/job restart.
 No network request runs while holding these database locks. Monitor pending count,
