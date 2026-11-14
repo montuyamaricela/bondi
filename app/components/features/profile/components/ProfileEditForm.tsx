@@ -8,6 +8,7 @@ import { useProfileUpdateMutation } from '@/lib/client/profile';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { FetchError } from '@/lib/fetch-wrapper';
 import {
   Form,
   FormControl,
@@ -65,7 +66,17 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
       toast.success('Profile updated successfully!');
       router.push('/profile');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      const photoConflict =
+        error instanceof FetchError &&
+        error.data &&
+        typeof error.data === 'object' &&
+        'code' in error.data &&
+        (error.data.code === 'INVALID_PHOTO_ORDER' || error.data.code === 'PHOTO_ORDER_CHANGED');
+      toast.error(
+        photoConflict
+          ? 'Your saved photos changed. Refresh this page and try again.'
+          : 'Failed to update profile. Please try again.',
+      );
     }
   };
 
@@ -105,7 +116,11 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
                       type="number"
                       placeholder="Your age"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      value={Number.isFinite(field.value) ? field.value : ''}
+                      min={18}
+                      max={100}
+                      step={1}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
                       className="bg-bg-input text-text-heading"
                     />
                   </FormControl>

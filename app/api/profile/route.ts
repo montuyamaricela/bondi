@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
-import { db } from '@/lib/db';
 import { profileSetupSchema } from '@/app/components/features/auth/validation';
 import { profileEditSchema } from '@/app/components/features/profile/validation';
 import { handleApiError } from '@/lib/errors';
-import { getProfileByUserId } from '@/lib/server/profile';
+import { getProfileByUserId, createProfile, updateProfile } from '@/lib/server/profile';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +29,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
     const result = profileSetupSchema.safeParse(body);
     if (!result.success) {
@@ -46,49 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const {
-      name,
-      age,
-      bio,
-      gender,
-      location,
-      interests,
-      hobbies,
-      lookingFor,
-      relationshipType,
-      genderPreference,
-    } = result.data;
-
-    const existingProfile = await db.profile.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (existingProfile) {
-      return NextResponse.json({ error: 'Profile already exists' }, { status: 400 });
-    }
-
-    if (name !== session.user.name) {
-      await db.user.update({
-        where: { id: session.user.id },
-        data: { name },
-      });
-    }
-
-    const profile = await db.profile.create({
-      data: {
-        userId: session.user.id,
-        name,
-        age,
-        bio,
-        gender,
-        location,
-        interests,
-        hobbies,
-        lookingFor,
-        relationshipType,
-        genderPreference,
-      },
-    });
+    const profile = await createProfile(session.user.id, result.data);
 
     return NextResponse.json(
       {
@@ -116,7 +78,12 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
     const result = profileEditSchema.safeParse(body);
     if (!result.success) {
@@ -132,79 +99,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const existingProfile = await db.profile.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!existingProfile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    }
-
-    const {
-      name,
-      age,
-      bio,
-      gender,
-      location,
-      interests,
-      hobbies,
-      lookingFor,
-      relationshipType,
-      genderPreference,
-      photoKeys,
-    } = result.data;
-
-    if (name !== session.user.name) {
-      await db.user.update({
-        where: { id: session.user.id },
-        data: { name },
-      });
-    }
-
-    const updatedProfile = await db.profile.update({
-      where: { userId: session.user.id },
-      data: {
-        name,
-        age,
-        bio,
-        gender,
-        location,
-        interests,
-        hobbies,
-        lookingFor,
-        relationshipType,
-        genderPreference,
-      },
-    });
-
-    if (photoKeys && photoKeys.length > 0) {
-      await Promise.all(
-        photoKeys.map((key, index) =>
-          db.file.updateMany({
-            where: {
-              userId: session.user.id,
-              key,
-            },
-            data: {
-              order: index,
-            },
-          }),
-        ),
-      );
-    }
-
-    const photos = await db.file.findMany({
-      where: { userId: session.user.id },
-      orderBy: { order: 'asc' },
-    });
-
-    return NextResponse.json({
-      success: true,
-      profile: {
-        ...updatedProfile,
-        photos,
-      },
-    });
+    const profile = await updateProfile(session.user.id, result.data);
+    return NextResponse.json({ success: true, profile });
   } catch (error) {
     return handleApiError(error);
   }

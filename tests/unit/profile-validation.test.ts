@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { profileEditSchema } from '../../app/components/features/profile/validation';
 import { profileSetupSchema, signupSchema } from '../../app/components/features/auth/validation';
 
 const profile = {
@@ -13,16 +14,28 @@ const profile = {
   genderPreference: 'EVERYONE',
 };
 
-test('profile setup accepts the adult age boundary and rejects a minor', () => {
-  assert.equal(profileSetupSchema.safeParse(profile).success, true);
-  const result = profileSetupSchema.safeParse({ ...profile, age: 17 });
-  assert.equal(result.success, false);
-  if (!result.success) assert.ok(result.error.issues.some(({ path }) => path[0] === 'age'));
+test('setup and edit accept adult age boundaries and reject minors or fractional ages', () => {
+  for (const schema of [profileSetupSchema, profileEditSchema]) {
+    assert.equal(schema.safeParse(profile).success, true);
+    assert.equal(schema.safeParse({ ...profile, age: 100 }).success, true);
+    for (const age of [17, 18.5, 101]) {
+      const result = schema.safeParse({ ...profile, age });
+      assert.equal(result.success, false);
+      if (!result.success) assert.ok(result.error.issues.some(({ path }) => path[0] === 'age'));
+    }
+  }
 });
 
-test('profile setup requires interests and hobbies', () => {
-  assert.equal(profileSetupSchema.safeParse({ ...profile, interests: [] }).success, false);
-  assert.equal(profileSetupSchema.safeParse({ ...profile, hobbies: [] }).success, false);
+test('setup and edit share collection bounds while retaining custom label values', () => {
+  for (const schema of [profileSetupSchema, profileEditSchema]) {
+    for (const field of ['interests', 'hobbies'] as const) {
+      for (const labels of [[], Array(11).fill('Music'), ['x'.repeat(101)], [' ']])
+        assert.equal(schema.safeParse({ ...profile, [field]: labels }).success, false);
+      const custom = ' A custom label ';
+      const valid = schema.parse({ ...profile, [field]: [custom] });
+      assert.deepEqual(valid[field], [custom]);
+    }
+  }
 });
 
 test('signup rejects mismatched confirmation and weak passwords', () => {
