@@ -15,6 +15,7 @@ import { User, Settings, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils/initials';
 import { useQueryClient } from '@tanstack/react-query';
+import { clearProfileSetupDrafts } from '@/lib/client/profile-drafts';
 
 export function ProfileMenu() {
   const { data: session, isPending: sessionLoading } = useSession();
@@ -43,6 +44,7 @@ export function ProfileMenu() {
   const userInitials = getInitials(user.name || user.email || 'User');
 
   const handleSignOut = async () => {
+    clearProfileSetupDrafts();
     queryClient.clear();
     await signOut();
     router.push('/login');

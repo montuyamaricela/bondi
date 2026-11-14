@@ -31,8 +31,8 @@ export function useLocalStorage<T>(
       }
 
       return parsedItem.data;
-    } catch (error) {
-      console.error(`Error loading localStorage key "${key}":`, error);
+    } catch {
+      console.error('Unable to load saved local data');
       return initialValue;
     }
   });
@@ -49,8 +49,8 @@ export function useLocalStorage<T>(
         };
         window.localStorage.setItem(key, JSON.stringify(storageValue));
       }
-    } catch (error) {
-      console.error(`Error saving localStorage key "${key}":`, error);
+    } catch {
+      console.error('Unable to save local data');
     }
   };
 
@@ -60,8 +60,8 @@ export function useLocalStorage<T>(
       if (typeof window !== 'undefined') {
         window.localStorage.removeItem(key);
       }
-    } catch (error) {
-      console.error(`Error clearing localStorage key "${key}":`, error);
+    } catch {
+      console.error('Unable to clear saved local data');
     }
   };
 

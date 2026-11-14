@@ -96,6 +96,15 @@ response permits retry after an earlier remote deletion. The photo manager keeps
 the visible photo on failure and offers retry feedback. There is no background queue;
 the owned File is the durable cleanup reference until completion.
 
+Onboarding waits for a resolved session before mounting its account-keyed form.
+`lib/client/profile-drafts.ts` owns draft key names and cleanup: retain only the
+current account's namespace, discard unowned legacy data, and clear all onboarding
+drafts on logout. The existing ten-minute storage expiration and form fields remain.
+Late form/upload writers cannot recreate drafts after completion/unmount; pending
+submission continuations and redirect timers stop when the account form unmounts.
+Private values and storage keys are omitted from error logs. Auth identity refresh
+on returning to a tab remounts the form when the account changes.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,
