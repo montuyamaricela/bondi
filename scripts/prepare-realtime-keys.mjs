@@ -21,7 +21,13 @@ if (!existsSync(path)) {
   }));
   writeFileSync(path, JSON.stringify(keys), { mode: 0o600, flag: 'wx' });
 }
-const keys = JSON.parse(readFileSync(path, 'utf8'));
+let keys;
+try {
+  keys = JSON.parse(readFileSync(path, 'utf8'));
+} catch {
+  console.error('The private local signing-key file is invalid; its contents are omitted.');
+  process.exit(1);
+}
 if (
   !Array.isArray(keys) ||
   keys.length !== 2 ||

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { supabaseFailureSymptoms } from './supabase-failure.mjs';
+import { supabaseFailureDetails, supabaseFailureSymptoms } from './supabase-failure.mjs';
 
 const action = process.argv[2];
 if (
@@ -42,6 +42,15 @@ if (result.status !== 0) {
     'Native setup diagnostic categories:',
     symptoms.length ? symptoms.join('; ') : 'unclassified failure',
   );
+  let privateKeys = [];
+  try {
+    const parsed = JSON.parse(readFileSync('supabase/signing_keys.json', 'utf8'));
+    if (Array.isArray(parsed)) privateKeys = parsed;
+  } catch {
+    /* Invalid key files must not expose JSON source in diagnostics. */
+  }
+  for (const detail of supabaseFailureDetails(result.stderr ?? '', privateKeys))
+    console.error(detail);
   console.error(
     `Local Supabase ${action} failed. Check Docker availability, disk space and container health; credential output is omitted.`,
   );

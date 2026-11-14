@@ -24,3 +24,24 @@ export function supabaseFailureSymptoms(output) {
     .filter(([, pattern]) => pattern.test(output))
     .map(([name]) => name);
 }
+
+export function supabaseFailureDetails(output, privateKeys) {
+  let redacted = output;
+  for (const key of privateKeys) {
+    if (!key || typeof key !== 'object') continue;
+    for (const field of ['d', 'x', 'y', 'k', 'p', 'q', 'dp', 'dq', 'qi']) {
+      if (typeof key[field] === 'string') redacted = redacted.replaceAll(key[field], '[redacted]');
+    }
+  }
+  redacted = redacted
+    .replace(/(?:https?|postgres(?:ql)?):\/\/[^\s"'<>]+/gi, '[endpoint]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[token]')
+    .replace(/sb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, '[api-key]')
+    .replace(/(?:password|secret|authorization|apikey)\s*[=:]\s*[^\s,;}]+/gi, '[credential]')
+    .replace(/[A-Za-z0-9_+/=-]{24,}/g, '[redacted]');
+  return redacted
+    .split('\n')
+    .filter((line) => /fatal|error|unhealthy|not healthy|failed/i.test(line))
+    .slice(-12)
+    .map((line) => line.slice(0, 500));
+}
