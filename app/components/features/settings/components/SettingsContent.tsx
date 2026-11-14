@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { User, Palette, Shield, MapPin } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { useGeolocation } from '@/app/components/hooks/useGeolocation';
+import { useDeviceLocation } from '../hooks/useDeviceLocation';
+import { useSession } from '@/lib/auth-client';
 import { Button } from '@/app/components/ui/button';
 import { api } from '@/lib/fetch-wrapper';
 import { useSocket } from '@/app/components/providers/socket-provider';
@@ -25,17 +26,30 @@ interface SettingsContentProps {
   } | null;
 }
 
-export function SettingsContent({ user, profile }: SettingsContentProps) {
-  const { socket, isConnected } = useSocket();
+export function SettingsContent(props: SettingsContentProps) {
   const router = useRouter();
-  const { requestLocation, isLoading: isLoadingLocation } = useGeolocation();
+  const { data: session, isPending } = useSession();
+  const accountId = session?.user.id;
+  useEffect(() => {
+    if (!isPending && accountId && accountId !== props.user.id) router.refresh();
+  }, [accountId, isPending, props.user.id, router]);
+  if (isPending || !accountId || accountId !== props.user.id)
+    return <p role="status">Checking your account settings...</p>;
+  return <SettingsForAccount key={props.user.id} {...props} />;
+}
 
+function SettingsForAccount({ user, profile }: SettingsContentProps) {
+  const { socket, isConnected } = useSocket();
+  const location = useDeviceLocation(user.id);
   const [privacySettings, setPrivacySettings] = useState({
     showOnlineStatus: profile?.showOnlineStatus ?? true,
     showDistance: profile?.showDistance ?? true,
   });
-
-  const [hasLocation, setHasLocation] = useState(Boolean(profile?.latitude && profile?.longitude));
+  const savedLocation = location.savedLocation ?? profile;
+  const hasLocation = savedLocation?.latitude != null && savedLocation.longitude != null;
+  const updatedAt = savedLocation?.lastLocationUpdate
+    ? new Date(savedLocation.lastLocationUpdate).toISOString()
+    : null;
 
   const updatePrivacySetting = async (key: 'showOnlineStatus' | 'showDistance', value: boolean) => {
     try {
@@ -53,25 +67,6 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
     } catch {
       setPrivacySettings(privacySettings);
       toast.error('Failed to update privacy setting');
-    }
-  };
-
-  const handleUpdateLocation = async () => {
-    try {
-      const coords = await requestLocation();
-      await api.patch('/api/profile/location', {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-      setHasLocation(true);
-      toast.success('Location updated successfully');
-      router.refresh();
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('Failed to update location');
-      }
     }
   };
 
@@ -149,21 +144,55 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
           <div>
             <p className="mb-3 text-sm text-text-body">
               {hasLocation
-                ? 'Your location is set. Update it to show accurate distance to other users.'
-                : 'Enable location to show distance to other users.'}
+                ? 'Your saved last-known location is used to find nearby people. Refresh it when you want.'
+                : 'Enable device location to find nearby people and show distance. Location is requested only when you choose Enable or Refresh.'}
             </p>
-            {profile?.lastLocationUpdate && (
+            {hasLocation && (
               <p className="mb-3 text-xs text-text-muted">
-                Last updated: {new Date(profile.lastLocationUpdate).toLocaleDateString()}
+                Last updated:{' '}
+                {updatedAt ? (
+                  <time dateTime={updatedAt}>
+                    {new Date(updatedAt).toLocaleString('en-US', { timeZone: 'UTC' })} UTC
+                  </time>
+                ) : (
+                  'Unknown'
+                )}
               </p>
             )}
-            <Button onClick={handleUpdateLocation} disabled={isLoadingLocation} size="sm">
-              {isLoadingLocation
-                ? 'Getting location...'
-                : hasLocation
-                  ? 'Update Location'
-                  : 'Enable Location'}
-            </Button>
+            {location.error && (
+              <p role="alert" className="mb-3 text-sm text-error">
+                {location.error}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  void location.refreshLocation();
+                }}
+                disabled={location.isLoading}
+                size="sm"
+              >
+                {location.phase === 'requesting'
+                  ? 'Getting location...'
+                  : location.phase === 'saving'
+                    ? 'Saving location...'
+                    : hasLocation
+                      ? 'Refresh Location'
+                      : 'Enable Location'}
+              </Button>
+              {location.canRetrySave && (
+                <Button
+                  onClick={() => {
+                    void location.retrySave();
+                  }}
+                  disabled={location.isLoading}
+                  size="sm"
+                  variant="outline"
+                >
+                  Retry save
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

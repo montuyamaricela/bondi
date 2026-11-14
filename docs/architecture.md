@@ -230,8 +230,29 @@ Zero coordinates are valid; missing distance is excluded only under a radius.
 Explicit serialization omits coordinates/auth data and suppresses numeric distance
 when hidden. This display setting still allows location to influence ranking.
 The browser exposes a settings link or filter removal for LOCATION_REQUIRED and
-does not retry deterministic client errors. Location acquisition remains a separate
-slice (#35).
+does not retry deterministic client errors. Device acquisition and saving use the account-owned Settings lifecycle below.
+
+`lib/geolocation.ts` keeps shared coordinates/distance calculations pure;
+`lib/client/geolocation.ts` owns the one-shot browser adapter. Device location is
+requested only by the Settings Enable/Refresh action, never on discovery entry.
+The adapter requires a secure context, normalizes native denial/unavailable/timeout
+codes and requests a fresh fix with a ten-second timeout and no background watch.
+See [MDN getCurrentPosition](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition)
+and [native error codes](https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError/code).
+
+The settings feature's `useDeviceLocation` owns acquisition, saving and an in-memory
+retry fix. Its immediate guard prevents overlapping actions; cleanup aborts the
+owned HTTP wait and ignores late device results. A retry after save failure uses
+the same fix until an explicit refresh or unmount. Settings waits for matching
+client/server account identity and keys its state by user, refreshing server props
+when identity changes. The current client sends `expectedUserId`; the location route
+rejects a mismatch with 409 `ACCOUNT_CHANGED` before writing. This optional compatibility
+field detects stale clients and never selects the write owner: the server session does.
+An already accepted request may still commit for its original owner after a browser
+abort. Successful saves invalidate discovery/profile queries and refresh server props.
+Saved coordinates, including zero, remain labeled last-known with the server timestamp
+(or Unknown for a legacy missing timestamp), without an arbitrary expiry. Coordinates
+stay private; city-only modes and clearing are the separate #43 feature.
 
 The discovery page owns the current candidate by user identity, choosing the first
 unhandled result instead of advancing an independent array index. Confirmed actions
