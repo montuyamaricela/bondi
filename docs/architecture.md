@@ -138,11 +138,16 @@ order. `conversations.ts` computes latest-message-or-match activity before limit
 then reads selected matches' existing summaries/unread counts. Inbox substring search
 filters the participant's conversations before pagination and binds its bookmark to
 the normalized search; a debounced input stays mounted through loading and errors.
-`received-likes.ts` pages the existing incoming-like audience, retaining active-match
-exclusions. Clients expose continuation and retry controls rather than fetching all
+`received-likes.ts` excludes the viewer's already handled LIKE/PASS directions before
+pagination, while retaining active-match exclusions. Clients expose continuation and retry controls rather than fetching all
 pages automatically. Inbox/like pages deduplicate by stable ID when live ordering
-changes; invalidation refreshes the loaded window. These reads do not change
-eligibility or retention. Query budgets and measured limits are in `docs/tooling.md`.
+changes; invalidation refreshes the loaded window. These reads preserve privacy and stored interactions. Query budgets and measured limits are in `docs/tooling.md`.
+
+A confirmed LIKE/PASS cancels older received-like fetches and removes that target
+from every loaded cursor page before invalidating the usual lists. The native
+query's abort signal prevents a pre-action snapshot from restoring the card.
+Failed writes leave the existing card intact. This changes actionable eligibility
+and cache state, not stored interactions: passes are never reset and no undo is added.
 
 `lib/server/match-access.ts` owns member authorization and idempotent unmatching.
 `lib/server/socket-live-match.ts` shares the room/read/typing handlers across the

@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import type { CursorPage } from '@/lib/pagination';
 import { api, FetchError } from '@/lib/fetch-wrapper';
 import type {
   DiscoverableProfile,
@@ -41,7 +42,22 @@ export function useLikeActionMutation() {
     mutationFn: async (data: LikeActionRequest) => {
       return await api.post<LikeActionResponse>('/api/discover', data);
     },
-    onSuccess: () => {
+    onSuccess: async (_data, { targetUserId }) => {
+      // Discard older snapshots before removing a confirmed action from every loaded page.
+      await queryClient.cancelQueries({ queryKey: ['receivedLikes'] });
+      queryClient.setQueriesData<InfiniteData<CursorPage<{ userId: string }>, string | null>>(
+        { queryKey: ['receivedLikes'] },
+        (previous) =>
+          previous
+            ? {
+                ...previous,
+                pages: previous.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((user) => user.userId !== targetUserId),
+                })),
+              }
+            : previous,
+      );
       queryClient.invalidateQueries({ queryKey: ['discover-profiles'] });
       queryClient.invalidateQueries({ queryKey: ['receivedLikes'] });
       queryClient.invalidateQueries({ queryKey: ['matches'] });

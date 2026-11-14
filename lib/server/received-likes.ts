@@ -9,6 +9,10 @@ export function receivedLikesQuery(userId: string, { limit, cursor }: Pagination
   return Prisma.sql`SELECT l."id", l."createdAt" FROM "Like" l
     WHERE l."targetUserId" = ${userId} AND l."action" = 'LIKE'
     AND NOT EXISTS (
+      SELECT 1 FROM "Like" handled WHERE handled."userId" = ${userId}
+      AND handled."targetUserId" = l."userId"
+    )
+    AND NOT EXISTS (
       SELECT 1 FROM "Match" m WHERE m."status" = 'ACTIVE' AND
       ((m."user1Id" = ${userId} AND m."user2Id" = l."userId") OR
        (m."user2Id" = ${userId} AND m."user1Id" = l."userId"))

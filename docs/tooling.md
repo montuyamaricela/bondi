@@ -285,3 +285,19 @@ without another PATCH. Missing/expired sessions, invalid/out-of-range coordinate
 malformed JSON remain rejected; a forged body owner cannot select another profile.
 Native GPS/permission dialogs and mobile hardware are outside these callback-controlled
 cases. Browser abort cannot undo an HTTP write already accepted for its original owner.
+
+### Received-like action verification
+
+`tests/e2e/received-like-actions.spec.ts` proves that prior PASS and LIKE directions
+are excluded before the page limit, leaving an eligible older incoming like visible.
+The authenticated API preserves stored interactions, rejects PASS-to-LIKE changes,
+keeps same-action replay idempotent and rejects missing/expired sessions. A query
+owner parameter cannot grant another account's list.
+
+The browser first encounters a scoped PostgreSQL Like-insert failure and retains
+the actionable card. A successful action then triggers a held real list response;
+a second successful pass removes its card while the newer GET is also held. Releasing
+the older snapshot cannot restore it, and a reload plus direct API read agree.
+The fixture uses normal mutation invalidation rather than changing the application's
+disabled window-focus refetch policy. No undo, interaction reset or schema change is
+introduced. Existing compound Like uniqueness supports the handled-direction lookup.
