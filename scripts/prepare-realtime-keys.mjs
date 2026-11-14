@@ -11,12 +11,12 @@ if (
 }
 const path = 'supabase/signing_keys.json';
 if (!existsSync(path)) {
-  const keys = Array.from({ length: 2 }, () => ({
+  const keys = Array.from({ length: 2 }, (_, index) => ({
     ...generateKeyPairSync('ec', { namedCurve: 'P-256' }).privateKey.export({ format: 'jwk' }),
     kid: randomUUID(),
     alg: 'ES256',
     use: 'sig',
-    key_ops: ['sign', 'verify'],
+    key_ops: index === 0 ? ['sign', 'verify'] : ['verify'],
     ext: true,
   }));
   writeFileSync(path, JSON.stringify(keys), { mode: 0o600, flag: 'wx' });
@@ -32,10 +32,26 @@ if (
   !Array.isArray(keys) ||
   keys.length !== 2 ||
   keys.some(
-    (key) => key.alg !== 'ES256' || key.kty !== 'EC' || key.crv !== 'P-256' || !key.kid || !key.d,
-  )
+    (key) =>
+      !key ||
+      typeof key !== 'object' ||
+      key.alg !== 'ES256' ||
+      key.kty !== 'EC' ||
+      key.crv !== 'P-256' ||
+      !key.kid ||
+      !key.d ||
+      !key.x ||
+      !key.y,
+  ) ||
+  !Array.isArray(keys[0]?.key_ops) ||
+  !keys[0].key_ops.includes('sign') ||
+  !Array.isArray(keys[1]?.key_ops) ||
+  keys[1].key_ops.includes('sign') ||
+  !keys[1].key_ops.includes('verify')
 ) {
-  console.error('The owned local key file must contain two private ES256 signing keys.');
+  console.error(
+    'Local ES256 keys require one active signer and one verification-only overlap key.',
+  );
   process.exit(1);
 }
 chmodSync(path, 0o600);

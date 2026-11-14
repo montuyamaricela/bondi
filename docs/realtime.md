@@ -42,8 +42,11 @@ rather than assuming a key-file edit immediately changes native trust. Revoke an
 old key only after native tests prove the new key works and old credentials have
 expired. Emergency revocation and production changes require the recorded target.
 
-The explicit local test preparation creates two private overlap keys, imports them
+The explicit local test preparation creates one active private signer and one
+verification-only overlap key (`key_ops: ["verify"]`), imports them
 through `auth.signing_keys_path`, and never rotates an existing file on startup.
+Native Auth rejects multiple keys advertising signing capability. The second key
+is accepted for verification so old/external credentials can overlap during rotation.
 Native tests verify both trusted keys, unknown-key denial, wrong issuer/audience,
 expired/revoked sessions, outsider topics and client publishing denial.
 

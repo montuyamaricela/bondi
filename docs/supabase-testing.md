@@ -25,7 +25,8 @@ npm run supabase:start
 npm run supabase:test:prepare
 ```
 
-Key preparation creates two private ES256 overlap keys in ignored
+Key preparation creates two private ES256 overlap keys (one active signer, one
+verification-only key) in ignored
 `supabase/signing_keys.json` (0600), without replacing an existing file. Native
 startup imports those keys explicitly. Never commit or print them. See the
 [subscription contract](realtime.md) for hosted configuration and rotation.
