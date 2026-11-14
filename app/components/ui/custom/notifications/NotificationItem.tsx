@@ -11,33 +11,19 @@ interface NotificationItemProps {
   onClick: () => void;
 }
 
-export function NotificationItem({
-  notification,
-  onMarkAsRead,
-  onClick,
-}: NotificationItemProps) {
+export function NotificationItem({ notification, onMarkAsRead, onClick }: NotificationItemProps) {
   const getIcon = () => {
     switch (notification.type) {
       case 'MATCH':
-        return (
-          <Heart className='h-4 w-4 text-pink-500 group-hover:text-white' />
-        );
+        return <Heart className="h-4 w-4 text-pink-500 group-hover:text-white" />;
       case 'MESSAGE':
-        return (
-          <MessageCircle className='h-4 w-4 text-blue-500 group-hover:text-white' />
-        );
+        return <MessageCircle className="h-4 w-4 text-blue-500 group-hover:text-white" />;
       case 'LIKE':
-        return (
-          <Heart className='h-4 w-4 text-red-500 group-hover:text-white' />
-        );
+        return <Heart className="h-4 w-4 text-red-500 group-hover:text-white" />;
       case 'PROFILE_VIEW':
-        return (
-          <Eye className='h-4 w-4 text-purple-500 group-hover:text-white' />
-        );
+        return <Eye className="h-4 w-4 text-purple-500 group-hover:text-white" />;
       default:
-        return (
-          <Bell className='h-4 w-4 text-text-muted group-hover:text-white' />
-        );
+        return <Bell className="h-4 w-4 text-text-muted group-hover:text-white" />;
     }
   };
 
@@ -50,52 +36,54 @@ export function NotificationItem({
 
   return (
     <div
-      onClick={handleClick}
       className={cn(
-        'group flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-primary-main rounded-b-lg',
-        !notification.isRead && 'bg-primary-main/5'
+        'group flex cursor-pointer items-start gap-3 rounded-b-lg p-3 transition-colors hover:bg-primary-main',
+        !notification.isRead && 'bg-primary-main/5',
       )}
     >
-      <div className='shrink-0 mt-1'>{getIcon()}</div>
+      <button
+        type="button"
+        onClick={handleClick}
+        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+      >
+        <span className="mt-1 shrink-0">{getIcon()}</span>
 
-      <div className='flex-1 min-w-0'>
-        <div className='flex items-start justify-between gap-2'>
-          <p
-            className={cn(
-              'text-sm group-hover:text-white',
-              notification.isRead
-                ? 'text-text-body'
-                : 'text-text-heading font-semibold'
+        <span className="min-w-0 flex-1">
+          <span className="flex items-start justify-between gap-2">
+            <span
+              className={cn(
+                'text-sm group-hover:text-white',
+                notification.isRead ? 'text-text-body' : 'font-semibold text-text-heading',
+              )}
+            >
+              {notification.title}
+            </span>
+            {!notification.isRead && (
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-main" />
             )}
-          >
-            {notification.title}
-          </p>
-          {!notification.isRead && (
-            <div className='shrink-0 w-2 h-2 rounded-full bg-primary-main mt-1' />
-          )}
-        </div>
+          </span>
 
-        <p className='text-xs text-text-muted group-hover:text-white mt-1 line-clamp-2'>
-          {notification.content}
-        </p>
+          <span className="mt-1 line-clamp-2 text-xs text-text-muted group-hover:text-white">
+            {notification.content}
+          </span>
 
-        <p className='text-xs text-text-muted group-hover:text-white mt-1'>
-          {formatDistanceToNow(new Date(notification.createdAt), {
-            addSuffix: true,
-          })}
-        </p>
-      </div>
-
+          <span className="mt-1 block text-xs text-text-muted group-hover:text-white">
+            {formatDistanceToNow(new Date(notification.createdAt), {
+              addSuffix: true,
+            })}
+          </span>
+        </span>
+      </button>
       {!notification.isRead && (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          type="button"
+          onClick={() => {
             onMarkAsRead(notification.id, true);
           }}
-          className='shrink-0 opacity-0 group-hover:opacity-100 transition-opacity'
-          title='Mark as read'
+          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          title="Mark as read"
         >
-          <Check className='h-4 w-4 text-text-muted group-hover:text-white' />
+          <Check className="h-4 w-4 text-text-muted group-hover:text-white" />
         </button>
       )}
     </div>

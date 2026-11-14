@@ -1,35 +1,32 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "@/lib/session"
-import { db } from "@/lib/db"
-import { handleApiError } from "@/lib/errors"
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(request.headers)
+    const session = await getServerSession(request.headers);
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const currentUserId = session.user.id
+    const currentUserId = session.user.id;
 
     const matchedUserIds = await db.match.findMany({
       where: {
         OR: [{ user1Id: currentUserId }, { user2Id: currentUserId }],
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
       select: { user1Id: true, user2Id: true },
-    })
+    });
 
-    const matchedIds = matchedUserIds.flatMap((match) => [
-      match.user1Id,
-      match.user2Id,
-    ])
+    const matchedIds = matchedUserIds.flatMap((match) => [match.user1Id, match.user2Id]);
 
     const likes = await db.like.findMany({
       where: {
         targetUserId: currentUserId,
-        action: "LIKE",
+        action: 'LIKE',
         userId: {
           notIn: matchedIds,
         },
@@ -40,21 +37,21 @@ export async function GET(request: NextRequest) {
             profile: true,
             files: {
               orderBy: {
-                order: "asc",
+                order: 'asc',
               },
             },
           },
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
-    })
+    });
 
     const likedByUsers = likes.map((like) => ({
       id: like.user.profile?.id,
       userId: like.userId,
-      name: like.user.profile?.name || "Unknown",
+      name: like.user.profile?.name || 'Unknown',
       age: like.user.profile?.age,
       bio: like.user.profile?.bio,
       gender: like.user.profile?.gender,
@@ -69,10 +66,10 @@ export async function GET(request: NextRequest) {
         key: file.key,
       })),
       likedAt: like.createdAt,
-    }))
+    }));
 
-    return NextResponse.json(likedByUsers)
+    return NextResponse.json(likedByUsers);
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

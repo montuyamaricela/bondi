@@ -1,22 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { BrowserNotifications, NotificationPermission } from '@/lib/notifications';
 
-export function useNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isSupported, setIsSupported] = useState(false);
+const permissionChanged = 'bondi:notification-permission';
 
-  useEffect(() => {
-    setIsSupported(BrowserNotifications.isSupported());
-    if (BrowserNotifications.isSupported()) {
-      setPermission(BrowserNotifications.getPermission());
-    }
-  }, []);
+function subscribe(onChange: () => void) {
+  window.addEventListener('focus', onChange);
+  window.addEventListener(permissionChanged, onChange);
+  return () => {
+    window.removeEventListener('focus', onChange);
+    window.removeEventListener(permissionChanged, onChange);
+  };
+}
+
+export function useNotifications() {
+  const isSupported = useSyncExternalStore(
+    subscribe,
+    () => BrowserNotifications.isSupported(),
+    () => false,
+  );
+  const permission = useSyncExternalStore<NotificationPermission>(
+    subscribe,
+    () => BrowserNotifications.getPermission(),
+    () => 'default',
+  );
 
   const requestPermission = async () => {
     const newPermission = await BrowserNotifications.requestPermission();
-    setPermission(newPermission);
+    window.dispatchEvent(new Event(permissionChanged));
     return newPermission;
   };
 
@@ -26,11 +38,7 @@ export function useNotifications() {
     }
   };
 
-  const showMessageNotification = (
-    senderName: string,
-    message: string,
-    senderImage?: string
-  ) => {
+  const showMessageNotification = (senderName: string, message: string, senderImage?: string) => {
     if (permission === 'granted') {
       BrowserNotifications.showMessageNotification(senderName, message, senderImage);
     }

@@ -1,12 +1,12 @@
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 
 /**
  * Formats a date to "Month DD, YYYY" format
  * Example: "October 31, 2025"
  */
 export function formatLongDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  return format(dateObj, 'MMMM dd, yyyy')
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'MMMM dd, yyyy');
 }
 
 /**
@@ -14,8 +14,8 @@ export function formatLongDate(date: Date | string): string {
  * Example: "October 31, 2025 at 2:30 PM"
  */
 export function formatLongDateTime(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  return format(dateObj, 'MMMM dd, yyyy \'at\' h:mm a')
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, "MMMM dd, yyyy 'at' h:mm a");
 }
 
 /**
@@ -23,8 +23,8 @@ export function formatLongDateTime(date: Date | string): string {
  * Example: "2 hours ago", "3 days ago"
  */
 export function formatRelativeTime(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  return formatDistanceToNow(dateObj, { addSuffix: true })
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return formatDistanceToNow(dateObj, { addSuffix: true });
 }
 
 /**
@@ -34,17 +34,17 @@ export function formatRelativeTime(date: Date | string): string {
  * - Older: "Month DD at HH:MM AM/PM"
  */
 export function formatChatDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   if (isToday(dateObj)) {
-    return format(dateObj, 'h:mm a')
+    return format(dateObj, 'h:mm a');
   }
 
   if (isYesterday(dateObj)) {
-    return format(dateObj, '\'Yesterday at\' h:mm a')
+    return format(dateObj, "'Yesterday at' h:mm a");
   }
 
-  return format(dateObj, 'MMM dd \'at\' h:mm a')
+  return format(dateObj, "MMM dd 'at' h:mm a");
 }
 
 /**
@@ -55,24 +55,22 @@ export function formatChatDate(date: Date | string): string {
  * - Older: "Matched on Month DD, YYYY"
  */
 export function formatMatchDate(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   if (isToday(dateObj)) {
-    return format(dateObj, '\'Matched today at\' h:mm a')
+    return format(dateObj, "'Matched today at' h:mm a");
   }
 
   if (isYesterday(dateObj)) {
-    return format(dateObj, '\'Matched yesterday at\' h:mm a')
+    return format(dateObj, "'Matched yesterday at' h:mm a");
   }
 
-  const now = new Date()
-  const daysDiff = Math.floor(
-    (now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24)
-  )
+  const now = new Date();
+  const daysDiff = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysDiff < 7) {
-    return format(dateObj, '\'Matched on\' EEEE \'at\' h:mm a')
+    return format(dateObj, "'Matched on' EEEE 'at' h:mm a");
   }
 
-  return format(dateObj, '\'Matched on\' MMMM dd, yyyy')
+  return format(dateObj, "'Matched on' MMMM dd, yyyy");
 }

@@ -2,11 +2,7 @@
 
 import { useSession, signOut } from '@/lib/auth-client';
 import { useProfileWithPhotosQuery } from '@/lib/client/profile';
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@/app/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,15 +18,16 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export function ProfileMenu() {
   const { data: session, isPending: sessionLoading } = useSession();
-  const { data: profileData, isPending: profileLoading } =
-    useProfileWithPhotosQuery(!!session?.user);
+  const { data: profileData, isPending: profileLoading } = useProfileWithPhotosQuery(
+    !!session?.user,
+  );
   const router = useRouter();
   const queryClient = useQueryClient();
 
   if (sessionLoading || profileLoading) {
     return (
-      <div className='flex items-center space-x-3'>
-        <div className='h-10 w-10 rounded-full bg-primary-main/10 animate-pulse' />
+      <div className="flex items-center space-x-3">
+        <div className="h-10 w-10 animate-pulse rounded-full bg-primary-main/10" />
       </div>
     );
   }
@@ -53,53 +50,44 @@ export function ProfileMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className='flex items-center outline-none focus:outline-none'>
-        <div className='flex items-center space-x-3 cursor-pointer rounded-lg p-1 md:px-3 md:py-2 transition-colors group'>
-          <Avatar className='h-10 w-10 border border-primary-main/40'>
+      <DropdownMenuTrigger className="flex items-center outline-none focus:outline-none">
+        <div className="group flex cursor-pointer items-center space-x-3 rounded-lg p-1 transition-colors md:px-3 md:py-2">
+          <Avatar className="h-10 w-10 border border-primary-main/40">
             <AvatarImage
               src={profilePicture || user.image || undefined}
               alt={user.name || 'User'}
-              className='w-full h-full object-cover '
+              className="h-full w-full object-cover"
             />
-            <AvatarFallback className='bg-primary-main text-primary-text'>
+            <AvatarFallback className="bg-primary-main text-primary-text">
               {userInitials}
             </AvatarFallback>
           </Avatar>
-          <div className='hidden md:flex flex-col items-end'>
-            <span className='text-sm font-medium text-text-heading group-hover:text-primary-main dark:group-hover:text-primary-text'>
+          <div className="hidden flex-col items-end md:flex">
+            <span className="text-sm font-medium text-text-heading group-hover:text-primary-main dark:group-hover:text-primary-text">
               {user.name || user.email}
             </span>
           </div>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align='end' className='w-56'>
+      <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <div className='flex flex-col space-y-1'>
-            <p className='text-sm font-medium'>{user.name || 'User'}</p>
-            <p className='text-xs text-text-muted'>{user.email}</p>
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium">{user.name || 'User'}</p>
+            <p className="text-xs text-text-muted">{user.email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => router.push('/profile')}
-          className='cursor-pointer'
-        >
-          <User className='mr-2 h-4 w-4' />
+        <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push('/settings')}
-          className='cursor-pointer'
-        >
-          <Settings className='mr-2 h-4 w-4' />
+        <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
+          <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleSignOut}
-          className='cursor-pointer text-error'
-        >
-          <LogOut className='mr-2 h-4 w-4' />
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-error">
+          <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

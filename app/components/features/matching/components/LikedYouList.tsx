@@ -17,26 +17,22 @@ export function LikedYouList() {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center p-12'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-main' />
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-main" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className='bg-bg-card rounded-lg p-12 text-center shadow-md'>
-        <p className='text-error text-lg'>Failed to load likes</p>
-        <p className='text-text-muted mt-2'>Please try again later</p>
+      <div className="rounded-lg bg-bg-card p-12 text-center shadow-md">
+        <p className="text-lg text-error">Failed to load likes</p>
+        <p className="mt-2 text-text-muted">Please try again later</p>
       </div>
     );
   }
 
-  const handleAction = async (
-    userId: string,
-    action: 'LIKE' | 'PASS',
-    userName: string
-  ) => {
+  const handleAction = async (userId: string, action: 'LIKE' | 'PASS', userName: string) => {
     setActingOnUser(userId);
     try {
       const response = await likeActionMutation.mutateAsync({
@@ -54,7 +50,7 @@ export function LikedYouList() {
         toast.success(`Passed on ${userName}`);
       }
       setActingOnUser(null);
-    } catch (error) {
+    } catch {
       toast.error(`Failed to ${action === 'LIKE' ? 'like' : 'pass'}`);
       setActingOnUser(null);
     }
@@ -62,13 +58,13 @@ export function LikedYouList() {
 
   if (!likedByUsers || likedByUsers.length === 0) {
     return (
-      <div className='bg-bg-card rounded-lg p-12 text-center '>
-        <p className='text-text-muted text-lg'>No one has liked you yet</p>
-        <p className='text-text-muted mt-2'>
+      <div className="rounded-lg bg-bg-card p-12 text-center">
+        <p className="text-lg text-text-muted">No one has liked you yet</p>
+        <p className="mt-2 text-text-muted">
           Keep swiping in{' '}
           <Link
-            href='/discover'
-            className='text-primary-main hover:underline dark:text-primary-text'
+            href="/discover"
+            className="text-primary-main hover:underline dark:text-primary-text"
           >
             Discover
           </Link>{' '}
@@ -79,74 +75,68 @@ export function LikedYouList() {
   }
 
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {likedByUsers.map((user) => (
         <div
           key={user.userId}
-          className='bg-bg-card border rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all'
+          className="overflow-hidden rounded-lg border bg-bg-card shadow-md transition-all hover:shadow-xl"
         >
-          <div className='aspect-4/3 relative overflow-hidden bg-bg-hover'>
+          <div className="relative aspect-4/3 overflow-hidden bg-bg-hover">
             {user.photos.length > 0 ? (
               <Image
                 src={user.photos[0].url}
                 alt={user.name}
                 fill
-                className='object-cover'
-                sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
             ) : (
-              <div className='w-full h-full bg-primary-main flex items-center justify-center'>
-                <span className='text-6xl font-bold text-primary-text'>
+              <div className="flex h-full w-full items-center justify-center bg-primary-main">
+                <span className="text-6xl font-bold text-primary-text">
                   {getInitials(user.name)}
                 </span>
               </div>
             )}
           </div>
-          <div className='p-4 flex flex-col'>
-            <div className='flex items-baseline gap-2 mb-2'>
-              <h3 className='text-xl font-semibold text-text-heading'>
-                {user.name}
-              </h3>
-              {user.age && <span className='text-text-body'>{user.age}</span>}
+          <div className="flex flex-col p-4">
+            <div className="mb-2 flex items-baseline gap-2">
+              <h3 className="text-xl font-semibold text-text-heading">{user.name}</h3>
+              {user.age && <span className="text-text-body">{user.age}</span>}
             </div>
-            <p className='text-text-muted text-sm line-clamp-2 mb-3 min-h-10'>
+            <p className="mb-3 line-clamp-2 min-h-10 text-sm text-text-muted">
               {user.bio || '\u00A0'}
             </p>
-            <div className='flex flex-wrap gap-1 mb-3 min-h-7'>
+            <div className="mb-3 flex min-h-7 flex-wrap gap-1">
               {user.interests &&
                 user.interests.length > 0 &&
                 user.interests.slice(0, 3).map((interest, index) => (
                   <span
                     key={index}
-                    className='text-xs bg-primary-main/10 text-primary-main px-2 py-1 flex items-center justify-center rounded-full'
+                    className="flex items-center justify-center rounded-full bg-primary-main/10 px-2 py-1 text-xs text-primary-main"
                   >
                     {interest}
                   </span>
                 ))}
             </div>
 
-            <div className='mt-4 pt-4 border-t border-border-main flex gap-2'>
+            <div className="mt-4 flex gap-2 border-t border-border-main pt-4">
               <Button
-                size='sm'
-                variant='outline'
+                size="sm"
+                variant="outline"
                 onClick={() => handleAction(user.userId, 'PASS', user.name)}
-                disabled={
-                  likeActionMutation.isPending && actingOnUser === user.userId
-                }
-                className='flex-1 text-text-muted border border-border-main hover:bg-primary-main/20 hover:text-primary-main'
+                disabled={likeActionMutation.isPending && actingOnUser === user.userId}
+                className="flex-1 border border-border-main text-text-muted hover:bg-primary-main/20 hover:text-primary-main"
               >
-                <X className='h-4 w-4 mr-2' />
+                <X className="mr-2 h-4 w-4" />
                 Pass
               </Button>
               <Button
-                size='sm'
+                size="sm"
                 onClick={() => handleAction(user.userId, 'LIKE', user.name)}
-                disabled={
-                  likeActionMutation.isPending && actingOnUser === user.userId
-                }
-                className='flex-1 bg-primary-main hover:bg-primary-hover text-white'
+                disabled={likeActionMutation.isPending && actingOnUser === user.userId}
+                className="flex-1 bg-primary-main text-white hover:bg-primary-hover"
               >
-                <Heart className='h-4 w-4 mr-2' />
+                <Heart className="mr-2 h-4 w-4" />
                 {likeActionMutation.isPending && actingOnUser === user.userId
                   ? 'Liking...'
                   : 'Like Back'}

@@ -29,10 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error('Fetch notifications error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch notifications' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
   }
 }
 
@@ -71,13 +68,10 @@ export async function PATCH(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: 'Failed to update notifications' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 });
   }
 }

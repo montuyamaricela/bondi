@@ -40,13 +40,14 @@ export function OnlineStatusIndicator({
     const checkInitialStatus = async () => {
       if (!isConnected) return;
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       try {
-        const response = await api.post<Record<string, boolean>>(
-          '/api/users/online-status',
-          { userIds: [userId] }
-        );
+        const response = await api.post<Record<string, boolean>>('/api/users/online-status', {
+          userIds: [userId],
+        });
         setIsOnline(response[userId] || false);
       } catch (error) {
         console.error('Failed to check initial online status:', error);
@@ -76,11 +77,7 @@ export function OnlineStatusIndicator({
 
   return (
     <div
-      className={cn(
-        'rounded-full bg-success',
-        sizeClasses[size],
-        'ring-2 ring-bg-card'
-      )}
+      className={cn('rounded-full bg-success', sizeClasses[size], 'ring-2 ring-bg-card')}
       title="Online"
     />
   );

@@ -1,7 +1,15 @@
-import { PrismaClient, Gender, RelationshipType, GenderPreference, LikeAction, Profile, User } from '@prisma/client'
-import { hashPassword } from 'better-auth/crypto'
+import {
+  PrismaClient,
+  Gender,
+  RelationshipType,
+  GenderPreference,
+  LikeAction,
+  Profile,
+  User,
+} from '@prisma/client';
+import { hashPassword } from 'better-auth/crypto';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 const users = [
   {
@@ -26,7 +34,7 @@ const users = [
     email: 'alex@example.com',
     name: 'Alex Thompson',
     age: 28,
-    bio: 'Designer and creative thinker. Passionate about art, design, and making meaningful connections. Let\'s chat!',
+    bio: "Designer and creative thinker. Passionate about art, design, and making meaningful connections. Let's chat!",
     gender: Gender.MALE,
     location: 'San Francisco, CA',
     interests: ['Design', 'Art', 'Photography', 'Travel'],
@@ -96,27 +104,27 @@ const users = [
       'https://picsum.photos/seed/charlie3/800/1000',
     ],
   },
-]
+];
 
 async function main() {
-  console.log('Starting seed...')
+  console.log('Starting seed...');
 
   // Clear existing data
-  console.log('Clearing existing data...')
-  await prisma.message.deleteMany()
-  await prisma.match.deleteMany()
-  await prisma.like.deleteMany()
-  await prisma.file.deleteMany()
-  await prisma.profile.deleteMany()
-  await prisma.session.deleteMany()
-  await prisma.account.deleteMany()
-  await prisma.user.deleteMany()
+  console.log('Clearing existing data...');
+  await prisma.message.deleteMany();
+  await prisma.match.deleteMany();
+  await prisma.like.deleteMany();
+  await prisma.file.deleteMany();
+  await prisma.profile.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
 
-  const hashedPassword = await hashPassword('password123')
-  const createdUsers: { user: User; profile: Profile }[] = []
+  const hashedPassword = await hashPassword('password123');
+  const createdUsers: { user: User; profile: Profile }[] = [];
 
   for (const userData of users) {
-    console.log(`Creating user: ${userData.name}`)
+    console.log(`Creating user: ${userData.name}`);
 
     const user = await prisma.user.create({
       data: {
@@ -124,7 +132,7 @@ async function main() {
         name: userData.name,
         emailVerified: true,
       },
-    })
+    });
 
     await prisma.account.create({
       data: {
@@ -133,7 +141,7 @@ async function main() {
         providerId: 'credential',
         password: hashedPassword,
       },
-    })
+    });
 
     const profile = await prisma.profile.create({
       data: {
@@ -149,7 +157,7 @@ async function main() {
         relationshipType: userData.relationshipType,
         genderPreference: userData.genderPreference,
       },
-    })
+    });
 
     for (let i = 0; i < userData.photos.length; i++) {
       await prisma.file.create({
@@ -161,22 +169,22 @@ async function main() {
           size: 1024 * 100,
           type: 'image/jpeg',
         },
-      })
+      });
     }
 
-    createdUsers.push({ user, profile })
+    createdUsers.push({ user, profile });
   }
 
-  console.log('Creating likes and matches...')
+  console.log('Creating likes and matches...');
 
   // Create mutual matches
   const matches = [
-    [0, 1],   // Maricel & Alex - mutual match
-    [0, 2],   // Maricel & Bob - mutual match
-    [3, 4],   // Alice & Charlie - mutual match
-  ]
+    [0, 1], // Maricel & Alex - mutual match
+    [0, 2], // Maricel & Bob - mutual match
+    [3, 4], // Alice & Charlie - mutual match
+  ];
 
-  const matchRecords = []
+  const matchRecords = [];
 
   for (const [idx1, idx2] of matches) {
     await prisma.like.create({
@@ -185,7 +193,7 @@ async function main() {
         targetUserId: createdUsers[idx2].user.id,
         action: LikeAction.LIKE,
       },
-    })
+    });
 
     await prisma.like.create({
       data: {
@@ -193,22 +201,22 @@ async function main() {
         targetUserId: createdUsers[idx1].user.id,
         action: LikeAction.LIKE,
       },
-    })
+    });
 
     const match = await prisma.match.create({
       data: {
         user1Id: createdUsers[idx1].user.id,
         user2Id: createdUsers[idx2].user.id,
       },
-    })
+    });
 
-    matchRecords.push({ match, user1Idx: idx1, user2Idx: idx2 })
+    matchRecords.push({ match, user1Idx: idx1, user2Idx: idx2 });
   }
 
   // Create one-sided like (Bob likes Alice, but Alice hasn't liked Bob yet)
   const nonMutualLikes = [
     [2, 3], // Bob likes Alice (Alice already matched with Charlie)
-  ]
+  ];
 
   for (const [idx1, idx2] of nonMutualLikes) {
     await prisma.like.create({
@@ -217,16 +225,16 @@ async function main() {
         targetUserId: createdUsers[idx2].user.id,
         action: LikeAction.LIKE,
       },
-    })
+    });
   }
 
-  console.log('Creating messages...')
+  console.log('Creating messages...');
 
   // Create messages for first 2 matches
   for (let i = 0; i < Math.min(2, matchRecords.length); i++) {
-    const { match, user1Idx, user2Idx } = matchRecords[i]
-    const user1 = createdUsers[user1Idx]
-    const user2 = createdUsers[user2Idx]
+    const { match, user1Idx, user2Idx } = matchRecords[i];
+    const user1 = createdUsers[user1Idx];
+    const user2 = createdUsers[user2Idx];
 
     await prisma.message.create({
       data: {
@@ -235,7 +243,7 @@ async function main() {
         content: `Hey ${user2.profile.name}! Great to match with you!`,
         readAt: new Date(),
       },
-    })
+    });
 
     await prisma.message.create({
       data: {
@@ -244,7 +252,7 @@ async function main() {
         content: `Hi ${user1.profile.name}! Thanks, I saw your profile and thought we might get along!`,
         readAt: new Date(),
       },
-    })
+    });
 
     await prisma.message.create({
       data: {
@@ -252,33 +260,33 @@ async function main() {
         senderId: user1.user.id,
         content: 'Would love to grab coffee sometime!',
       },
-    })
+    });
   }
 
-  console.log('Seed completed successfully!')
-  console.log(`Created ${createdUsers.length} users with profiles and photos`)
-  console.log(`Created ${matches.length} mutual matches`)
-  console.log(`Created ${nonMutualLikes.length} one-sided likes`)
-  console.log('\nTest credentials (all users have the same password):')
-  console.log('Password: password123')
-  console.log('\n📋 Users:')
-  console.log('1. montuyamaricela@gmail.com - Maricel Montuya (Female, 26) - 2 matches')
-  console.log('2. alex@example.com - Alex Thompson (Male, 28) - 1 match with Maricel')
-  console.log('3. bob@example.com - Bob Smith (Male, 28) - 1 match with Maricel')
-  console.log('4. alice@example.com - Alice Johnson (Female, 25) - 1 match with Charlie')
-  console.log('5. charlie@example.com - Charlie Davis (Male, 30) - 1 match with Alice')
-  console.log('\n🔥 Match Status:')
-  console.log('- Maricel ↔️ Alex (matched)')
-  console.log('- Maricel ↔️ Bob (matched)')
-  console.log('- Alice ↔️ Charlie (matched)')
-  console.log('- Bob → Alice (Bob likes Alice, waiting for reciprocal)')
+  console.log('Seed completed successfully!');
+  console.log(`Created ${createdUsers.length} users with profiles and photos`);
+  console.log(`Created ${matches.length} mutual matches`);
+  console.log(`Created ${nonMutualLikes.length} one-sided likes`);
+  console.log('\nTest credentials (all users have the same password):');
+  console.log('Password: password123');
+  console.log('\n📋 Users:');
+  console.log('1. montuyamaricela@gmail.com - Maricel Montuya (Female, 26) - 2 matches');
+  console.log('2. alex@example.com - Alex Thompson (Male, 28) - 1 match with Maricel');
+  console.log('3. bob@example.com - Bob Smith (Male, 28) - 1 match with Maricel');
+  console.log('4. alice@example.com - Alice Johnson (Female, 25) - 1 match with Charlie');
+  console.log('5. charlie@example.com - Charlie Davis (Male, 30) - 1 match with Alice');
+  console.log('\n🔥 Match Status:');
+  console.log('- Maricel ↔️ Alex (matched)');
+  console.log('- Maricel ↔️ Bob (matched)');
+  console.log('- Alice ↔️ Charlie (matched)');
+  console.log('- Bob → Alice (Bob likes Alice, waiting for reciprocal)');
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

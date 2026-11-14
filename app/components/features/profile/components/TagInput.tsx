@@ -37,13 +37,13 @@ export function TagInput({ value, onChange, placeholder }: TagInputProps) {
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center space-x-1 px-3 py-1 bg-primary-main/10 text-primary-main rounded-full text-sm"
+            className="inline-flex items-center space-x-1 rounded-full bg-primary-main/10 px-3 py-1 text-sm text-primary-main"
           >
             <span>{tag}</span>
             <button
               type="button"
               onClick={() => removeTag(tag)}
-              className="hover:text-primary-main transition-colors"
+              className="transition-colors hover:text-primary-main"
             >
               <X className="h-3 w-3" />
             </button>
@@ -56,12 +56,10 @@ export function TagInput({ value, onChange, placeholder }: TagInputProps) {
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="bg-bg-input border-border-input text-text-heading"
+        className="border-border-input bg-bg-input text-text-heading"
       />
 
-      <p className="text-xs text-text-muted">
-        Press Enter or comma to add a tag
-      </p>
+      <p className="text-xs text-text-muted">Press Enter or comma to add a tag</p>
     </div>
   );
 }

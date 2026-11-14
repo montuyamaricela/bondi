@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+playwright-report/
+test-results/
+.agent-runs/
+**/next-env.d.ts
+**/*.tsbuildinfo
+package-lock.json
+
+# Imported skills and provenance snapshots are integrity checked, not reformatted.
+.agents/
+.claude/skills/
+third-party/

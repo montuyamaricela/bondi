@@ -1,6 +1,6 @@
-"use client"
+'use client';
 
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,15 +8,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/app/components/ui/dialog"
-import { Button } from "@/app/components/ui/button"
+} from '@/app/components/ui/dialog';
+import { Button } from '@/app/components/ui/button';
 
 interface UnmatchModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
-  userName: string
-  isLoading?: boolean
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  userName: string;
+  isLoading?: boolean;
 }
 
 export function UnmatchModal({
@@ -28,19 +28,17 @@ export function UnmatchModal({
 }: UnmatchModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-bg-card border-border-main">
+      <DialogContent className="border-border-main bg-bg-card">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-error" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error/10">
+              <AlertTriangle className="h-6 w-6 text-error" />
             </div>
-            <DialogTitle className="text-text-heading">
-              Unmatch with {userName}?
-            </DialogTitle>
+            <DialogTitle className="text-text-heading">Unmatch with {userName}?</DialogTitle>
           </div>
-          <DialogDescription className="text-text-muted pt-4">
-            This action cannot be undone. You will no longer be able to message
-            each other, and this conversation will be archived.
+          <DialogDescription className="pt-4 text-text-muted">
+            This action cannot be undone. You will no longer be able to message each other, and this
+            conversation will be archived.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">
@@ -56,12 +54,12 @@ export function UnmatchModal({
             variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-error hover:bg-error/90 text-white"
+            className="bg-error text-white hover:bg-error/90"
           >
-            {isLoading ? "Unmatching..." : "Unmatch"}
+            {isLoading ? 'Unmatching...' : 'Unmatch'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

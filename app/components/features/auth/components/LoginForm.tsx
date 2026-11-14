@@ -60,38 +60,34 @@ export function LoginForm() {
       setApiError(
         `An unexpected error occurred. Please try again. ${
           error instanceof Error ? error.message : 'Unknown error'
-        }`
+        }`,
       );
     }
   };
 
   return (
-    <div className='max-w-md mx-auto rounded-2xl shadow-xl dark:shadow-none p-8 space-y-6'>
-      <div className='space-y-2 text-center'>
-        <h2 className='text-3xl font-bold text-text-heading'>Welcome back</h2>
-        <p className='text-text-muted'>Sign in to your account to continue</p>
+    <div className="mx-auto max-w-md space-y-6 rounded-2xl p-8 shadow-xl dark:shadow-none">
+      <div className="space-y-2 text-center">
+        <h2 className="text-3xl font-bold text-text-heading">Welcome back</h2>
+        <p className="text-text-muted">Sign in to your account to continue</p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {apiError && (
-            <div className='p-3 rounded-lg bg-error-light border border-error'>
-              <p className='text-sm text-error'>{apiError}</p>
+            <div className="rounded-lg border border-error bg-error-light p-3">
+              <p className="text-sm text-error">{apiError}</p>
             </div>
           )}
 
           <FormField
             control={form.control}
-            name='email'
+            name="email"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder='you@example.com'
-                    type='email'
-                    {...field}
-                  />
+                  <Input placeholder="you@example.com" type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -100,12 +96,12 @@ export function LoginForm() {
 
           <FormField
             control={form.control}
-            name='password'
+            name="password"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder='••••••••' {...field} />
+                  <PasswordInput placeholder="••••••••" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -114,27 +110,25 @@ export function LoginForm() {
 
           <FormField
             control={form.control}
-            name='rememberMe'
+            name="rememberMe"
             render={({ field }) => (
-              <FormItem className='flex items-center space-x-2'>
+              <FormItem className="flex items-center space-x-2">
                 <FormControl>
                   <input
-                    type='checkbox'
+                    type="checkbox"
                     checked={field.value}
                     onChange={field.onChange}
-                    className='w-4 h-4 rounded border-border-input text-primary-main focus:ring-primary-main bg-bg-input'
+                    className="h-4 w-4 rounded border-border-input bg-bg-input text-primary-main focus:ring-primary-main"
                   />
                 </FormControl>
-                <FormLabel className='font-normal cursor-pointer mt-0!'>
-                  Remember me
-                </FormLabel>
+                <FormLabel className="mt-0! cursor-pointer font-normal">Remember me</FormLabel>
               </FormItem>
             )}
           />
 
           <Button
-            type='submit'
-            className='w-full bg-primary-main text-primary-text hover:bg-primary-main/70'
+            type="submit"
+            className="w-full bg-primary-main text-primary-text hover:bg-primary-main/70"
             disabled={form.formState.isSubmitting}
           >
             {form.formState.isSubmitting ? 'Signing in...' : 'Sign in'}
@@ -142,11 +136,11 @@ export function LoginForm() {
         </form>
       </Form>
 
-      <div className='text-center text-sm'>
-        <span className='text-text-muted'>Don&apos;t have an account? </span>
+      <div className="text-center text-sm">
+        <span className="text-text-muted">Don&apos;t have an account? </span>
         <Link
-          href='/signup'
-          className='font-medium text-primary-main hover:text-primary-main/70 transition-colors dark:text-primary-text underline'
+          href="/signup"
+          className="font-medium text-primary-main underline transition-colors hover:text-primary-main/70 dark:text-primary-text"
         >
           Sign up
         </Link>

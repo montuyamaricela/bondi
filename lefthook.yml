@@ -1,0 +1,37 @@
+pre-commit:
+  piped: true
+  commands:
+    eslint:
+      priority: 1
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs}'
+      exclude:
+        - '.agents/**'
+        - '.claude/skills/**'
+        - 'third-party/**'
+        - '**/next-env.d.ts'
+      run: npm exec --no -- eslint --fix --no-warn-ignored --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+    prettier:
+      priority: 2
+      glob: '*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,yml,yaml}'
+      exclude:
+        - '.agents/**'
+        - '.claude/skills/**'
+        - 'third-party/**'
+        - '**/next-env.d.ts'
+        - 'package-lock.json'
+      run: npm exec --no -- prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+    feature-check:
+      priority: 3
+      run: node scripts/pre-commit-e2e.mjs
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: npm run typecheck
+    lint:
+      run: npm run lint
+    format:
+      run: npm run format:check

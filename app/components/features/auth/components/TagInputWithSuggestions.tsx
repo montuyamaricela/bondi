@@ -59,13 +59,13 @@ export function TagInputWithSuggestions({
             {value.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center space-x-1 px-3 py-1 bg-primary-main text-white rounded-full text-sm"
+                className="inline-flex items-center space-x-1 rounded-full bg-primary-main px-3 py-1 text-sm text-white"
               >
                 <span>{tag}</span>
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  className="hover:text-primary-text transition-colors"
+                  className="transition-colors hover:text-primary-text"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -79,20 +79,16 @@ export function TagInputWithSuggestions({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="bg-bg-input border-border-input text-text-heading"
+          className="border-border-input bg-bg-input text-text-heading"
           disabled={value.length >= maxTags}
         />
 
-        <p className="text-xs text-text-muted">
-          Press Enter or comma to add a tag
-        </p>
+        <p className="text-xs text-text-muted">Press Enter or comma to add a tag</p>
       </div>
 
       {availableSuggestions.length > 0 && (
         <div>
-          <p className="text-sm font-medium text-text-body mb-2">
-            Quick picks:
-          </p>
+          <p className="mb-2 text-sm font-medium text-text-body">Quick picks:</p>
           <div className="flex flex-wrap gap-2">
             {availableSuggestions.map((suggestion) => (
               <button
@@ -100,7 +96,7 @@ export function TagInputWithSuggestions({
                 type="button"
                 onClick={() => toggleSuggestion(suggestion)}
                 disabled={value.length >= maxTags}
-                className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-secondary-main text-secondary-text hover:bg-primary-main hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-full bg-secondary-main px-4 py-2 text-sm font-medium text-secondary-text transition-all hover:bg-primary-main hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {suggestion}
               </button>

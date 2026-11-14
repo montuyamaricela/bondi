@@ -35,13 +35,10 @@ export async function PATCH(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: 'Failed to update privacy settings' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update privacy settings' }, { status: 500 });
   }
 }

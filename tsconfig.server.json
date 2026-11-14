@@ -13,17 +13,6 @@
     "resolveJsonModule": true,
     "sourceMap": true
   },
-  "include": [
-    "server.ts",
-    "lib/**/*",
-    "prisma/**/*",
-    "types/**/*",
-    "socket-server.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    "dist",
-    "app"
-  ]
+  "include": ["server.ts", "lib/**/*", "prisma/**/*", "types/**/*", "socket-server.ts"],
+  "exclude": ["node_modules", ".next", "dist", "app"]
 }

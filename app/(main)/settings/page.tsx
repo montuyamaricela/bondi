@@ -25,8 +25,8 @@ export default async function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-bg-main py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-text-heading mb-8">Settings</h1>
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <h1 className="mb-8 text-3xl font-bold text-text-heading">Settings</h1>
         <SettingsContent user={session.user} profile={profile} />
       </div>
     </div>

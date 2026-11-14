@@ -6,8 +6,8 @@
  * - Server Components/API Routes/Middleware: Use `getServerSession()`
  */
 
-import { auth } from "@/lib/auth"
-import type { Session } from "@/lib/auth"
+import { auth } from '@/lib/auth';
+import type { Session } from '@/lib/auth';
 
 /**
  * Get session on the server side
@@ -48,8 +48,8 @@ import type { Session } from "@/lib/auth"
  * }
  */
 export async function getServerSession(headers: Headers): Promise<Session | null> {
-  const session = await auth.api.getSession({ headers })
-  return session
+  const session = await auth.api.getSession({ headers });
+  return session;
 }
 
 /**
@@ -70,4 +70,4 @@ export async function getServerSession(headers: Headers): Promise<Session | null
  *   return <div>Welcome, {session.user.name}!</div>
  * }
  */
-export { useSession } from "@/lib/auth-client"
+export { useSession } from '@/lib/auth-client';

@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCircle } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/app/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { Button } from '@/app/components/ui/button';
 import { Separator } from '@/app/components/ui/separator';
 import { Badge } from '@/app/components/ui/badge';
@@ -27,14 +23,11 @@ interface NotificationCenterProps {
   maxNotifications?: number;
 }
 
-export function NotificationCenter({
-  maxNotifications = 20,
-}: NotificationCenterProps) {
+export function NotificationCenter({ maxNotifications = 20 }: NotificationCenterProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { socket } = useSocket();
-  const { permission, showMatchNotification, showMessageNotification } =
-    useNotifications();
+  const { permission, showMatchNotification, showMessageNotification } = useNotifications();
 
   const {
     data: notificationsData,
@@ -45,8 +38,7 @@ export function NotificationCenter({
     limit: maxNotifications,
   });
 
-  const { data: unreadData, refetch: refetchUnreadCount } =
-    useUnreadNotificationsCount();
+  const { data: unreadData, refetch: refetchUnreadCount } = useUnreadNotificationsCount();
   const unreadCount = unreadData?.count || 0;
 
   const { mutate: markAsRead } = useMarkNotificationReadMutation();
@@ -62,10 +54,7 @@ export function NotificationCenter({
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewNotification = async (data: {
-      type: string;
-      matchId?: string;
-    }) => {
+    const handleNewNotification = async (data: { type: string; matchId?: string }) => {
       refetchNotifications();
       refetchUnreadCount();
 
@@ -122,54 +111,50 @@ export function NotificationCenter({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant='ghost'
-          size='icon'
-          className='relative rounded-full h-8 w-8 hover:bg-primary-main hover:text-white hover:[&_svg]:text-white transition-colors cursor-pointer dark:hover:bg-secondary-main dark:hover:text-secondary-text'
+          variant="ghost"
+          size="icon"
+          className="relative h-8 w-8 cursor-pointer rounded-full transition-colors hover:bg-primary-main hover:text-white dark:hover:bg-secondary-main dark:hover:text-secondary-text hover:[&_svg]:text-white"
         >
-          <Bell className='h-4 w-4' />
+          <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <Badge className='absolute -top-1 -right-1 h-4 min-w-4 flex items-center justify-center p-0 px-1 text-[10px] font-medium bg-error text-white border-0'>
+            <Badge className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center border-0 bg-error p-0 px-1 text-[10px] font-medium text-white">
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className='w-[calc(100vw-2rem)] md:w-[360px] p-0 rounded-xl shadow-xl border-border-main/40'
-        align='end'
+        className="w-[calc(100vw-2rem)] rounded-xl border-border-main/40 p-0 shadow-xl md:w-[360px]"
+        align="end"
       >
-        <div className='flex items-center justify-between p-3'>
-          <h3 className='text-sm font-semibold text-text-heading'>
-            Notifications
-          </h3>
+        <div className="flex items-center justify-between p-3">
+          <h3 className="text-sm font-semibold text-text-heading">Notifications</h3>
           {unreadCount > 0 && (
             <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7 hover:bg-primary-main hover:text-white hover:[&_svg]:text-white'
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 hover:bg-primary-main hover:text-white hover:[&_svg]:text-white"
               onClick={handleMarkAllAsRead}
-              title='Mark all as read'
+              title="Mark all as read"
             >
-              <CheckCircle className='h-4 w-4' />
+              <CheckCircle className="h-4 w-4" />
             </Button>
           )}
         </div>
 
         <Separator />
 
-        <div className='max-h-[60vh] md:max-h-[400px] overflow-y-auto'>
+        <div className="max-h-[60vh] overflow-y-auto md:max-h-[400px]">
           {isLoading ? (
             <NotificationListSkeleton />
           ) : isError ? (
-            <div className='p-4 text-center text-xs text-text-muted'>
-              <div className='rounded-lg bg-bg-input p-3'>
-                Failed to load notifications
-              </div>
+            <div className="p-4 text-center text-xs text-text-muted">
+              <div className="rounded-lg bg-bg-input p-3">Failed to load notifications</div>
             </div>
           ) : notificationsData?.notifications.length === 0 ? (
-            <div className='p-6 text-center'>
-              <Bell className='h-12 w-12 text-text-muted mx-auto mb-3 opacity-40' />
-              <p className='text-sm text-text-muted'>No notifications yet</p>
+            <div className="p-6 text-center">
+              <Bell className="mx-auto mb-3 h-12 w-12 text-text-muted opacity-40" />
+              <p className="text-sm text-text-muted">No notifications yet</p>
             </div>
           ) : (
             <div>
@@ -178,9 +163,7 @@ export function NotificationCenter({
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={handleMarkAsRead}
-                  onClick={() =>
-                    handleNotificationClick(notification.actionUrl)
-                  }
+                  onClick={() => handleNotificationClick(notification.actionUrl)}
                 />
               ))}
             </div>

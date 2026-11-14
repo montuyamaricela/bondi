@@ -66,13 +66,12 @@ export function ChatInterface({
   // Mark a message as read (helper function)
   const markMessageAsRead = useCallback(
     (messageId: string) => {
-      if (!socket || !isConnected || markedAsReadRef.current.has(messageId))
-        return;
+      if (!socket || !isConnected || markedAsReadRef.current.has(messageId)) return;
 
       markedAsReadRef.current.add(messageId);
       socket.emit('message:read', { messageId });
     },
-    [socket, isConnected]
+    [socket, isConnected],
   );
 
   // Socket connection and event handlers
@@ -111,9 +110,7 @@ export function ChatInterface({
 
     const handleMessageRead = (data: { messageId: string; readAt: string }) => {
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === data.messageId ? { ...msg, readAt: data.readAt } : msg
-        )
+        prev.map((msg) => (msg.id === data.messageId ? { ...msg, readAt: data.readAt } : msg)),
       );
     };
 
@@ -182,14 +179,7 @@ export function ChatInterface({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      !newMessage.trim() ||
-      isSending ||
-      !socket ||
-      !isConnected ||
-      isUnmatched
-    )
-      return;
+    if (!newMessage.trim() || isSending || !socket || !isConnected || isUnmatched) return;
 
     const messageContent = newMessage.trim();
     setNewMessage('');
@@ -210,20 +200,22 @@ export function ChatInterface({
 
   if (isLoading) {
     return (
-      <div className='flex-1 flex items-center justify-center'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-main' />
+      <div className="flex flex-1 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-main" />
       </div>
     );
   }
 
   return (
-    <div className='flex flex-col h-full overflow-hidden custom-scrollbar'>
-      <div className='flex-1 overflow-y-auto p-4 space-y-2'>
+    <div className="custom-scrollbar flex h-full flex-col overflow-hidden">
+      <div
+        role="log"
+        aria-label="Conversation messages"
+        className="flex-1 space-y-2 overflow-y-auto p-4"
+      >
         {messages.length === 0 ? (
-          <div className='flex items-center justify-center h-full'>
-            <p className='text-text-muted text-center'>
-              No messages yet. Start the conversation!
-            </p>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-center text-text-muted">No messages yet. Start the conversation!</p>
           </div>
         ) : (
           messages.map((message) => (
@@ -239,16 +231,16 @@ export function ChatInterface({
           ))
         )}
         {isTyping && (
-          <div className='flex justify-start mb-4'>
-            <div className='bg-bg-card text-text-muted border border-border-main rounded-2xl px-4 py-2 rounded-bl-sm'>
-              <div className='flex gap-1'>
-                <span className='w-2 h-2 bg-text-muted rounded-full animate-bounce'></span>
+          <div className="mb-4 flex justify-start">
+            <div className="rounded-2xl rounded-bl-sm border border-border-main bg-bg-card px-4 py-2 text-text-muted">
+              <div className="flex gap-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted"></span>
                 <span
-                  className='w-2 h-2 bg-text-muted rounded-full animate-bounce'
+                  className="h-2 w-2 animate-bounce rounded-full bg-text-muted"
                   style={{ animationDelay: '0.2s' }}
                 ></span>
                 <span
-                  className='w-2 h-2 bg-text-muted rounded-full animate-bounce'
+                  className="h-2 w-2 animate-bounce rounded-full bg-text-muted"
                   style={{ animationDelay: '0.4s' }}
                 ></span>
               </div>
@@ -258,44 +250,44 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className='border-t border-border-main bg-bg-card p-4'>
+      <div className="border-t border-border-main bg-bg-card p-4">
         {isUnmatched ? (
-          <div className='text-center py-3 px-4 bg-bg-hover border border-border-main rounded-lg'>
-            <p className='text-sm text-text-muted'>
-              You&apos;ve unmatched with this person. You can view chat history
-              but cannot send new messages.
+          <div className="rounded-lg border border-border-main bg-bg-hover px-4 py-3 text-center">
+            <p className="text-sm text-text-muted">
+              You&apos;ve unmatched with this person. You can view chat history but cannot send new
+              messages.
             </p>
           </div>
         ) : (
           <>
             {!isConnected && (
-              <div className='mb-2 text-center text-sm text-warning'>
-                Connecting to server...
-              </div>
+              <div className="mb-2 text-center text-sm text-warning">Connecting to server...</div>
             )}
-            <form onSubmit={handleSendMessage} className='flex gap-2'>
+            <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
-                type='text'
+                type="text"
                 value={newMessage}
                 onChange={(e) => handleInputChange(e.target.value)}
-                placeholder='Type a message...'
+                aria-label="Message"
+                placeholder="Type a message..."
                 className={cn(
-                  'flex-1 px-4 py-2 rounded-full border bg-bg-input text-text-body',
-                  'border-border-input focus:outline-none focus:border-primary-main',
-                  'placeholder:text-text-muted'
+                  'flex-1 rounded-full border bg-bg-input px-4 py-2 text-text-body',
+                  'border-border-input focus:border-primary-main focus:outline-none',
+                  'placeholder:text-text-muted',
                 )}
                 maxLength={5000}
                 disabled={isSending || !isConnected}
               />
               <Button
-                type='submit'
+                type="submit"
+                aria-label="Send message"
                 disabled={!newMessage.trim() || isSending || !isConnected}
-                className='rounded-full w-10 h-10 p-0 bg-primary-main text-primary-text hover:bg-primary-hover'
+                className="h-10 w-10 rounded-full bg-primary-main p-0 text-primary-text hover:bg-primary-hover"
               >
                 {isSending ? (
-                  <Loader2 className='w-5 h-5 animate-spin' />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className='w-5 h-5' />
+                  <Send className="h-5 w-5" />
                 )}
               </Button>
             </form>

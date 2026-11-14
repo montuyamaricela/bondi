@@ -1,11 +1,11 @@
-import type { SocketServer } from "./socket"
+import type { SocketServer } from './socket';
 
-let io: SocketServer | null = null
+let io: SocketServer | null = null;
 
 export function setSocketInstance(instance: SocketServer) {
-  io = instance
+  io = instance;
 }
 
 export function getSocketInstance(): SocketServer | null {
-  return io
+  return io;
 }

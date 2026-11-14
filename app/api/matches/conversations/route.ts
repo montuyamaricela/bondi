@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { handleApiError } from "@/lib/errors"
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers })
+    const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id
+    const userId = session.user.id;
 
     const matches = await db.match.findMany({
       where: {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
           },
         },
         messages: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: 'desc' },
           take: 1,
           select: {
             id: true,
@@ -82,14 +82,14 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { matchedAt: "desc" },
-    })
+      orderBy: { matchedAt: 'desc' },
+    });
 
     const conversations = matches.map((match) => {
-      const otherUser = match.user1Id === userId ? match.user2 : match.user1
-      const lastMessage = match.messages[0] || null
+      const otherUser = match.user1Id === userId ? match.user2 : match.user1;
+      const lastMessage = match.messages[0] || null;
 
-      const unreadCount = match._count.messages
+      const unreadCount = match._count.messages;
 
       return {
         matchId: match.id,
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         otherUser: {
           id: otherUser.id,
           userId: otherUser.id,
-          name: otherUser.profile?.name || otherUser.name || "Unknown",
+          name: otherUser.profile?.name || otherUser.name || 'Unknown',
           age: otherUser.profile?.age || null,
           image: otherUser.files[0]?.url || otherUser.image || null,
           showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
@@ -113,17 +113,17 @@ export async function GET(request: NextRequest) {
             }
           : null,
         unreadCount,
-      }
-    })
+      };
+    });
 
     conversations.sort((a, b) => {
-      const aTime = a.lastMessage?.createdAt || a.matchedAt
-      const bTime = b.lastMessage?.createdAt || b.matchedAt
-      return new Date(bTime).getTime() - new Date(aTime).getTime()
-    })
+      const aTime = a.lastMessage?.createdAt || a.matchedAt;
+      const bTime = b.lastMessage?.createdAt || b.matchedAt;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
+    });
 
-    return NextResponse.json(conversations)
+    return NextResponse.json(conversations);
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

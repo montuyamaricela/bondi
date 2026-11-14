@@ -13,18 +13,15 @@ interface ChatPageContentProps {
   currentUserId: string;
 }
 
-export function ChatPageContent({
-  matchId,
-  currentUserId,
-}: ChatPageContentProps) {
+export function ChatPageContent({ matchId, currentUserId }: ChatPageContentProps) {
   const router = useRouter();
   const { data: match, isLoading, error } = useMatch(matchId);
   const { data: currentUserProfile } = useProfileWithPhotosQuery();
 
   if (isLoading) {
     return (
-      <div className='h-[calc(100vh-4rem)] flex items-center justify-center bg-bg-main'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-main' />
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-bg-main">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-main" />
       </div>
     );
   }
@@ -35,23 +32,23 @@ export function ChatPageContent({
   }
 
   return (
-    <div className='h-[calc(100vh-10rem)] sm:h-[calc(100vh-4rem)] container mx-auto px-0 sm:px-6 lg:px-8 flex bg-bg-main'>
+    <div className="container mx-auto flex h-[calc(100vh-10rem)] bg-bg-main px-0 sm:h-[calc(100vh-4rem)] sm:px-6 lg:px-8">
       {/* Left Sidebar - Conversation List (hidden on mobile) */}
-      <div className='hidden md:flex w-96 border-r border-border-main bg-bg-card flex-col shadow-sm'>
-        <div className='p-4 border-b border-border-main bg-bg-card sticky top-0 z-10'>
-          <div className='flex items-center gap-2 mb-1'>
-            <MessageCircle className='w-6 h-6 text-primary-main dark:text-primary-text' />
-            <h1 className='text-2xl font-bold text-text-heading'>Messages</h1>
+      <div className="hidden w-96 flex-col border-r border-border-main bg-bg-card shadow-sm md:flex">
+        <div className="sticky top-0 z-10 border-b border-border-main bg-bg-card p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <MessageCircle className="h-6 w-6 text-primary-main dark:text-primary-text" />
+            <h1 className="text-2xl font-bold text-text-heading">Messages</h1>
           </div>
-          <p className='text-text-muted text-sm'>Chat with your matches</p>
+          <p className="text-sm text-text-muted">Chat with your matches</p>
         </div>
-        <div className='flex-1 overflow-hidden'>
+        <div className="flex-1 overflow-hidden">
           <ConversationList currentUserId={currentUserId} />
         </div>
       </div>
 
       {/* Right Side - Chat */}
-      <div className='flex-1 flex flex-col bg-bg-main h-full'>
+      <div className="flex h-full flex-1 flex-col bg-bg-main">
         <ChatHeader
           name={match.otherUser.name}
           age={match.otherUser.age}

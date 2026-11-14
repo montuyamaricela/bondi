@@ -6,7 +6,7 @@ import { UTApi } from 'uploadthing/server';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ key: string }> }
+  { params }: { params: Promise<{ key: string }> },
 ) {
   try {
     const session = await getServerSession(request.headers);

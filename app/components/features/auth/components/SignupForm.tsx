@@ -46,46 +46,42 @@ export function SignupForm() {
       const result = await signupMutation.mutateAsync(signupData);
       if (result.success) {
         // Small delay to ensure session cookie is set before navigation
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100);
+        });
         router.push('/profile/setup');
         router.refresh();
       }
     } catch (error) {
       setApiError(
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred. Please try again.'
+        error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
       );
     }
   };
 
   return (
-    <div className='max-w-md mx-auto bg-bg-card rounded-2xl shadow-xl p-8 space-y-6'>
-      <div className='space-y-2 text-center'>
-        <h2 className='text-3xl font-bold text-text-heading'>
-          Create your account
-        </h2>
-        <p className='text-text-muted'>
-          Start your journey to find meaningful connections
-        </p>
+    <div className="mx-auto max-w-md space-y-6 rounded-2xl bg-bg-card p-8 shadow-xl">
+      <div className="space-y-2 text-center">
+        <h2 className="text-3xl font-bold text-text-heading">Create your account</h2>
+        <p className="text-text-muted">Start your journey to find meaningful connections</p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {apiError && (
-            <div className='p-3 rounded-lg bg-error-light border border-error'>
-              <p className='text-sm text-error'>{apiError}</p>
+            <div className="rounded-lg border border-error bg-error-light p-3">
+              <p className="text-sm text-error">{apiError}</p>
             </div>
           )}
 
           <FormField
             control={form.control}
-            name='name'
+            name="name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input placeholder='John Doe' type='text' {...field} />
+                  <Input placeholder="John Doe" type="text" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -94,16 +90,12 @@ export function SignupForm() {
 
           <FormField
             control={form.control}
-            name='email'
+            name="email"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder='you@example.com'
-                    type='email'
-                    {...field}
-                  />
+                  <Input placeholder="you@example.com" type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -112,16 +104,15 @@ export function SignupForm() {
 
           <FormField
             control={form.control}
-            name='password'
+            name="password"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder='••••••••' {...field} />
+                  <PasswordInput placeholder="••••••••" {...field} />
                 </FormControl>
-                <FormDescription className='text-xs'>
-                  Must be at least 8 characters with uppercase, lowercase, and
-                  numbers
+                <FormDescription className="text-xs">
+                  Must be at least 8 characters with uppercase, lowercase, and numbers
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -130,12 +121,12 @@ export function SignupForm() {
 
           <FormField
             control={form.control}
-            name='confirmPassword'
+            name="confirmPassword"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder='••••••••' {...field} />
+                  <PasswordInput placeholder="••••••••" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -143,22 +134,20 @@ export function SignupForm() {
           />
 
           <Button
-            type='submit'
-            className='w-full bg-primary-main text-primary-text hover:bg-primary-main/70'
+            type="submit"
+            className="w-full bg-primary-main text-primary-text hover:bg-primary-main/70"
             disabled={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting
-              ? 'Creating account...'
-              : 'Create account'}
+            {form.formState.isSubmitting ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
       </Form>
 
-      <div className='text-center text-sm'>
-        <span className='text-text-muted'>Already have an account? </span>
+      <div className="text-center text-sm">
+        <span className="text-text-muted">Already have an account? </span>
         <Link
-          href='/login'
-          className='font-medium text-primary-main hover:text-primary-main/70 transition-colors dark:text-primary-text underline'
+          href="/login"
+          className="font-medium text-primary-main underline transition-colors hover:text-primary-main/70 dark:text-primary-text"
         >
           Sign in
         </Link>

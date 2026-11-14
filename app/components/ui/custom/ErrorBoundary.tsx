@@ -14,10 +14,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -38,22 +35,20 @@ export class ErrorBoundary extends React.Component<
       }
 
       return (
-        <div className="min-h-screen bg-bg-main flex items-center justify-center p-4">
-          <div className="bg-bg-card border border-border-main rounded-lg p-8 max-w-md w-full text-center">
-            <AlertTriangle className="h-16 w-16 text-error mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-text-heading mb-2">
-              Something went wrong
-            </h1>
-            <p className="text-text-muted mb-6">
-              We're sorry, but something unexpected happened. Please try
-              refreshing the page or contact support if the problem persists.
+        <div className="flex min-h-screen items-center justify-center bg-bg-main p-4">
+          <div className="w-full max-w-md rounded-lg border border-border-main bg-bg-card p-8 text-center">
+            <AlertTriangle className="mx-auto mb-4 h-16 w-16 text-error" />
+            <h1 className="mb-2 text-2xl font-bold text-text-heading">Something went wrong</h1>
+            <p className="mb-6 text-text-muted">
+              We&apos;re sorry, but something unexpected happened. Please try refreshing the page or
+              contact support if the problem persists.
             </p>
             {this.state.error && (
               <details className="mb-6 text-left">
-                <summary className="text-sm text-text-muted cursor-pointer mb-2">
+                <summary className="mb-2 cursor-pointer text-sm text-text-muted">
                   Error details
                 </summary>
-                <pre className="text-xs bg-bg-input p-3 rounded overflow-auto">
+                <pre className="overflow-auto rounded bg-bg-input p-3 text-xs">
                   {this.state.error.message}
                 </pre>
               </details>

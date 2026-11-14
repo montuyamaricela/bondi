@@ -1,20 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { handleApiError } from "@/lib/errors"
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ matchId: string }> }
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers })
+    const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { matchId } = await params
+    const { matchId } = await params;
 
     const match = await db.match.findUnique({
       where: { id: matchId },
@@ -33,7 +33,7 @@ export async function GET(
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -54,7 +54,7 @@ export async function GET(
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -62,20 +62,17 @@ export async function GET(
           },
         },
       },
-    })
+    });
 
     if (!match) {
-      return NextResponse.json({ error: "Match not found" }, { status: 404 })
+      return NextResponse.json({ error: 'Match not found' }, { status: 404 });
     }
 
     if (match.user1Id !== session.user.id && match.user2Id !== session.user.id) {
-      return NextResponse.json(
-        { error: "Not authorized to view this match" },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Not authorized to view this match' }, { status: 403 });
     }
 
-    const otherUser = match.user1Id === session.user.id ? match.user2 : match.user1
+    const otherUser = match.user1Id === session.user.id ? match.user2 : match.user1;
 
     return NextResponse.json({
       matchId: match.id,
@@ -83,13 +80,13 @@ export async function GET(
       status: match.status,
       otherUser: {
         id: otherUser.id,
-        name: otherUser.profile?.name || otherUser.name || "Unknown",
+        name: otherUser.profile?.name || otherUser.name || 'Unknown',
         age: otherUser.profile?.age || null,
         image: otherUser.files[0]?.url || otherUser.image || null,
         showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
       },
-    })
+    });
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

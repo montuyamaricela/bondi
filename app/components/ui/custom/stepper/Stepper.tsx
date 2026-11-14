@@ -96,13 +96,11 @@ export default function Stepper({
   };
 
   return (
-    <div className='w-full' {...rest}>
+    <div className="w-full" {...rest}>
       <div
-        className={`mx-auto w-full max-w-4xl rounded-2xl shadow-lg border bg-bg-card border-border-main ${stepCircleContainerClassName}`}
+        className={`mx-auto w-full max-w-4xl rounded-2xl border border-border-main bg-bg-card shadow-lg ${stepCircleContainerClassName}`}
       >
-        <div
-          className={`${stepContainerClassName} flex w-full items-center p-6`}
-        >
+        <div className={`${stepContainerClassName} flex w-full items-center p-6`}>
           {stepsArray.map((_, index) => {
             const stepNumber = index + 1;
             const isNotLastStep = index < totalSteps - 1;
@@ -126,9 +124,7 @@ export default function Stepper({
                     }}
                   />
                 )}
-                {isNotLastStep && (
-                  <StepConnector isComplete={currentStep > stepNumber} />
-                )}
+                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
               </React.Fragment>
             );
           })}
@@ -140,18 +136,14 @@ export default function Stepper({
 
         {!isCompleted && (
           <div className={`px-6 pb-6 ${footerClassName}`}>
-            <div
-              className={`mt-6 flex ${
-                currentStep !== 1 ? 'justify-between' : 'justify-end'
-              }`}
-            >
+            <div className={`mt-6 flex ${currentStep !== 1 ? 'justify-between' : 'justify-end'}`}>
               {currentStep !== 1 && (
                 <button
-                  type='button'
+                  type="button"
                   onClick={handleBack}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                     currentStep === 1
-                      ? 'pointer-events-none opacity-50 text-text-muted'
+                      ? 'pointer-events-none text-text-muted opacity-50'
                       : 'text-text-body hover:text-text-heading'
                   }`}
                   {...backButtonProps}
@@ -160,9 +152,9 @@ export default function Stepper({
                 </button>
               )}
               <button
-                type='button'
+                type="button"
                 onClick={isLastStep ? handleComplete : handleNext}
-                className='px-6 py-2 cursor-pointer rounded-md bg-primary-main text-primary-text hover:bg-primary-main/70 font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-main focus:ring-offset-2'
+                className="cursor-pointer rounded-md bg-primary-main px-6 py-2 text-sm font-medium text-primary-text transition-colors hover:bg-primary-main/70 focus:ring-2 focus:ring-primary-main focus:ring-offset-2 focus:outline-none"
                 {...nextButtonProps}
               >
                 {isLastStep ? 'Complete' : nextButtonText}
@@ -180,7 +172,7 @@ interface StepProps {
 }
 
 export function Step({ children }: StepProps) {
-  return <div className='px-6'>{children}</div>;
+  return <div className="px-6">{children}</div>;
 }
 
 interface StepIndicatorProps {
@@ -196,12 +188,7 @@ function StepIndicator({
   onClickStep,
   disableStepIndicators = false,
 }: StepIndicatorProps) {
-  const status =
-    currentStep === step
-      ? 'active'
-      : currentStep < step
-      ? 'inactive'
-      : 'complete';
+  const status = currentStep === step ? 'active' : currentStep < step ? 'inactive' : 'complete';
 
   const handleClick = () => {
     if (step !== currentStep && !disableStepIndicators) {
@@ -210,7 +197,11 @@ function StepIndicator({
   };
 
   return (
-    <div
+    <button
+      type="button"
+      disabled={disableStepIndicators}
+      aria-label={`Go to step ${step}`}
+      aria-current={status === 'active' ? 'step' : undefined}
       onClick={handleClick}
       className={`relative cursor-pointer outline-none focus:outline-none ${
         disableStepIndicators ? 'cursor-default' : 'hover:opacity-80'
@@ -219,21 +210,21 @@ function StepIndicator({
       <div
         className={`flex h-8 w-8 items-center justify-center rounded-full font-semibold transition-colors ${
           status === 'complete'
-            ? 'bg-primary-main text-primary-text '
-            : status === 'active'
             ? 'bg-primary-main text-primary-text'
-            : 'bg-bg-hover text-text-muted'
+            : status === 'active'
+              ? 'bg-primary-main text-primary-text'
+              : 'bg-bg-hover text-text-muted'
         }`}
       >
         {status === 'complete' ? (
-          <Check className='h-4 w-4' />
+          <Check className="h-4 w-4" />
         ) : status === 'active' ? (
-          <div className='h-3 w-3 rounded-full bg-primary-text' />
+          <div className="h-3 w-3 rounded-full bg-primary-text" />
         ) : (
-          <span className='text-sm'>{step}</span>
+          <span className="text-sm">{step}</span>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -243,9 +234,9 @@ interface StepConnectorProps {
 
 function StepConnector({ isComplete }: StepConnectorProps) {
   return (
-    <div className='relative mx-2 h-0.5 flex-1 overflow-hidden rounded bg-border-main'>
+    <div className="relative mx-2 h-0.5 flex-1 overflow-hidden rounded bg-border-main">
       <div
-        className={`absolute left-0 top-0 h-full transition-all duration-300 ${
+        className={`absolute top-0 left-0 h-full transition-all duration-300 ${
           isComplete ? 'w-full bg-primary-main' : 'w-0 bg-transparent'
         }`}
       />

@@ -1,11 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/app/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/app/components/ui/form';
 import { Sparkles } from 'lucide-react';
 import type { ProfileSetupFormData } from '../types';
 import { MultiSelect } from '@/app/components/ui/custom/MultiSelect';
@@ -17,22 +11,18 @@ interface InterestsHobbiesStepProps {
 
 export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center gap-2 mb-6'>
-        <Sparkles className='w-5 h-5 text-primary-main' />
-        <h3 className='text-xl font-semibold text-text-heading'>
-          Interests & Hobbies
-        </h3>
+    <div className="space-y-6">
+      <div className="mb-6 flex items-center gap-2">
+        <Sparkles className="h-5 w-5 text-primary-main" />
+        <h3 className="text-xl font-semibold text-text-heading">Interests & Hobbies</h3>
       </div>
 
       <FormField
         control={form.control}
-        name='interests'
+        name="interests"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>
-              Interests
-            </FormLabel>
+            <FormLabel className="text-text-heading">Interests</FormLabel>
             <FormControl>
               <MultiSelect
                 options={INTEREST_OPTIONS}
@@ -49,12 +39,10 @@ export function InterestsHobbiesStep({ form }: InterestsHobbiesStepProps) {
 
       <FormField
         control={form.control}
-        name='hobbies'
+        name="hobbies"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>
-              Hobbies
-            </FormLabel>
+            <FormLabel className="text-text-heading">Hobbies</FormLabel>
             <FormControl>
               <MultiSelect
                 options={HOBBY_OPTIONS}

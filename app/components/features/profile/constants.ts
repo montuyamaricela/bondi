@@ -174,4 +174,3 @@ export const HOBBY_OPTIONS = [
   'Yoga',
   'Zumba',
 ];
-

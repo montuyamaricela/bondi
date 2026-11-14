@@ -24,15 +24,12 @@ export async function getCurrentPosition(): Promise<Coordinates> {
         enableHighAccuracy: false,
         timeout: 10000,
         maximumAge: 300000,
-      }
+      },
     );
   });
 }
 
-export function calculateDistance(
-  coords1: Coordinates,
-  coords2: Coordinates
-): number {
+export function calculateDistance(coords1: Coordinates, coords2: Coordinates): number {
   const R = 6371;
 
   const dLat = toRadians(coords2.latitude - coords1.latitude);
