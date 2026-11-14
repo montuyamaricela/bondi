@@ -146,12 +146,22 @@ ephemeral port. Across all three owners, it checks real room/message delivery an
 read receipts, then rejects all six incoming actions after session revocation or
 expiry with an explicit auth error and disconnect. Rejected actions cannot save a
 message, change a read receipt, or forward typing.
+The message-write case exercises HTTP and all three socket owners against the same
+validation boundary: malformed/blank/oversized text, the 5,000-character boundary,
+active membership, and owned attachment records. It invokes the actual upload
+completion callback with synthetic metadata and PostgreSQL, verifies image/PDF/video
+limits, and confirms forged client metadata is replaced by the stored values.
+
+Message uploads now register a `MessageAttachment` record separately from profile
+gallery files. Apply migrations explicitly before deploying these writers. Existing
+messages remain readable; unregistered old upload keys cannot be used for new sends.
+The storage network and UploadThing webhook signature path are outside this test.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
-distance, form validation, and upload-handler access with mocked adapters. Upload
-completion, swipe gestures, idle socket termination, multi-tab presence, mobile layouts, and other browsers remain
+distance, form validation, and upload-handler access with mocked adapters. External
+storage uploads, swipe gestures, idle socket termination, multi-tab presence, mobile layouts, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and

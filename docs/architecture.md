@@ -46,6 +46,15 @@ initialization stops after disconnect. Match policies remain in the event owners
 The socket lifecycle test exercises this contract in all three runtimes; idle
 session termination and broader presence behavior need separate coverage.
 
+`lib/server/messages.ts` is the shared HTTP/socket write boundary: parse untrusted
+payloads, check active membership, resolve an owned `MessageAttachment` key, and
+persist canonical content/metadata. UploadThing's trusted completion callback
+registers that ownership using authenticated middleware metadata. These records
+are separate from gallery `File` records. Existing messages need no backfill, while
+unregistered keys cannot be reused for new messages. Socket owners still deliver
+events and create notifications; acknowledgements, transaction ordering, and
+transport delivery consolidation remain separate slices.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

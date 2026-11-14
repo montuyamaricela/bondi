@@ -91,6 +91,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           setIsConnected(false);
         });
 
+        socketInstance.on('message:error', ({ message }) => toast.error(message));
+
         setSocket(socketInstance);
       } catch (error) {
         console.error('Error initializing socket:', error);
