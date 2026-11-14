@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     const { status, ...body } = messageWriteError(error);
+    if (status === 500) return handleApiError(error);
     return NextResponse.json(body, { status });
   }
 }

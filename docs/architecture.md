@@ -227,6 +227,18 @@ card prevent concurrent submissions. The card returns to its origin until succes
 replaces it, so rejection retains the same usable candidate. Optional browser match
 feedback cannot falsely reject an already committed action.
 
+`lib/errors.ts` preserves intentional AppError responses and validation errors but
+returns only `Internal server error`, `INTERNAL_SERVER_ERROR` and a generated
+`requestId` for unexpected API failures. The ID is also in `X-Request-ID` and the
+redacted log; exception objects, messages and stacks are omitted. Notification,
+location, privacy, presence, socket-token and message HTTP handlers use that same
+unexpected-error boundary. Known message errors and socket acknowledgements keep
+their domain contracts. Raw Prisma logging is disabled so SQL/private values cannot
+bypass redaction; these correlation logs do not provide a private exception archive.
+`readJson` scopes malformed-body handling to parsing, returning 400 `INVALID_JSON`
+in the formerly unguarded application routes. Existing profile/discovery/message
+JSON errors retain their existing safe 400 contracts. Authentication runs first.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

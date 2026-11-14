@@ -272,6 +272,13 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+API-error cases inject a synthetic PostgreSQL failure and verify a generic 500,
+matching response/log correlation ID, rollback and successful retry. Unit cases
+verify redacted logging and retain safe validation/access/conflict/retry contracts.
+Malformed raw JSON across eight application handlers returns 400 after authentication;
+valid writes still succeed. Unexpected HTTP message errors use the shared internal
+error response; expected message errors and socket contracts remain unchanged.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
