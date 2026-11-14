@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import { LocationMode, PrismaClient } from '@prisma/client';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
 async function feedFixture(browser: Browser, baseURL: string, ip: number) {
@@ -31,6 +31,8 @@ async function feedFixture(browser: Browser, baseURL: string, ip: number) {
       bio: 'Synthetic feed transition fixture.',
       interests: [prefix],
       hobbies: [prefix],
+      locationMode: LocationMode.DEVICE,
+      showDistance: true,
       latitude: 0,
       longitude: 0,
     };

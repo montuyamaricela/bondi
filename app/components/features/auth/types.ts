@@ -25,7 +25,7 @@ export interface FormState {
 export const stepFields: {
   [key in ProfileStep]: Array<keyof ProfileSetupFormData>;
 } = {
-  1: ['name', 'age', 'bio', 'gender', 'location', 'profileImage'],
+  1: ['name', 'age', 'bio', 'gender', 'profileImage'],
   2: ['interests', 'hobbies'],
   3: ['relationshipType', 'genderPreference', 'lookingFor'],
 };

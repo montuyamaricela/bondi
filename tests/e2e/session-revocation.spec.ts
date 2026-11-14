@@ -53,6 +53,9 @@ test('revoked and expired cached sessions fail their next protected read and wri
         gender: 'OTHER',
         interests: ['Music'],
         hobbies: ['Reading'],
+        locationMode: 'DEVICE',
+        latitude: 0,
+        longitude: 0,
         showDistance: true,
       },
     });
@@ -73,7 +76,7 @@ test('revoked and expired cached sessions fail their next protected read and wri
       (
         await request.patch('/api/profile/privacy', {
           headers: { Cookie: revokedCookie },
-          data: { showDistance: false },
+          data: { showDistance: false, expectedUserId: userId, expectedRevision: 0 },
         })
       ).status(),
     ).toBe(401);
@@ -104,7 +107,7 @@ test('revoked and expired cached sessions fail their next protected read and wri
       (
         await request.patch('/api/profile/privacy', {
           headers: { Cookie: expiredCookie },
-          data: { showDistance: false },
+          data: { showDistance: false, expectedUserId: userId, expectedRevision: 0 },
         })
       ).status(),
     ).toBe(401);
@@ -123,7 +126,7 @@ test('revoked and expired cached sessions fail their next protected read and wri
       (
         await request.patch('/api/profile/privacy', {
           headers: { Cookie: validCookie },
-          data: { showDistance: false },
+          data: { showDistance: false, expectedUserId: userId, expectedRevision: 0 },
         })
       ).status(),
     ).toBe(200);

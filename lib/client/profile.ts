@@ -24,10 +24,11 @@ interface ProfileSetupResponse {
 export function useProfileQuery(enabled = true) {
   return useQuery({
     queryKey: ['profile'],
-    queryFn: async () => {
-      return await api.get<ProfileResponse>('/api/profile');
+    queryFn: async ({ signal }) => {
+      return await api.get<ProfileResponse>('/api/profile', { signal });
     },
     enabled,
+    refetchOnWindowFocus: 'always',
     staleTime: 30 * 1000, // 30 seconds - shorter staleTime for faster updates
     retry: 1,
   });
@@ -44,10 +45,13 @@ export function useProfileSetupMutation() {
 export function useProfileWithPhotosQuery(enabled = true) {
   return useQuery({
     queryKey: ['profile', 'with-photos'],
-    queryFn: async () => {
-      return await api.get<{ profile: ProfileWithPhotos | null }>('/api/profile/with-photos');
+    queryFn: async ({ signal }) => {
+      return await api.get<{ profile: ProfileWithPhotos | null }>('/api/profile/with-photos', {
+        signal,
+      });
     },
     enabled,
+    refetchOnWindowFocus: 'always',
     staleTime: 30 * 1000, // 30 seconds - shorter staleTime for faster updates
     retry: 1,
   });
@@ -84,10 +88,13 @@ export function usePhotoDeleteMutation() {
 export function useUserProfileQuery(userId: string, enabled = true) {
   return useQuery({
     queryKey: ['user-profile', userId],
-    queryFn: async () => {
-      return await api.get<{ profile: ProfileWithPhotos | null }>(`/api/profile/${userId}`);
+    queryFn: async ({ signal }) => {
+      return await api.get<{ profile: ProfileWithPhotos | null }>(`/api/profile/${userId}`, {
+        signal,
+      });
     },
     enabled: enabled && !!userId,
+    refetchOnWindowFocus: 'always',
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
 
     const profile = await getProfileByUserId(session.user.id);
 
-    return NextResponse.json({ profile: profile || null });
+    return NextResponse.json(
+      { profile: profile || null },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    );
   } catch (error) {
     return handleApiError(error);
   }

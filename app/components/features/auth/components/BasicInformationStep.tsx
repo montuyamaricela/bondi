@@ -150,23 +150,10 @@ export function BasicInformationStep({
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-text-heading">Location (Optional)</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="New York, NY"
-                  className="bg-bg-input text-text-heading"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <p className="text-sm text-text-muted">
+          Location is optional. After creating your profile, choose Device location, City-only, or
+          Off in the Location Control Center in Settings.
+        </p>
       </div>
 
       <FormField

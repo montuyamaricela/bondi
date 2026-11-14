@@ -27,7 +27,9 @@ export const profileFieldsSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'NON_BINARY', 'OTHER'], {
     message: 'Please select your gender',
   }),
-  location: z.string().optional(),
+  location: z
+    .never({ error: 'Use the Location Control Center in Settings to change location.' })
+    .optional(),
   interests: labels('interest'),
   hobbies: labels('hobby'),
   lookingFor: z.string().optional(),

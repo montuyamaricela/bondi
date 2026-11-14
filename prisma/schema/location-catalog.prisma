@@ -10,6 +10,7 @@ model LocationCity {
   available     Boolean @default(true)
   sourceVersion String
   names         LocationCityName[]
+  profiles      Profile[]
 
   @@index([countryCode])
 }

@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { nextCursor, type Pagination } from './cursor-pagination';
+import { locationSelect } from './location';
+import { publicLocation } from '@/lib/location';
 
 export function receivedLikesQuery(userId: string, { limit, cursor }: Pagination) {
   const before = cursor
@@ -36,7 +38,7 @@ export async function readReceivedLikes(userId: string, pagination: Pagination) 
               age: true,
               bio: true,
               gender: true,
-              location: true,
+              ...locationSelect,
               interests: true,
               hobbies: true,
               lookingFor: true,
@@ -58,7 +60,7 @@ export async function readReceivedLikes(userId: string, pagination: Pagination) 
         age: like.user.profile?.age,
         bio: like.user.profile?.bio,
         gender: like.user.profile?.gender,
-        location: like.user.profile?.location,
+        ...(like.user.profile ? publicLocation(like.user.profile) : {}),
         interests: like.user.profile?.interests || [],
         hobbies: like.user.profile?.hobbies || [],
         lookingFor: like.user.profile?.lookingFor,

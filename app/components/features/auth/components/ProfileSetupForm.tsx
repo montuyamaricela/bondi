@@ -111,7 +111,6 @@ function AccountProfileSetupForm({
       age: savedFormData.age || 18,
       bio: savedFormData.bio || '',
       gender: savedFormData.gender || 'FEMALE',
-      location: savedFormData.location || '',
       interests: savedFormData.interests || [],
       hobbies: savedFormData.hobbies || [],
       lookingFor: savedFormData.lookingFor || '',

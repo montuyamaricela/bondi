@@ -252,8 +252,8 @@ Private values and storage keys are omitted from error logs. Auth identity refre
 on returning to a tab remounts the form when the account changes.
 
 `lib/server/discovery.ts` selects and ranks the feed. The HTTP route validates
-integer age/radius filters through the shared schema and requires saved viewer
-coordinates for a radius. Database predicates apply both stored gender preferences,
+integer age/radius filters through the shared schema and requires
+an effective Device or City origin for a radius. Database predicates apply both stored gender preferences,
 handled-user and active-match exclusions. A deterministic ID cursor scans 100-row
 batches, applies distance eligibility and retains only the ten highest scores with
 an ID tie-breaker. Eligibility precedes the final limit; memory remains bounded,
@@ -273,19 +273,45 @@ codes and requests a fresh fix with a ten-second timeout and no background watch
 See [MDN getCurrentPosition](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition)
 and [native error codes](https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError/code).
 
-The settings feature's `useDeviceLocation` owns acquisition, saving and an in-memory
-retry fix. Its immediate guard prevents overlapping actions; cleanup aborts the
-owned HTTP wait and ignores late device results. A retry after save failure uses
-the same fix until an explicit refresh or unmount. Settings waits for matching
-client/server account identity and keys its state by user, refreshing server props
-when identity changes. The current client sends `expectedUserId`; the location route
-rejects a mismatch with 409 `ACCOUNT_CHANGED` before writing. This optional compatibility
-field detects stale clients and never selects the write owner: the server session does.
-An already accepted request may still commit for its original owner after a browser
-abort. Successful saves invalidate discovery/profile queries and refresh server props.
-Saved coordinates, including zero, remain labeled last-known with the server timestamp
-(or Unknown for a legacy missing timestamp), without an arbitrary expiry. Coordinates
-stay private; city-only modes and clearing are the separate #43 feature.
+`lib/server/location.ts` owns location reads and all Device/City/Clear/visibility
+writes. The session selects the owner; strict payloads require `expectedUserId` and
+`expectedRevision`. A transactional compare-and-update increments the revision or
+returns 409 without replaying stale coordinates or clearing a newer origin. The
+privacy route delegates location visibility to this operation; online-only writes
+keep their existing semantics. General profile writes reject legacy free-text
+location and cannot change private location fields.
+
+`lib/location.ts` resolves a private effective point with explicit provenance. Device
+uses its saved point; City uses an available server-owned catalog point; Off or an
+unavailable city has no origin. Filtering/ranking uses unrounded kilometers with an
+inclusive radius; only display is rounded. City-based distances explicitly describe
+selected-city approximation, including a same-city result. Separate city/distance
+visibility controls presentation, not matching. Public profile, match and chat
+surfaces keep their existing location omissions. Generic owner profile responses
+also omit coordinates, private city references and unconfirmed legacy text; the
+owner-only location endpoint returns settings and preview, never raw device points.
+Internal distance-weighted ranking scores are not serialized.
+
+The account-owned `useLocationControl` captures the revision before requesting a
+fresh native fix, owns HTTP cancellation and ignores stale generations. Save-failure
+retry keeps a fix only in memory for the same owner/revision. Mode changes, Clear,
+logout and account changes discard it. Successful saves update committed owner state
+and refresh profile/discovery/likes projections. Cross-tab storage carries only an
+invalidation nonce; query owners revalidate on focus. Clear resets only its initiating
+tab's radius. Other tabs retain their filter and receive actionable 422 feedback.
+Cancellation cannot undo an already accepted server write; revision checks arbitrate
+competing requests. Dates stay last-known/selected, with Unknown for missing legacy
+timestamps. No background tracking or automatic expiry is introduced.
+
+The additive location-mode migration preserves valid complete legacy points,
+timestamps and distance choices, including zero; invalid/partial points become Off.
+Unconfirmed free-text labels stay owner-only until Device/City/Clear replaces them.
+New city visibility defaults off. City deletes device point/time atomically; Clear
+removes all current profile location values and disables both visibility settings,
+retaining only the mutation revision. It preserves matches and conversations. Clear
+also sanitizes current account drafts and invalidates active caches; it cannot erase
+pre-existing backups, third-party browser/OS storage or already delivered offline
+copies. This feature does not implement account deletion.
 
 The discovery page owns the current candidate by user identity, choosing the first
 unhandled result instead of advancing an independent array index. Confirmed actions
@@ -337,8 +363,10 @@ Reference preparation is an explicit maintenance operation documented in
 [GeoNames setup](reference-data/geonames.md). Its pinned checksums, normalization and
 row validation precede the database transaction; batched upserts and aliases commit
 with snapshot metadata. Removed reference rows remain unavailable rather than being
-deleted. No startup/build/test/migration imports reference data. This catalog module
-does not itself change profile location state or discovery origins.
+deleted. The same transaction advances City profiles' location revisions so captures
+started before maintenance cannot overwrite an updated origin. An unavailable saved
+city requires explicit reselection and supplies no hidden matching origin. No
+startup/build/test/migration imports reference data.
 
 ## Structural work after the harness
 

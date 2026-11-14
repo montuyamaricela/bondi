@@ -5,7 +5,7 @@ export interface Profile {
   age: number;
   bio: string;
   gender: 'MALE' | 'FEMALE' | 'NON_BINARY' | 'OTHER';
-  location: string | null;
+  location?: string;
   interests: string[];
   hobbies: string[];
   lookingFor: string | null;

@@ -105,12 +105,18 @@ model Profile {
 
   // Privacy Settings
   showOnlineStatus Boolean  @default(true)
-  showDistance     Boolean  @default(true)
+  showDistance     Boolean  @default(false)
 
   // Geolocation
   latitude           Float?
   longitude          Float?
   lastLocationUpdate DateTime?
+  locationMode       LocationMode @default(OFF)
+  locationRevision   Int          @default(0)
+  locationCityId     String?
+  cityLocationUpdate DateTime?
+  showCity           Boolean      @default(false)
+  locationCity       LocationCity? @relation(fields: [locationCityId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,6 +128,13 @@ model Profile {
   @@index([age])
   @@index([gender])
   @@index([genderPreference])
+  @@index([locationCityId])
+}
+
+enum LocationMode {
+  OFF
+  DEVICE
+  CITY
 }
 
 enum Gender {

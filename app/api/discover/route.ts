@@ -9,6 +9,7 @@ import {
 } from '@/app/components/features/discover/validation';
 import { discoverProfiles } from '@/lib/server/discovery';
 import { getSocketInstance } from '@/lib/socket-instance';
+import { effectiveLocation } from '@/lib/location';
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 
     const currentUserProfile = await db.profile.findUnique({
       where: { userId: currentUserId },
+      include: { locationCity: true },
     });
 
     if (!currentUserProfile) {
@@ -51,13 +53,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (
-      validation.data.distance !== undefined &&
-      (currentUserProfile.latitude === null || currentUserProfile.longitude === null)
-    )
+    if (validation.data.distance !== undefined && !effectiveLocation(currentUserProfile))
       return NextResponse.json(
         {
-          error: 'Enable or refresh your location in Settings to use a distance filter.',
+          error:
+            'Enable device location or select an available city in Settings to use a distance filter.',
           code: 'LOCATION_REQUIRED',
         },
         { status: 422 },

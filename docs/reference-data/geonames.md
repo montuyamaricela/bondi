@@ -66,12 +66,15 @@ the URL. A transaction lock serializes imports; bounded batches update reference
 and alias indexes together with the manifest metadata. Removed IDs remain stored but
 unavailable, so an existing reference is not deleted or silently replaced. Name
 aliases are rebuilt for available records. An import failure rolls back that
-transaction. `ANALYZE` refreshes planner statistics after commit; a statistics failure
+transaction. The same transaction increments the revision of City-mode profiles,
+invalidating device captures started before maintenance. It retains their selection
+and timestamp; unavailable selections show a reselection state and have no effective
+discovery origin. `ANALYZE` refreshes planner statistics after commit; a statistics failure
 does not undo an already committed catalog. Errors omit database diagnostics.
 
 No migration, application startup, build or test command invokes this importer or
 downloads data. Tests create and remove small synthetic reference fixtures; they do
-not require the live source files. Reference maintenance is separate from user data.
+not require the live source files. Reference maintenance never imports user location data.
 
 ## Search contract
 

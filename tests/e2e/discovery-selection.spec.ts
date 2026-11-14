@@ -43,6 +43,8 @@ async function discoveryFixture(browser: Browser, baseURL: string, ip: number) {
         name: 'Discovery viewer',
         gender: 'MALE',
         genderPreference: 'FEMALE',
+        locationMode: 'DEVICE',
+        showDistance: true,
         latitude: 0,
         longitude: 0,
       },
@@ -75,6 +77,8 @@ async function discoveryFixture(browser: Browser, baseURL: string, ip: number) {
           name: 'Synthetic candidate',
           gender: 'FEMALE',
           genderPreference: 'MALE',
+          locationMode: options.latitude === null || options.longitude === null ? 'OFF' : 'DEVICE',
+          showDistance: options.latitude !== null && options.longitude !== null,
           latitude: 0,
           longitude: 0,
           ...options,
@@ -128,7 +132,7 @@ test('discovery ranks eligible candidates beyond fifty, honors mutual preference
     ]);
     expect(nearby[0].distance).toBe(0);
     expect(nearby[1].distance).toBe(0);
-    expect(nearby[2].distance).toBeNull();
+    expect(nearby[2]).not.toHaveProperty('distance');
     for (const profile of nearby) {
       expect(profile).not.toHaveProperty('latitude');
       expect(profile).not.toHaveProperty('longitude');
@@ -142,7 +146,7 @@ test('discovery ranks eligible candidates beyond fifty, honors mutual preference
     const general = await feed('');
     expect(
       general.find((profile: { userId: string }) => profile.userId === unknown.userId),
-    ).toMatchObject({ distance: null });
+    ).not.toHaveProperty('distance');
     for (const excluded of [rejecting, wrongGender, handled, matched])
       expect(general.map((profile: { userId: string }) => profile.userId)).not.toContain(
         excluded.userId,
@@ -221,7 +225,7 @@ test('discovery rejects invalid filters, applies partial age bounds and reports 
     expect((await request.get('/api/discover')).status()).toBe(401);
     await db.profile.update({
       where: { userId: viewer },
-      data: { latitude: null, longitude: null },
+      data: { locationMode: 'OFF', showDistance: false, latitude: null, longitude: null },
     });
     const missing = await context.request.get('/api/discover?distance=10');
     expect(missing.status()).toBe(422);
@@ -248,24 +252,26 @@ test('a distance filter without saved location offers settings and a usable remo
     const { db, context, viewer } = fixture;
     await db.profile.update({
       where: { userId: viewer },
-      data: { latitude: null, longitude: null },
+      data: { locationMode: 'OFF', showDistance: false, latitude: null, longitude: null },
     });
-    // Keep the old automatic request out of this filter test; #35 owns its removal.
-    await context.addInitScript(() => localStorage.setItem('locationRequested', 'true'));
     const page = await context.newPage();
     await page.goto('/discover');
     await page.getByRole('button', { name: 'Filters', exact: true }).click();
     await page.getByRole('slider').nth(2).press('Home');
     await page.getByRole('button', { name: 'Apply Filters', exact: true }).click();
     await expect(
-      page.getByRole('alert').filter({ hasText: 'Enable or refresh your location' }),
-    ).toContainText('Enable or refresh your location');
+      page
+        .getByRole('alert')
+        .filter({ hasText: 'Enable device location or select an available city' }),
+    ).toContainText('Enable device location or select an available city');
     await expect(
       page.getByRole('link', { name: 'Location settings', exact: true }),
     ).toHaveAttribute('href', '/settings');
     await page.getByRole('button', { name: 'Remove distance filter', exact: true }).click();
     await expect(
-      page.getByRole('alert').filter({ hasText: 'Enable or refresh your location' }),
+      page
+        .getByRole('alert')
+        .filter({ hasText: 'Enable device location or select an available city' }),
     ).toHaveCount(0);
   } finally {
     await fixture.close();

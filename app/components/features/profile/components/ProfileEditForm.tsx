@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FetchError } from '@/lib/fetch-wrapper';
+import Link from 'next/link';
 import {
   Form,
   FormControl,
@@ -47,7 +48,6 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
       age: profile.age,
       bio: profile.bio,
       gender: profile.gender,
-      location: profile.location || '',
       interests: profile.interests,
       hobbies: profile.hobbies,
       lookingFor: profile.lookingFor || '',
@@ -174,23 +174,13 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-text-heading">Location</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="City, Country"
-                      {...field}
-                      className="bg-bg-input text-text-heading"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <p className="text-sm text-text-muted">
+              Manage your location and its visibility in the{' '}
+              <Link href="/settings" className="text-primary-main underline focus-visible:ring-2">
+                Location Control Center
+              </Link>
+              .
+            </p>
           </div>
 
           <FormField

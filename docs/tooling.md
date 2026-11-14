@@ -268,23 +268,31 @@ synthetic pixel. Legacy ties resolve by ID. These checks cover gallery registrat
 not provider-side orphan cleanup or signed webhook delivery. Uploads that race past
 preflight may be rejected at completion after a provider object already exists.
 
-### Explicit location lifecycle verification
+### Location Control Center verification
 
-`tests/e2e/location-lifecycle.spec.ts` controls one-shot native callbacks while
-exercising actual browser navigation, authenticated HTTP and PostgreSQL. Discovery
-entry makes zero location calls; Settings Enable saves a fresh fix and its server
-timestamp, and returning through the client navigation reloads the invalidated feed
-without a document reload. Zero coordinates survive a new Settings mount as last-known.
-Native error codes 1/2/3, unsupported geolocation and insecure context have retryable
-feedback. A scoped Profile-update trigger proves save failure leaves stored state
-unchanged; Retry save succeeds without another geolocation call.
+`tests/e2e/location-lifecycle.spec.ts` uses real authentication, HTTP and PostgreSQL
+with controlled one-shot native callbacks. It covers native failures, save/clear
+rollback and retry, accessible city selection and independent visibility/preview,
+Device/City/Clear transitions, unavailable cities and catalog outage. Held callbacks
+and real responses verify mode changes, cross-tab cache invalidation, stale Clear,
+logout and account switches. No background location call is allowed. Browser abort
+cannot undo a write already accepted by the server.
 
-A delayed result after cookies switch accounts receives 409 before writing; refreshing
-identity mounts clean account-owned state. Leaving Settings ignores a later callback
-without another PATCH. Missing/expired sessions, invalid/out-of-range coordinates and
-malformed JSON remain rejected; a forged body owner cannot select another profile.
-Native GPS/permission dialogs and mobile hardware are outside these callback-controlled
-cases. Browser abort cannot undo an HTTP write already accepted for its original owner.
+`location-modes.spec.ts` tests strict owner/revision validation, bypass rejection,
+missing/expired sessions, rollback, and real queued competing PostgreSQL writes.
+`location-projections.spec.ts` covers all Device/City distance pairs, zero and exact
+radius boundaries, unrounded exclusion, candidates beyond the first 100, mutual
+preferences/passes, and actual serialized profile/likes/match/chat/socket payloads.
+Unit cases cover projection/input/geometry and account-scoped draft cleanup.
+
+The additive migration was explicitly applied to the known local disposable PG14
+database with eight prepared synthetic legacy states: two valid Device points and
+six invalid/partial/free-text-only Off states. Unrelated profile fields, accounts,
+files, matches and messages were preserved. A separate guarded full pinned-catalog
+reimport verified retained unavailable references, revision advancement and rejected
+stale captures. These operator probes are separate from default tests and CI's fresh
+PG16 schema application. Native GPS accuracy, physical mobile permission dialogs,
+backup erasure and already-delivered offline copies remain outside these checks.
 
 ### Received-like action verification
 

@@ -37,7 +37,7 @@ interface LikedByUser {
   age: number | null;
   bio: string | null;
   gender: string | null;
-  location: string | null;
+  location?: string;
   interests: string[];
   hobbies: string[];
   lookingFor: string | null;
@@ -89,6 +89,7 @@ export function useUnmatchMutation() {
 
 export function useReceivedLikes() {
   return useInfiniteQuery({
+    refetchOnWindowFocus: 'always',
     queryKey: ['receivedLikes'],
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) =>

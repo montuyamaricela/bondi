@@ -16,10 +16,6 @@ export default async function SettingsPage() {
     where: { userId: session.user.id },
     select: {
       showOnlineStatus: true,
-      showDistance: true,
-      latitude: true,
-      longitude: true,
-      lastLocationUpdate: true,
     },
   });
 

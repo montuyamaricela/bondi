@@ -66,6 +66,11 @@ async function main() {
               data: names.slice(index, index + 2000),
             });
         }
+        // Reference maintenance can change an active origin; stale captures must conflict.
+        await transaction.profile.updateMany({
+          where: { locationMode: 'CITY' },
+          data: { locationRevision: { increment: 1 } },
+        });
         await transaction.locationCatalog.upsert({
           where: { id: LOCATION_CATALOG_ID },
           create: {
