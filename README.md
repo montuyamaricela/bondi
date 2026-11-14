@@ -14,6 +14,7 @@ Built with Next.js, React, TypeScript, PostgreSQL, and Socket.IO.
 - Swipe-based discovery with compatibility ranking and age/location filters.
 - Mutual-like matching, likes received, and match management.
 - Messaging with attachments, typing events, and read receipts.
+- Discovery cards show profile information without an identity-verification claim.
 - Profile privacy preferences, online status, and permission-based browser notifications.
 - Light, dark, and system themes.
 
