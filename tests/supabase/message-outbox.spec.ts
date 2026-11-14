@@ -53,6 +53,10 @@ test('native managed outbox bounds claims, skips locked work and suppresses ende
     await db.messageDelivery.createMany({
       data: ids.map((messageId) => ({ messageId, userId: users[1].id })),
     });
+    await db.messageDelivery.update({
+      where: { messageId_userId: { messageId: ids[0], userId: users[1].id } },
+      data: { nextAttemptAt: new Date(0) },
+    });
     await db.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "messageId" FROM "MessageDelivery" WHERE "messageId" = ${ids[0]} FOR UPDATE`;
       const result = await other.$queryRaw<
