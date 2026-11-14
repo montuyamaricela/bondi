@@ -24,9 +24,8 @@ export function SmartMatchingSection() {
               </h2>
             </div>
             <p className="font-sans text-base leading-relaxed text-gray-700">
-              Our intelligent matching system learns from your preferences and interactions to
-              connect you with people who share your interests and values. The more you use Bondi,
-              the better your matches become.
+              Your suggestions consider shared interests, hobbies, and relationship preferences. Set
+              age and distance filters to narrow the profiles you discover.
             </p>
           </div>
         </div>

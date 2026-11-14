@@ -337,6 +337,13 @@ the oversized test values; no production-sized query is used for reproduction.
 
 ### Keyboard, dialog and emulated touch verification
 
+`tests/e2e/public-access.spec.ts` follows the landing How we do it anchor with native
+Tab/Enter, checks section focus below the fixed navigation, and continues by keyboard
+through the single Get started link to signup. It checks internal hash destinations,
+the absence of unsupported learning claims, and the still-unauthorized profile API.
+The pre-fix regression fails because How we do it has no link destination. This is
+public navigation evidence; authenticated onboarding is covered separately.
+
 `tests/e2e/keyboard-controls.spec.ts` uses native Tab/Shift+Tab, Enter, Space and arrow
 keys. Password visibility retains its value without submitting login; a named Music
 removal preserves other selections and saves the owned profile. Discovery buttons

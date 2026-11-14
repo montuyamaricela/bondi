@@ -28,13 +28,21 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="bg-white py-16 lg:py-20">
+    <section
+      id="how-it-works"
+      tabIndex={-1}
+      aria-labelledby="how-it-works-title"
+      className="scroll-mt-20 bg-white py-16 lg:py-20"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-16 lg:flex-row lg:gap-20">
           <div className="w-full lg:max-w-md">
             <p className="mb-8 font-sans text-lg font-medium text-primary-main">How It Works</p>
             <div className="mb-7">
-              <h1 className="font-heading text-4xl leading-tight font-semibold text-gray-900 md:text-5xl lg:text-6xl">
+              <h1
+                id="how-it-works-title"
+                className="font-heading text-4xl leading-tight font-semibold text-gray-900 md:text-5xl lg:text-6xl"
+              >
                 Start your
                 <br />
                 journey
@@ -46,10 +54,11 @@ export function HowItWorksSection() {
               Getting started is easy. Create your profile, discover compatible matches, and start
               meaningful conversations. Your next great connection is just a swipe away.
             </p>
-            <Link href="/signup">
-              <button className="w-fit cursor-pointer rounded-full bg-black px-8 py-3 font-sans text-base font-bold text-white transition-colors hover:bg-primary-main dark:bg-bg-main dark:text-primary-text">
-                Get started
-              </button>
+            <Link
+              href="/signup"
+              className="inline-flex w-fit cursor-pointer rounded-full bg-black px-8 py-3 font-sans text-base font-bold text-white transition-colors hover:bg-primary-main focus-visible:ring-2 focus-visible:ring-primary-main focus-visible:ring-offset-4 dark:bg-bg-main dark:text-primary-text"
+            >
+              Get started
             </Link>
           </div>
           <div className="w-full flex-1">
