@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { mergeSavedMessages } from '../message-state';
+import { addSavedMessages, readSavedMessage, type MessagePages } from '../message-pages';
 import { Send, Loader2 } from 'lucide-react';
 import { useSocket } from '@/app/components/providers/socket-provider';
 import { useMessages } from '../hooks';
@@ -38,7 +38,17 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const { socket, isConnected } = useSocket();
   const queryClient = useQueryClient();
-  const { data: messages = EMPTY_MESSAGES, isLoading } = useMessages(matchId);
+  const {
+    data: messages = EMPTY_MESSAGES,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+  } = useMessages(matchId);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const olderLoadingRef = useRef(false);
+  const olderAnchorRef = useRef<{ id: string; top: number } | null>(null);
   const [currentMatchId, setCurrentMatchId] = useState(matchId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -90,25 +100,15 @@ export function ChatInterface({
 
     const handleNewMessage = (message: Parameters<ServerToClientEvents['message:new']>[0]) => {
       if (message.matchId === matchId) {
-        queryClient.setQueryData<Message[]>(['messages', matchId], (previous) =>
-          mergeSavedMessages(matchId, previous ?? [], [
-            { ...message, readAt: message.readAt ?? null },
-          ]),
+        queryClient.setQueryData<MessagePages>(['messages', matchId], (previous) =>
+          addSavedMessages(matchId, previous, [{ ...message, readAt: message.readAt ?? null }]),
         );
       }
     };
 
     const handleMessageRead = (data: { messageId: string; readAt: string }) => {
-      queryClient.setQueryData<Message[]>(['messages', matchId], (previous) =>
-        previous
-          ? mergeSavedMessages(
-              matchId,
-              previous,
-              previous.map((message) =>
-                message.id === data.messageId ? { ...message, readAt: data.readAt } : message,
-              ),
-            )
-          : undefined,
+      queryClient.setQueryData<MessagePages>(['messages', matchId], (previous) =>
+        readSavedMessage(matchId, previous, data.messageId, data.readAt),
       );
     };
 
@@ -159,10 +159,49 @@ export function ChatInterface({
     });
   }, [messages, currentUserId, markMessageAsRead]);
 
-  // Auto-scroll to bottom when messages change
+  const newestMessageId = messages.at(-1)?.id;
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!olderLoadingRef.current) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [newestMessageId]);
+
+  useLayoutEffect(() => {
+    if (!olderLoadingRef.current || isFetchingNextPage) return;
+    const anchor = olderAnchorRef.current;
+    const container = historyRef.current;
+    if (anchor && container) {
+      const element = [...container.querySelectorAll<HTMLElement>('[data-message-id]')].find(
+        (item) => item.dataset.messageId === anchor.id,
+      );
+      if (element) container.scrollTop += element.getBoundingClientRect().top - anchor.top;
+    }
+    olderLoadingRef.current = false;
+    olderAnchorRef.current = null;
+  }, [messages, isFetchingNextPage]);
+
+  useEffect(() => {
+    return () => {
+      olderLoadingRef.current = false;
+      olderAnchorRef.current = null;
+    };
+  }, [matchId]);
+
+  const loadOlder = () => {
+    if (olderLoadingRef.current) return;
+    const container = historyRef.current;
+    if (container) {
+      const top = container.getBoundingClientRect().top;
+      const anchor = [...container.querySelectorAll<HTMLElement>('[data-message-id]')].find(
+        (item) => item.getBoundingClientRect().bottom > top,
+      );
+      if (anchor?.dataset.messageId)
+        olderAnchorRef.current = {
+          id: anchor.dataset.messageId,
+          top: anchor.getBoundingClientRect().top,
+        };
+    }
+    olderLoadingRef.current = true;
+    void fetchNextPage().catch(() => {});
+  };
 
   const handleInputChange = (value: string) => {
     setNewMessage(value);
@@ -221,8 +260,8 @@ export function ChatInterface({
         setSendError(result.message);
         return;
       }
-      queryClient.setQueryData<Message[]>(['messages', matchId], (previousMessages) =>
-        mergeSavedMessages(matchId, previousMessages ?? [], [
+      queryClient.setQueryData<MessagePages>(['messages', matchId], (previousMessages) =>
+        addSavedMessages(matchId, previousMessages, [
           { ...result.message, readAt: result.message.readAt ?? null },
         ]),
       );
@@ -248,8 +287,26 @@ export function ChatInterface({
       <div
         role="log"
         aria-label="Conversation messages"
+        ref={historyRef}
         className="flex-1 space-y-2 overflow-y-auto p-4"
       >
+        {hasNextPage && (
+          <div className="text-center">
+            {isFetchNextPageError && (
+              <p role="alert" className="mb-2 text-sm text-error">
+                Could not load older messages. Try again.
+              </p>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadOlder}
+              disabled={isFetchingNextPage}
+            >
+              Load older messages
+            </Button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-center text-text-muted">No messages yet. Start the conversation!</p>

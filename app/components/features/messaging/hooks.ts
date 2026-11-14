@@ -1,14 +1,21 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/fetch-wrapper';
 import type { Message, Conversation, SendMessageData } from './types';
 import { mergeSavedMessages } from './message-state';
+import { shareMessagePages } from './message-pages';
+import { uniquePageItems, type CursorPage } from '@/lib/pagination';
 
-export function useConversations() {
-  return useQuery({
-    queryKey: ['conversations'],
-    queryFn: async () => {
-      return await api.get<Conversation[]>('/api/matches/conversations');
-    },
+export function useConversations(search = '') {
+  return useInfiniteQuery({
+    queryKey: ['conversations', search],
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) =>
+      api.get<CursorPage<Conversation>>(
+        `/api/matches/conversations?${new URLSearchParams({ ...(search ? { q: search } : {}), ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        { signal },
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    select: (data) => uniquePageItems(data.pages, (conversation) => conversation.matchId),
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -16,19 +23,21 @@ export function useConversations() {
 }
 
 export function useMessages(matchId: string | null) {
-  const queryClient = useQueryClient();
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['messages', matchId],
-    queryFn: async () => {
-      if (!matchId) return [];
-      const history = await api.get<Message[]>(`/api/messages?matchId=${matchId}`);
-      // Live events received during this request must survive its older snapshot.
-      return mergeSavedMessages(
-        matchId,
-        queryClient.getQueryData<Message[]>(['messages', matchId]) ?? [],
-        history,
-      );
-    },
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) =>
+      api.get<CursorPage<Message>>(
+        `/api/messages?${new URLSearchParams({ matchId: matchId ?? '', ...(pageParam ? { cursor: pageParam } : {}) })}`,
+        { signal },
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    structuralSharing: (previous, incoming) => shareMessagePages(matchId ?? '', previous, incoming),
+    select: (data) =>
+      mergeSavedMessages(
+        matchId ?? '',
+        data.pages.flatMap((page) => page.items),
+      ),
     enabled: !!matchId,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,

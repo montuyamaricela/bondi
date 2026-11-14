@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current thirty-three-test browser
+While editing, run focused tests for fast feedback. The current thirty-seven-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -175,3 +175,50 @@ before and after shifted feed responses. A scoped PostgreSQL Like-insert failure
 leaves the same card centered and usable; retry succeeds. Holding that accepted
 POST response keeps the card busy and further gestures cannot submit another write.
 No auth, feed result or write is mocked; the fixture removes its failure trigger.
+
+### Pagination verification and budgets
+
+GET history, inbox and received-like pages default to 50 and cap at 100 public
+items; selection queries use one extra row for continuation. Pagination uses a
+stable timestamp/ID boundary, with no offset or arbitrary history truncation.
+The tests traverse 10,000 tied messages and 121 conversations / 120 incoming likes,
+exercise anonymous/expired/foreign/former-member access, and validate malformed,
+wrong-resource and duplicate cursor parameters. The browser loads older messages,
+preserves its visible anchor and draft while a real live message arrives, and
+continues both lists. A delayed real inbox search must find an unloaded conversation.
+Literal search characters are not SQL wildcards. Native TanStack observer tests
+cover stored-page and selected-array sharing as well as live/read-receipt merging.
+
+The representative payload budget is below 1 MiB per page, including a 100-message
+fixture whose newest 100 messages contain 5,000 characters each. The measured largest
+page was 547,465 bytes. This is a fixture budget, not a byte cap on arbitrary legacy
+profile/attachment fields. Gallery invariants remain tracked separately in #34.
+
+The reference selection-query budget is under 100 ms on the local disposable test
+database at these fixture sizes; it is not a production latency or CI wall-clock SLA.
+After `ANALYZE` on the synthetic fixture, PostgreSQL 14.17 with warm buffers showed
+the first/deep 10,000-message queries previously
+read 10,000/5,000 rows and sorted, taking 1.516/3.980 ms with 388/323 shared hits.
+With `Message_matchId_createdAt_id_idx`, both used index-only scans of 51 rows,
+taking 0.035/0.020 ms with 7/9 shared hits. The 121-conversation activity selector
+returned 51 rows in 1.459 ms (494 shared hits); the 120-like selector returned 51
+in 12.095 ms (483 shared hits). Those are individual SQL selection measurements,
+not full HTTP/unread-count/p95 measurements. The browser fixture inserts rows
+immediately before collecting plans without forcing an index. Its statistics may
+not yet reflect those rows, so its attached planner choice and timings can differ
+from the analyzed comparison while the page/payload limits remain fixed. Inbox activity computation still scales
+with that participant's eligible matches; no global denormalized activity field or
+new search index was introduced without supporting measurements.
+
+Run `npm run test:e2e -- tests/e2e/pagination.spec.ts` after the normal explicit test
+migration and fresh build. The owned synthetic fixtures attach current sanitized
+`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` plans and payload measurements to the
+Playwright report. Historical before-index measurements were captured before adding
+the migration; reproducing those requires a separate database at the prior revision.
+The migration is additive and must be applied explicitly before deploying the reader.
+
+Cursor comparisons use UTC ISO text cast to the stored `timestamp` type; a raw
+Prisma Date parameter is a different timestamp type on this PostgreSQL adapter.
+The test checks exact tied-ID boundaries under UTC, Asia/Manila and America/New_York.
+See [PostgreSQL timestamp input and conversion](https://www.postgresql.org/docs/16/datatype-datetime.html#DATATYPE-DATETIME-INPUT-TIMESTAMPS)
+and [Prisma v6 parameterized raw queries](https://www.prisma.io/docs/orm/v6/prisma-client/using-raw-sql/raw-queries).
