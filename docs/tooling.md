@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current eleven-test browser
+While editing, run focused tests for fast feedback. The current twelve-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -83,6 +83,11 @@ The message-write case verifies runtime payload parsing, the text limit and trim
 active membership, and attachment ownership/metadata across HTTP and all socket
 owners. It calls the trusted upload-completion callback with synthetic files and
 checks PostgreSQL records; external storage and webhook signature delivery are not exercised.
+The retry case exercises eight concurrent identified operations per transport against
+PostgreSQL, conflict rejection and sender/conversation scoping. A browser WebSocket
+proxy drops a real saved acknowledgement and closes the connection; retry must
+retain the same operation ID, render one saved message, and avoid duplicate
+notifications. A rejected write retains its draft too.
 The journeys use unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
 security audit or coverage of external storage uploads, swipe gestures, idle socket termination, or every

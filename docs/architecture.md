@@ -52,8 +52,17 @@ persist canonical content/metadata. UploadThing's trusted completion callback
 registers that ownership using authenticated middleware metadata. These records
 are separate from gallery `File` records. Existing messages need no backfill, while
 unregistered keys cannot be reused for new messages. Socket owners still deliver
-events and create notifications; acknowledgements, transaction ordering, and
+events and create notifications; transaction ordering and
 transport delivery consolidation remain separate slices.
+
+Message operation IDs are nullable for legacy callers and unique within the sender
+and match. Identified retries return the canonical saved message; different content
+under an existing operation ID is a conflict. All socket owners acknowledge durable
+persistence and skip repeat broadcasts/notifications for replays. Follow-up delivery
+failures cannot change an already saved acknowledgement into a rejected write.
+The chat keeps a pending draft until acknowledgement and reuses its operation ID
+after failure/connection loss. Drafts live in the mounted chat; a crash-safe outbox
+and durable notification delivery are separate concerns.
 
 ## Structural work after the harness
 

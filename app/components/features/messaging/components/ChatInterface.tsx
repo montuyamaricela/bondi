@@ -8,6 +8,7 @@ import { MessageBubble } from './MessageBubble';
 import { Button } from '@/app/components/ui/button';
 import type { Message } from '../types';
 import { cn } from '@/lib/utils';
+import type { ServerToClientEvents } from '@/lib/socket';
 
 interface ChatInterfaceProps {
   matchId: string;
@@ -36,6 +37,8 @@ export function ChatInterface({
   const [currentMatchId, setCurrentMatchId] = useState(matchId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const sendOperationRef = useRef<{ id: string; matchId: string; content: string } | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -45,7 +48,17 @@ export function ChatInterface({
   if (matchId !== currentMatchId) {
     setMessages(initialMessages);
     setCurrentMatchId(matchId);
+    setNewMessage('');
+    setIsSending(false);
+    setSendError(null);
   }
+
+  useEffect(
+    () => () => {
+      sendOperationRef.current = null;
+    },
+    [matchId],
+  );
 
   // Update messages when initial messages load
   if (
@@ -87,18 +100,12 @@ export function ChatInterface({
       }
     });
 
-    const handleNewMessage = (message: {
-      id: string;
-      matchId: string;
-      senderId: string;
-      content: string;
-      createdAt: string;
-    }) => {
+    const handleNewMessage = (message: Parameters<ServerToClientEvents['message:new']>[0]) => {
       if (message.matchId === matchId) {
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === message.id);
           if (exists) return prev;
-          return [...prev, { ...message, type: 'TEXT' as const, readAt: null }];
+          return [...prev, { ...message, readAt: message.readAt ?? null }];
         });
 
         // Mark new message as read if it's from other user
@@ -155,6 +162,8 @@ export function ChatInterface({
 
   const handleInputChange = (value: string) => {
     setNewMessage(value);
+    if (sendOperationRef.current?.content !== value.trim()) sendOperationRef.current = null;
+    setSendError(null);
 
     if (!socket || !isConnected) return;
 
@@ -182,20 +191,44 @@ export function ChatInterface({
     if (!newMessage.trim() || isSending || !socket || !isConnected || isUnmatched) return;
 
     const messageContent = newMessage.trim();
-    setNewMessage('');
+    const previous = sendOperationRef.current;
+    const operation =
+      previous?.matchId === matchId && previous.content === messageContent
+        ? previous
+        : { id: crypto.randomUUID(), matchId, content: messageContent };
+    sendOperationRef.current = operation;
     setIsSending(true);
+    setSendError(null);
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     socket.emit('typing:stop', { matchId });
 
-    socket.emit('message:send', {
-      matchId,
-      content: messageContent,
-    });
-
-    setIsSending(false);
+    try {
+      const result = await socket.timeout(8000).emitWithAck('message:send', {
+        matchId,
+        content: messageContent,
+        clientRequestId: operation.id,
+      });
+      if (sendOperationRef.current !== operation) return;
+      setIsSending(false);
+      if (!result.ok) {
+        setSendError(result.message);
+        return;
+      }
+      setMessages((previousMessages) =>
+        previousMessages.some((message) => message.id === result.message.id)
+          ? previousMessages
+          : [...previousMessages, { ...result.message, readAt: result.message.readAt ?? null }],
+      );
+      setNewMessage('');
+      sendOperationRef.current = null;
+    } catch {
+      if (sendOperationRef.current !== operation) return;
+      setIsSending(false);
+      setSendError('Send not confirmed. Your draft is kept. Retry when connected.');
+    }
   };
 
   if (isLoading) {
@@ -263,12 +296,28 @@ export function ChatInterface({
             {!isConnected && (
               <div className="mb-2 text-center text-sm text-warning">Connecting to server...</div>
             )}
+            {isSending && (
+              <p role="status" className="mb-2 text-sm text-text-muted">
+                Saving message...
+              </p>
+            )}
+            {sendError && (
+              <p
+                role="alert"
+                aria-label="Message send error"
+                id="message-send-error"
+                className="mb-2 text-sm text-warning"
+              >
+                {sendError}
+              </p>
+            )}
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"
                 value={newMessage}
                 onChange={(e) => handleInputChange(e.target.value)}
                 aria-label="Message"
+                aria-describedby={sendError ? 'message-send-error' : undefined}
                 placeholder="Type a message..."
                 className={cn(
                   'flex-1 rounded-full border bg-bg-input px-4 py-2 text-text-body',
@@ -280,12 +329,17 @@ export function ChatInterface({
               />
               <Button
                 type="submit"
-                aria-label="Send message"
+                aria-label={sendError ? 'Retry send' : 'Send message'}
                 disabled={!newMessage.trim() || isSending || !isConnected}
-                className="h-10 w-10 rounded-full bg-primary-main p-0 text-primary-text hover:bg-primary-hover"
+                className={cn(
+                  'h-10 rounded-full bg-primary-main text-primary-text hover:bg-primary-hover',
+                  sendError ? 'px-4' : 'w-10 p-0',
+                )}
               >
                 {isSending ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
+                ) : sendError ? (
+                  'Retry'
                 ) : (
                   <Send className="h-5 w-5" />
                 )}

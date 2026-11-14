@@ -45,6 +45,7 @@ export interface Conversation {
 export interface SendMessageData {
   matchId: string;
   content: string;
+  clientRequestId?: string;
 }
 
 export interface TypingUser {

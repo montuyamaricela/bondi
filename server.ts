@@ -133,24 +133,21 @@ app.prepare().then(() => {
       console.log(`User ${userId} left match room: ${matchId}`);
     });
 
-    socket.on('message:send', async (payload) => {
+    socket.on('message:send', async (payload, acknowledge) => {
+      let saved = false;
       try {
-        const { message, receiverId } = await writeMessage(userId, payload);
+        const { message, receiverId, replayed } = await writeMessage(userId, payload);
+        saved = true;
+        const outgoing = {
+          ...message,
+          createdAt: message.createdAt.toISOString(),
+          readAt: message.readAt?.toISOString() ?? null,
+        };
+        if (typeof acknowledge === 'function') acknowledge({ ok: true, message: outgoing });
+        if (replayed) return;
         const { matchId, content } = message;
 
-        io.to(`match:${matchId}`).emit('message:new', {
-          id: message.id,
-          matchId: message.matchId,
-          senderId: message.senderId,
-          content: message.content,
-          type: message.type,
-          fileUrl: message.fileUrl,
-          fileKey: message.fileKey,
-          fileName: message.fileName,
-          fileSize: message.fileSize,
-          fileType: message.fileType,
-          createdAt: message.createdAt.toISOString(),
-        });
+        io.to(`match:${matchId}`).emit('message:new', outgoing);
 
         const senderProfile = await db.profile.findUnique({
           where: { userId },
@@ -183,7 +180,15 @@ app.prepare().then(() => {
 
         console.log(`Message sent in match ${matchId} by user ${userId}`);
       } catch (error) {
+        if (saved) {
+          console.error('Message follow-up failed after persistence');
+          return;
+        }
         const { code, error: message } = messageWriteError(error);
+        if (typeof acknowledge === 'function') {
+          acknowledge({ ok: false, code, message });
+          return;
+        }
         socket.emit('message:error', { code, message });
       }
     });
