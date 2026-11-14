@@ -103,9 +103,12 @@ validation and listener registration ordering still apply before these handlers.
 `lib/app-error.ts` keeps domain error construction independent of Next HTTP imports
 so the same checks work in standalone socket processes.
 
-`lib/server/matching.ts` owns the mutual-like transition. A bounded retry around a
-Serializable transaction commits the like, canonical match and intended durable
-notifications together. Same-action retries return committed state; conflicting
+`lib/server/matching.ts` owns the mutual-like transition. A transaction-level
+PostgreSQL advisory lock serializes writes for the unordered user pair. READ COMMITTED
+queries then see the previous lock owner's committed state; broad Serializable
+predicate conflicts cannot exhaust normal same-pair retries. The transaction still
+commits the like, canonical match and intended durable notifications together,
+with a bounded retry for transient database conflicts. Same-action retries return committed state; conflicting
 actions remain rejected and unmatched pairs are not recreated. Missing legacy
 notifications can be filled without replacing existing IDs/read state. Socket
 refresh hints happen after commit and their failure cannot falsely reject the write.

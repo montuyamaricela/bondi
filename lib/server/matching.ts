@@ -9,10 +9,14 @@ export async function recordDiscoveryAction(
   action: 'LIKE' | 'PASS',
 ) {
   if (userId === targetUserId) throw createAppError('Cannot interact with your own profile', 400);
+  const [user1Id, user2Id] = [userId, targetUserId].sort();
+  const pairKey = `bondi:match:${JSON.stringify([user1Id, user2Id])}`;
   for (let attempt = 0; ; attempt++) {
     try {
       return await db.$transaction(
         async (transaction) => {
+          // Wait for this pair's previous writer before taking fresh READ COMMITTED snapshots.
+          await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${pairKey}, 0))`;
           const target = await transaction.user.findUnique({
             where: { id: targetUserId },
             select: { id: true, profile: { select: { name: true } } },
@@ -42,7 +46,6 @@ export async function recordDiscoveryAction(
           });
           if (match && match.status !== 'ACTIVE') return noMatch;
           if (!match) {
-            const [user1Id, user2Id] = [userId, targetUserId].sort();
             match = await transaction.match.create({
               data: { user1Id, user2Id, status: 'ACTIVE' },
             });
@@ -105,7 +108,7 @@ export async function recordDiscoveryAction(
             notify: notifications.map(({ userId }) => ({ userId, matchId: match.id })),
           };
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
       );
     } catch (error) {
       if (
