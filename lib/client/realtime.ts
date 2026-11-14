@@ -7,6 +7,7 @@ const credentialSchema = z.object({
   leaseId: z.string().min(1),
   topic: z.string().regex(/^bondi:[a-f0-9]{64}$/),
   token: z.string().min(1),
+  closeToken: z.string().regex(/^[a-f0-9]{64}$/),
   expiresAt: z.iso.datetime(),
 });
 type Credential = z.infer<typeof credentialSchema>;
@@ -29,6 +30,24 @@ export function subscribeRealtime(
   let timer: ReturnType<typeof setTimeout> | null = null;
   let failures = 0;
   const controller = new AbortController();
+
+  const closeCredential = () => {
+    const previous = credential;
+    credential = null;
+    if (!previous) return;
+    void fetch('/api/realtime/credential', {
+      method: 'DELETE',
+      credentials: 'include',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expectedUserId: previous.userId,
+        expectedSessionId: previous.sessionId,
+        leaseId: previous.leaseId,
+        closeToken: previous.closeToken,
+      }),
+    }).catch(() => {});
+  };
 
   const disconnect = () => {
     if (active) connectionChanged({ status: 'disconnected', leaseId: null });
@@ -72,7 +91,7 @@ export function subscribeRealtime(
         if (!active) return;
         if (!response.ok) {
           if ([401, 403, 409].includes(response.status)) {
-            credential = null;
+            closeCredential();
             disconnect();
           }
           throw new Error('Subscription credential unavailable.');
@@ -156,18 +175,6 @@ export function subscribeRealtime(
     window.removeEventListener('focus', focus);
     document.removeEventListener('visibilitychange', visibility);
     disconnect();
-    if (credential)
-      void fetch('/api/realtime/credential', {
-        method: 'DELETE',
-        credentials: 'include',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expectedUserId: owner.userId,
-          expectedSessionId: owner.sessionId,
-          leaseId: credential.leaseId,
-        }),
-      }).catch(() => {});
-    credential = null;
+    closeCredential();
   };
 }

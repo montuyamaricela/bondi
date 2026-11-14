@@ -17,6 +17,7 @@ import {
 import { useUnmatchMutation } from '@/app/components/features/matching/hooks';
 import { UnmatchModal } from '@/app/components/features/messaging/components/UnmatchModal';
 import { useOnlineStatus } from '../useOnlineStatus';
+import { useRealtime } from '@/app/components/providers/realtime-provider';
 
 interface ChatHeaderProps {
   name: string;
@@ -37,6 +38,7 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const router = useRouter();
   const { socket, isConnected } = useSocket();
+  const { enabled: native } = useRealtime();
   const presence = useOnlineStatus(userId, !isUnmatched);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUnmatchModalOpen, setIsUnmatchModalOpen] = useState(false);
@@ -52,7 +54,7 @@ export function ChatHeader({
       await unmatchMutation.mutateAsync(matchId);
       toast.success(`You've unmatched with ${name}`);
       setIsUnmatchModalOpen(false);
-      if (socket && isConnected) socket.emit('match:leave', { matchId });
+      if (!native && socket && isConnected) socket.emit('match:leave', { matchId });
     } catch {
       toast.error('Failed to unmatch. Please try again.');
     }
@@ -101,8 +103,19 @@ export function ChatHeader({
               </p>
             </div>
           )}
+          {presence.unavailable && (
+            <p role="status" className="text-xs text-text-muted">
+              Online status unavailable
+            </p>
+          )}
         </div>
       </button>
+
+      {presence.unavailable && (
+        <button type="button" className="text-xs underline" onClick={presence.retry}>
+          Retry status
+        </button>
+      )}
 
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>

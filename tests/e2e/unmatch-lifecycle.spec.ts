@@ -6,6 +6,7 @@ import { expect, test, type Browser, type BrowserContext } from '@playwright/tes
 import { io, type Socket } from 'socket.io-client';
 import { initializeSocket } from '../../lib/socket';
 import { connect, joinRooms } from './socket-helpers';
+import { privateHintObserver } from '../helpers/realtime-observer';
 
 async function participants(browser: Browser, baseURL: string, db: PrismaClient, offset: number) {
   const contexts: BrowserContext[] = [];
@@ -76,6 +77,7 @@ test('all socket owners deny foreign typing and end live access without deleting
   const initializer = initializeSocket(server);
   const clients: Socket[] = [];
   const allContexts: BrowserContext[] = [];
+  const nativeObservers: Awaited<ReturnType<typeof privateHintObserver>>[] = [];
   const emails: string[] = [];
   try {
     await new Promise<void>((resolve, reject) => {
@@ -109,6 +111,22 @@ test('all socket owners deny foreign typing and end live access without deleting
       const [alice, bob, outsider] = connected;
       await joinRooms(alice, bob, match.id);
       if (runtime === 0) {
+        if (assertTestDatabase().native) {
+          const observer = await privateHintObserver(contexts[1].request);
+          nativeObservers.push(observer);
+          expect(
+            (
+              await contexts[1].request.post('/api/presence', {
+                data: {
+                  expectedUserId: observer.userId,
+                  expectedSessionId: observer.sessionId,
+                  leaseId: observer.leaseId,
+                  sequence: 1,
+                },
+              })
+            ).status(),
+          ).toBe(200);
+        }
         await db.profile.update({
           where: { userId: people[1].userId },
           data: { showOnlineStatus: true },
@@ -228,6 +246,7 @@ test('all socket owners deny foreign typing and end live access without deleting
     }
   } finally {
     for (const client of clients) client.disconnect();
+    await Promise.allSettled(nativeObservers.map((observer) => observer.close()));
     await Promise.all(allContexts.map((context) => context.close()));
     await new Promise<void>((resolve) => {
       initializer.close(() => resolve());

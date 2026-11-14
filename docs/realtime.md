@@ -153,9 +153,78 @@ runs after the transaction. Lost receipt/typing hints repair through authorized
 current-state reads; they do not change already-persisted read receipts.
 
 The explicit ordinary-PostgreSQL UI still uses its legacy commands until retirement.
-Socket.IO continues to supply presence and other outgoing consumers in native mode
-until their dependent tickets land. This is a staged transition, with no automatic
-transport fallback or replacement event framework.
+This is a staged transition, with no automatic transport fallback or replacement
+event framework.
+
+## Native presence, privacy and unmatch
+
+Native online status uses authenticated HTTP and server-owned liveness; raw peer
+Supabase Presence is neither published nor consumed. Each tab starts heartbeats only
+after its own private subscription reports `SUBSCRIBED`. Credential issuance alone
+does not mark a tab online. A signed-in client can keep its own liveness current;
+it cannot assert another actor, a deadline or a visibility preference.
+
+`POST /api/presence` requires `expectedUserId`, `expectedSessionId`, owned live
+`leaseId` and positive integer `sequence`. The server locks that lease, checks its
+current session and computes `min(now + 60 seconds, lease expiry, session expiry)`.
+DELETE uses the same input to clear liveness. Only a higher sequence wins; retained
+ordering state prevents delayed heartbeats from undoing newer leave requests.
+The existing private table RLS/grants cover both fields, and deleting a lease/session
+removes its liveness. No last-seen, location heartbeat or activity history is added.
+
+The browser refreshes about every 20 seconds, with a five-second request timeout.
+Its owner aborts requests and clears timers on disconnect/account change/cleanup,
+sends best-effort keepalive leave on pagehide, and resumes after page restoration.
+Late completions cannot update the next owner or restart an abandoned timer.
+Credential responses also contain a narrowly scoped `closeToken`, kept only by the
+subscription owner. A cookie can change before old cleanup runs, so credential
+DELETE accepts either its current cookie owner or this signed close capability.
+It is bound to the exact user, session and lease with a domain-separated HMAC under
+the server auth secret, checked in constant time. It can only delete that lease;
+it cannot renew credentials, heartbeat, read data, send messages or close a new
+lease. Replays after deletion are idempotent and publish no additional peer hints.
+This lets an account/session switch promptly retract the retired owner's liveness
+without treating a stale cookie as authorization. Auth-secret rotation invalidates
+old cleanup capabilities; the bounded liveness deadline still applies.
+Rejected credential renewals close the previous lease before discarding its cleanup
+capability, even while the next account's session snapshot is still pending.
+Network/server failures visibly degrade and can recover; rejected identity, session,
+lease or payload stops automatic heartbeat attempts. `Retry online status` rebuilds
+the owned subscription. Subscription readiness and heartbeat success are distinct.
+
+`POST /api/users/presence` requires the expected owner and at most 100 raw `userIds`.
+It returns only `{[requestedUserId]: {visible, online}}`. Current active membership,
+the target's online-visibility preference, valid sessions and unexpired liveness
+all apply on every snapshot. Non-peers/ended matches/hidden profiles return false
+booleans. The compatibility `/api/users/online-status` response remains boolean-only;
+native configuration uses the same authoritative liveness source. No observer gets
+peer lease, device, session or raw Presence metadata.
+
+Private empty hints trigger authorized snapshots after liveness transitions,
+privacy changes and session deletion (including normal sign-out/revocation). Unmatch
+refreshes both former participants after the single durable transition, even though
+the active edge is gone. Missed hints cannot disclose new state: each subsequent
+HTTP read independently authorizes. Both open chats become read-only; permitted
+history remains and receipt/typing/send operations reject an ended match.
+
+Online-status query keys include account/session ownership, consume abort signals
+and cancel older reads before confirmed transition refreshes. A held older privacy
+response cannot restore status. Observers poll every 15 seconds with a five-second
+request limit, and hide failed/disconnected/hidden snapshots. Focus/visibility
+changes reset cached snapshots before revalidation. Refresh errors show a degraded
+status and explicit retry, rather than presenting a reliable offline assertion.
+An independent 20-second snapshot-age timer also retracts online status if repeated
+hints keep cancelling reads before their request timeouts. Fresh authorized results
+restore the indicator; cancelled reads cannot extend its display indefinitely.
+
+Abrupt loss can leave a tab online for up to its 60-second server lease, plus up to
+15 seconds for an active observer's next poll and five seconds for the read. This
+gives an 80-second active-observer bound under a functioning server; background
+browser suspension has no timer guarantee, and resuming must revalidate. Graceful
+leave normally refreshes promptly. Native transport loss and controlled expiry/
+polling are tested separately from a full wall-clock-duration outage rehearsal.
+Legacy Socket.IO handlers remain only for the explicit outgoing transport until
+their removal ticket; native UI does not use their presence/leave commands.
 
 ## Signing-key rotation
 

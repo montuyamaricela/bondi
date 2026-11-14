@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { db } from '@/lib/db';
 import { authEnvironment } from '@/lib/server/env';
+import { notifyPresenceChange } from '@/lib/server/native-presence';
 
 const configuration = authEnvironment();
 
@@ -13,6 +14,13 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
     autoSignIn: true,
+  },
+  databaseHooks: {
+    session: {
+      delete: {
+        after: async (session) => notifyPresenceChange(session.userId),
+      },
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days (default)
