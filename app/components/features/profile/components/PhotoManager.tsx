@@ -54,8 +54,8 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
       await deleteMutation.mutateAsync(photoKey);
       onPhotosChange(photos.filter((p) => p.key !== photoKey));
       toast.success('Photo deleted successfully');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete photo');
+    } catch {
+      toast.error('Photo deletion could not be completed. Please try again.');
     }
   };
 

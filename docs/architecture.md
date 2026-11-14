@@ -88,6 +88,14 @@ to these expression/partial index definitions in migration SQL; tests exercise t
 against PostgreSQL. Duplicate preflight checks stop migration
 for a separately reviewed repair plan; they do not delete/reassign history.
 
+`lib/server/profile-photo-delete.ts` owns photo deletion ordering: validate the key,
+resolve an owned File, require storage confirmation, then remove owned metadata.
+Missing configuration, SDK failure/negative confirmation and database cleanup failure
+surface a retryable error while retaining the key. A confirmed zero-count storage
+response permits retry after an earlier remote deletion. The photo manager keeps
+the visible photo on failure and offers retry feedback. There is no background queue;
+the owned File is the durable cleanup reference until completion.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

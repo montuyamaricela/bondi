@@ -183,6 +183,12 @@ The canonical-matching migration stops if historical duplicate pairs or match
 notifications exist. It never deletes or reassigns history. Resolve those findings
 with a separately reviewed data-repair plan before applying that migration; no
 production data repair is included here.
+The photo-deletion case checks authenticated HTTP denial/missing configuration and
+retained PostgreSQL ownership references. It uses the real UploadThing SDK with a
+synthetic, stateful fetch fixture for provider rejection, thrown failure and confirmed
+deletion. A PostgreSQL cleanup failure after remote confirmation leaves the key for
+retry; a confirmed already-absent object then permits metadata cleanup. Foreign
+photos remain untouched. No live storage service or real asset is used.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
