@@ -335,6 +335,17 @@ retain existing ownership behavior. Mark-all modifies only the actor's unread se
 The pre-fix list regression stops at a negative limit returning 200, before reaching
 the oversized test values; no production-sized query is used for reproduction.
 
+### City reference verification
+
+`tests/unit/location-catalog.test.ts` validates zero points, disambiguation, normalized
+aliases, malformed source rejection and changed/missing checksummed files. The API
+case in `tests/e2e/location-catalog.spec.ts` creates synthetic cities and a real session
+in the disposable database. It covers the 20-result cap, deterministic ties, country
+narrowing, aliases/diacritics, literal wildcards, invalid/duplicate parameters, missing
+and expired sessions, empty results and catalog-unavailable recovery. Metadata is
+temporarily renamed and restored to exercise a real missing-catalog state. Existing
+reference data is preserved. It never downloads/imports GeoNames during tests.
+
 ### Keyboard, dialog and emulated touch verification
 
 `tests/e2e/public-access.spec.ts` follows the landing How we do it anchor with native

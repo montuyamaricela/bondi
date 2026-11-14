@@ -327,6 +327,19 @@ it uses a native section anchor; the existing How It Works section accepts keybo
 focus and clears the fixed navigation with a scroll margin. Get started is a single
 signup link, without a nested button. Public navigation does not create a session.
 
+`lib/server/location-catalog.ts` owns authenticated city-reference search through the
+thin `/api/location/cities` route. The server validates a bounded query and country,
+then searches normalized name/ASCII/alias rows through a prefix index, returning at
+most 20 disambiguated display records. No user-to-city association or point is part
+of that response. An unavailable catalog is distinct from an empty search.
+
+Reference preparation is an explicit maintenance operation documented in
+[GeoNames setup](reference-data/geonames.md). Its pinned checksums, normalization and
+row validation precede the database transaction; batched upserts and aliases commit
+with snapshot metadata. Removed reference rows remain unavailable rather than being
+deleted. No startup/build/test/migration imports reference data. This catalog module
+does not itself change profile location state or discovery origins.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

@@ -1,0 +1,11 @@
+{
+  "id": "geonames-cities500",
+  "version": "2026-11-14",
+  "license": "CC-BY-4.0",
+  "source": "https://download.geonames.org/export/dump/",
+  "sha256": {
+    "cities500.txt": "324b898688663ffcb1b01f42d6d8d66263131e62f4037ee6628fd00dd041670b",
+    "countryInfo.txt": "79f8f59ea01cbb40438bf1856dd6c2ff201f03f8fc72d0530b2646aaf603ef04",
+    "admin1CodesASCII.txt": "2e4867f5397acb056ea26377601b57af37cb4c81399770225018e9e439e91ad3"
+  }
+}

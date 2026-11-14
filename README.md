@@ -109,6 +109,9 @@ It includes a full dependency audit that blocks critical advisories. Remaining
 noncritical findings and the checked upgrade boundaries are recorded in the
 [dependency baseline review](docs/research/2026-11-14-dependency-baseline.md).
 
+City reference data has a separate, checksummed [GeoNames setup procedure](docs/reference-data/geonames.md).
+Migration, startup, build and test commands never download or import that catalog.
+
 Runtime/test/config commits automatically run `npm run check:feature` after staged
 lint/format fixes, blocking the commit if checks, build, or E2E fail. For the hook,
 copy `.env.test.example` to `.env.test.local` and configure its disposable test
