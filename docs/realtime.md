@@ -65,6 +65,12 @@ owned matches. Repeated hints still refresh durable state without repeating effe
 This is not a guarantee of exactly-once operating-system notifications across tabs,
 browser restarts or more than the bounded notification window.
 
+When an older message page is in flight, a hint fetches a separate bounded latest
+page and merges overlapping saved rows without cancelling pagination. If that
+latest window has no overlap, it replaces the obsolete window with its own cursor
+so intervening history remains reachable rather than appearing as a false gap.
+The subscription owner aborts these reads on cleanup and ignores late responses.
+
 Apply Prisma migrations explicitly to the known target before enabling native mode
 and building the app. Writes reject a mismatch between the selected mode and the
 installed dispatcher. On ordinary PostgreSQL the additive migration installs only

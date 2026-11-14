@@ -57,7 +57,7 @@ test('populated chats reconcile missed history and preserve live messages during
     let websocketReady = false;
     const connections: Array<{ client: WebSocketRoute; upstream: WebSocketRoute }> = [];
     await alice.route('**/socket.io/**', (route) => (blocked ? route.abort() : route.continue()));
-    await alice.routeWebSocket('**/socket.io/**', (client) => {
+    const routeSocket = (client: WebSocketRoute) => {
       if (blocked) {
         void client.close();
         return;
@@ -68,7 +68,10 @@ test('populated chats reconcile missed history and preserve live messages during
         if (data.toString() === '5') websocketReady = true;
         upstream.send(data);
       });
-    });
+    };
+    await alice.routeWebSocket('**/socket.io/**', routeSocket);
+    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true')
+      await alice.routeWebSocket('**/realtime/v1/websocket**', routeSocket);
     for (const page of [alice, bob]) {
       await page.goto(`/messages/${match.id}`);
       await expect(
