@@ -19,10 +19,16 @@ test('mutual likes commit one canonical match and notifications or roll back tog
   );
   const emails: string[] = [];
   const trigger = `bondi_e2e_match_${randomUUID().replaceAll('-', '')}`;
+  const retryTrigger = `bondi_e2e_retry_${randomUUID().replaceAll('-', '')}`;
   const people: string[] = [];
   async function removeFailure() {
     await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${trigger}" ON "Notification"`);
     await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
+  }
+  async function removeSerializationFailure() {
+    await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${retryTrigger}" ON "Like"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${retryTrigger}"()`);
+    await db.$executeRawUnsafe(`DROP SEQUENCE IF EXISTS "${retryTrigger}_seq"`);
   }
   try {
     for (const [index, name] of ['Alice', 'Bob'].entries()) {
@@ -71,7 +77,25 @@ test('mutual likes commit one canonical match and notifications or roll back tog
         })
       ).status(),
     ).toBe(400);
-    expect(await action(0)).toMatchObject({ status: 200, body: { matched: false } });
+    // A sequence survives rollback, proving the real HTTP operation retried its failed transaction.
+    expect(alice).toMatch(/^[A-Za-z0-9_-]+$/);
+    await db.$executeRawUnsafe(`CREATE SEQUENCE "${retryTrigger}_seq"`);
+    await db.$executeRawUnsafe(
+      `CREATE FUNCTION "${retryTrigger}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."userId" = '${alice}' AND nextval('"${retryTrigger}_seq"') = 1 THEN RAISE EXCEPTION USING ERRCODE = '40001', MESSAGE = 'synthetic serialization conflict'; END IF; RETURN NEW; END; $$`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE TRIGGER "${retryTrigger}" BEFORE INSERT ON "Like" FOR EACH ROW EXECUTE FUNCTION "${retryTrigger}"()`,
+    );
+    const recoveredLike = await action(0);
+    const attempts = await db.$queryRawUnsafe<Array<{ last_value: bigint }>>(
+      `SELECT last_value FROM "${retryTrigger}_seq"`,
+    );
+    expect({ status: recoveredLike.status, attempts: Number(attempts[0].last_value) }).toEqual({
+      status: 200,
+      attempts: 2,
+    });
+    expect(recoveredLike.body).toEqual({ matched: false });
+    await removeSerializationFailure();
     // Fail the other participant's notification after the first insertion is attempted.
     // SQL identifiers and the predicate below contain only generated synthetic values.
     expect(alice).toMatch(/^[A-Za-z0-9_-]+$/);
@@ -113,7 +137,7 @@ test('mutual likes commit one canonical match and notifications or roll back tog
       true,
     );
 
-    for (let round = 0; round < 3; round++) {
+    for (let round = 0; round < 50; round++) {
       await db.notification.deleteMany({ where: { userId: { in: people }, type: 'MATCH' } });
       await db.match.deleteMany({ where: { OR: pairs } });
       await db.like.deleteMany({ where: { userId: { in: people }, targetUserId: { in: people } } });
@@ -159,6 +183,7 @@ test('mutual likes commit one canonical match and notifications or roll back tog
   } finally {
     try {
       await removeFailure();
+      await removeSerializationFailure();
     } finally {
       await Promise.all(contexts.map((context) => context.close()));
       try {
