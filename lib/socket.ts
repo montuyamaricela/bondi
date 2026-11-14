@@ -3,8 +3,10 @@ import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
 import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
+import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 
 export type ServerToClientEvents = {
+  'auth:error': (error: { code: 'UNAUTHORIZED'; message: string }) => void;
   'message:new': (message: {
     id: string;
     matchId: string;
@@ -79,13 +81,14 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     try {
       const token = socket.handshake.auth.token;
 
-      if (!token) {
+      if (typeof token !== 'string' || !token || token.length > 4096) {
         return next(new Error('Authentication required'));
       }
 
       const cookieName = getCookies(auth.options).sessionToken.name;
 
       const session = await auth.api.getSession({
+        query: { disableCookieCache: true },
         headers: {
           authorization: `Bearer ${token}`,
           cookie: `${cookieName}=${token}`,
@@ -97,16 +100,17 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       }
 
       socket.data.userId = session.user.id;
-      socket.data.sessionId = token;
+      socket.data.sessionId = session.session.id;
 
       next();
-    } catch (error) {
-      console.error('Socket authentication error:', error);
+    } catch {
+      console.error('Socket authentication failed');
       next(new Error('Authentication failed'));
     }
   });
 
   io.on('connection', async (socket) => {
+    attachSocketSessionGuard(socket);
     const userId = socket.data.userId;
 
     console.log(`User connected: ${userId}`);
@@ -115,6 +119,8 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       where: { userId },
       select: { showOnlineStatus: true },
     });
+
+    if (!socket.connected) return;
 
     if (profile?.showOnlineStatus) {
       socket.broadcast.emit('user:online', { userId });

@@ -128,7 +128,8 @@ npx --no-install playwright install chromium
 npm run test:e2e
 ```
 
-The suite starts the built combined app/socket server on port 3100. It covers public
+The suite starts the built combined app/socket server on port 3100 and the standalone
+socket server on port 3101; keep both ports free. It covers public
 pages, themes, anonymous access, and an authenticated journey: two users sign up,
 complete profiles, log out/in, mutually like each other, and exchange live messages
 that survive reloads. Likes use the real discovery API; onboarding, match navigation,
@@ -140,12 +141,17 @@ rejects an incorrect password, and verifies that logout removes access.
 A session lifecycle case retains genuine signed cache cookies while revoking or
 expiring their backing sessions. The next protected HTTP read/write must reject
 them without changing data; valid reads, writes, and session renewal still work.
+The socket lifecycle case also exercises the library initializer on an owned
+ephemeral port. Across all three owners, it checks real room/message delivery and
+read receipts, then rejects all six incoming actions after session revocation or
+expiry with an explicit auth error and disconnect. Rejected actions cannot save a
+message, change a read receipt, or forward typing.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
 distance, form validation, and upload-handler access with mocked adapters. Upload
-completion, swipe gestures, session checks on already-connected sockets, mobile layouts, and other browsers remain
+completion, swipe gestures, idle socket termination, multi-tab presence, mobile layouts, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and

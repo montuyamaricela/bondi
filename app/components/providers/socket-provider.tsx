@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/lib/socket';
 
@@ -82,6 +83,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
         socketInstance.on('connect_error', (error) => {
           console.error('Socket connection error:', error.message);
+          setIsConnected(false);
+        });
+
+        socketInstance.on('auth:error', ({ message }) => {
+          toast.error(message);
           setIsConnected(false);
         });
 
