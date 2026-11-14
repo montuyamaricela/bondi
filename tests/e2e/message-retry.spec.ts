@@ -129,6 +129,8 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     let websocketReady = false;
     let dropped = false;
     let allowReconnect = false;
+    let joinProbeAcknowledged = false;
+    let probeJoin: (() => void) | undefined;
     const operationIds: string[] = [];
     await page.route('**/socket.io/**', (route) =>
       dropped && !allowReconnect ? route.abort() : route.continue(),
@@ -139,21 +141,35 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
         return;
       }
       const upstream = route.connectToServer();
+      probeJoin = () =>
+        upstream.send(`42900001${JSON.stringify(['match:join', { matchId: match.id }])}`);
+      let messageAckPrefix: string | undefined;
       route.onMessage((data) => {
         const frame = data.toString();
         if (frame === '5') websocketReady = true;
         if (frame.includes('"message:send"')) {
           const packet: unknown = JSON.parse(frame.slice(frame.indexOf('[')));
-          if (Array.isArray(packet) && packet[1]?.clientRequestId)
+          if (Array.isArray(packet) && packet[0] === 'message:send' && packet[1]?.clientRequestId) {
             operationIds.push(packet[1].clientRequestId);
+            const ackId = frame.slice(2, frame.indexOf('['));
+            if (/^\d+$/.test(ackId)) messageAckPrefix = `43${ackId}[`;
+          }
         }
         upstream.send(data);
       });
       upstream.onMessage((data) => {
         const frame = data.toString();
+        if (frame.startsWith('43900001[')) joinProbeAcknowledged = true;
         // Drop the first saved acknowledgement and its broadcast, then cut the real connection.
-        if (!dropped && frame.startsWith('42') && frame.includes('"message:new"')) return;
-        if (!dropped && frame.startsWith('43')) {
+        if (
+          !dropped &&
+          messageAckPrefix &&
+          frame.startsWith('42') &&
+          frame.includes('"message:new"')
+        )
+          return;
+        // Join acknowledgements pass through; cut only the captured message acknowledgement.
+        if (!dropped && messageAckPrefix && frame.startsWith(messageAckPrefix)) {
           dropped = true;
           websocketReady = false;
           void route.close();
@@ -166,6 +182,10 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     await page.goto(`/messages/${match.id}`);
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toBeEnabled();
     await expect.poll(() => websocketReady).toBe(true);
+    // Exercise a room acknowledgement over WebSocket regardless of initial polling timing.
+    probeJoin?.();
+    await expect.poll(() => joinProbeAcknowledged).toBe(true);
+    expect(dropped).toBe(false);
     const content = 'A recoverable message after the acknowledgement is lost';
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill(content);
     await page.getByRole('button', { name: 'Send message', exact: true }).click();
