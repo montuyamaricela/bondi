@@ -88,7 +88,13 @@ test('populated chats reconcile missed history and preserve live messages during
     await Promise.all(
       connections.flatMap(({ client, upstream }) => [client.close(), upstream.close()]),
     );
-    await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeDisabled();
+    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
+      await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeEnabled();
+      await expect(
+        alice.getByText('Live updates unavailable. You can still send messages.'),
+      ).toBeVisible();
+    } else
+      await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeDisabled();
     async function send(content: string) {
       await bob.getByRole('textbox', { name: 'Message', exact: true }).fill(content);
       await bob.getByRole('button', { name: 'Send message', exact: true }).click();
@@ -124,7 +130,7 @@ test('populated chats reconcile missed history and preserve live messages during
     });
     blocked = false;
     await expect
-      .poll(() => captured, { message: 'socket recovery must refetch populated history' })
+      .poll(() => captured, { message: 'connection recovery must refetch populated history' })
       .toBe(true);
     const duringFetch = 'A live message while older history is in flight';
     await send(duringFetch);

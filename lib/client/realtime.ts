@@ -10,11 +10,16 @@ const credentialSchema = z.object({
   expiresAt: z.iso.datetime(),
 });
 type Credential = z.infer<typeof credentialSchema>;
+export type RealtimeConnectionState = {
+  status: 'connecting' | 'connected' | 'disconnected';
+  leaseId: string | null;
+};
 
 export function subscribeRealtime(
   owner: { userId: string; sessionId: string },
   configuration: { url: string; key: string },
   changed: () => void,
+  connectionChanged: (state: RealtimeConnectionState) => void = () => {},
 ) {
   let active = true;
   let credential: Credential | null = null;
@@ -26,6 +31,7 @@ export function subscribeRealtime(
   const controller = new AbortController();
 
   const disconnect = () => {
+    if (active) connectionChanged({ status: 'disconnected', leaseId: null });
     channel = null;
     if (client) {
       const previous = client;
@@ -85,6 +91,7 @@ export function subscribeRealtime(
           throw new Error('Subscription owner changed.');
         credential = next;
         if (!client) {
+          connectionChanged({ status: 'connecting', leaseId: null });
           client = createClient(configuration.url, configuration.key, {
             accessToken: async () =>
               active && credential && Date.parse(credential.expiresAt) > Date.now()
@@ -110,6 +117,7 @@ export function subscribeRealtime(
               if (!active || current !== client) return;
               if (status === 'SUBSCRIBED') {
                 failures = 0;
+                connectionChanged({ status: 'connected', leaseId: credential?.leaseId ?? null });
                 changed();
               } else if (
                 status === 'CHANNEL_ERROR' ||

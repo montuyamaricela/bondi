@@ -40,10 +40,22 @@ The staged [Supabase subscription owner](realtime.md) uses server-issued ES256
 credentials and random, receive-only session leases. Its private native policy
 checks the live Better Auth session through a private boolean lookup. Minimal hints
 invalidate authorized HTTP queries; neither cached channel permissions nor a JWT
-authorize application reads/writes. Socket.IO remains the command transport until
-the dependent migration slices retire it. The native owner is explicitly enabled,
+authorize application reads/writes. Native chat uses authenticated HTTP commands;
+the ordinary UI and remaining presence consumers retain Socket.IO until their
+dependent migration slices retire it. The native owner is explicitly enabled,
 without an automatic fallback. The [decision](adr/0001-session-owned-realtime.md)
 records the privacy constraints and retained authentication/schema ownership.
+
+`lib/server/chat-activity.ts` owns bounded read receipts and ephemeral typing behind
+thin match routes. Every operation checks the current session, expected browser
+owner and active membership; writes serialize with unmatch. Private typing rows
+bind a subscription lease and chat-view UUID, order updates by sequence, and expire
+within five seconds. The managed retention job keeps ordering markers until their
+parent expires and skips renewal locks. Peer snapshots expose no session/device
+metadata. Native chat sends through the existing HTTP persistence operation with
+stable retries and guarded draft generations; SDK readiness does not authorize or
+gate message persistence. The native provider exposes owned connection/lease status
+and explicit retry, while client cleanup aborts activity and late send continuations.
 
 The sample environment points sockets at the combined app server on port 3000.
 `npm run dev` starts that process. The optional `npm run socket` entry point uses
@@ -166,7 +178,8 @@ ordered by creation time then ID. `message-pages.ts` updates an existing page by
 and reconciles at the whole-query commit, retaining late live arrivals and newer
 read receipts while another page awaits. The TanStack sharing adapter handles both
 stored pages and selected arrays. Draft/attempt state stays local and separate.
-Each socket owner acknowledges an authorized room join before history refresh.
+Legacy socket owners acknowledge authorized room joins before history refresh;
+native subscription recovery refreshes HTTP history without match rooms.
 On reconnection, sequential page refetches advance the loaded latest-history window;
 older history remains available through explicit continuation. Obsolete cached
 rows outside that refreshed window are not merged into an apparent history gap.

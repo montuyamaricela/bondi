@@ -91,8 +91,9 @@ they do not change the live transport or provision/migrate a Supabase project.
 Native Supabase verification uses an explicitly prepared disposable local stack and
 an independent CI check. The [private subscription contract](docs/realtime.md)
 documents explicit activation, session ownership, managed durable message hints,
-retry/retention limits and signing-key rotation while
-the remaining chat migration slices retain Socket.IO commands.
+retry/retention limits, HTTP chat commands and signing-key rotation.
+Native chat uses authenticated HTTP commands. Presence and other outgoing consumers
+retain Socket.IO until their dependent migration slices land.
 See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
 
@@ -275,6 +276,15 @@ locked-row skipping, concurrent claims, and ended-match/expired-session suppress
 Notification eligibility cases retain historical rows while suppressing effects
 for ended, missing and foreign matches. Native results require the separate
 Supabase CI job; ordinary PostgreSQL does not execute these native branches.
+
+Native chat-command cases cover bounded/monotonic receipts, rejected foreign and
+ended access, session/lease binding, typing order/expiry and concurrent retention
+versus renewal. Real browsers verify HTTP send/read/typing without chat socket
+commands, durable sending with both live connections disconnected, explicit native
+reconnection, revocation on the next protected request and retained drafts across
+timeouts, conversations and account changes. Lost-response retries retain their
+operation ID. Only synthetic data is used; these are separate from ordinary
+PostgreSQL's temporarily retained command-path checks.
 
 Discovery selection cases cover candidates beyond the original 50-row cutoff and
 across deterministic batches, mutual preferences for all gender values, zero and

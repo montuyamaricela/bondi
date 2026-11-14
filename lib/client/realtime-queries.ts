@@ -23,7 +23,13 @@ export async function refreshRealtimeMessages(client: QueryClient, signal: Abort
       ) {
         // A head refresh must not cancel the user's independently requested older page.
         const head = await api.get<CursorPage<Message>>(
-          `/api/messages?${new URLSearchParams({ matchId, limit: '50' })}`,
+          `/api/messages?${new URLSearchParams({
+            matchId,
+            limit: '50',
+            ...(typeof query.queryKey[2] === 'string' && typeof query.queryKey[3] === 'string'
+              ? { expectedUserId: query.queryKey[2], expectedSessionId: query.queryKey[3] }
+              : {}),
+          })}`,
           { signal },
         );
         if (signal.aborted) return;

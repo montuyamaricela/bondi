@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { addSavedMessages, readSavedMessage, type MessagePages } from '../message-pages';
 import { Send, Loader2 } from 'lucide-react';
 import { useSocket } from '@/app/components/providers/socket-provider';
-import { useMessages } from '../hooks';
+import { useMessages, useSendMessage, messageQueryKey } from '../hooks';
 import { MessageBubble } from './MessageBubble';
 import { Button } from '@/app/components/ui/button';
 import type { Message } from '../types';
 import { cn } from '@/lib/utils';
 import type { ServerToClientEvents } from '@/lib/socket';
+import { useSession } from '@/lib/auth-client';
+import { useRealtime } from '@/app/components/providers/realtime-provider';
+import { useChatActivity } from '../useChatActivity';
+import { expectedChatOwner, chatAccessDenied } from '@/lib/client/chat-activity';
+import { FetchError } from '@/lib/fetch-wrapper';
+import type { ChatOwner } from '../activity-input';
 
 const EMPTY_MESSAGES: Message[] = [];
 
@@ -26,7 +32,40 @@ interface ChatInterfaceProps {
   currentUserName?: string;
 }
 
-export function ChatInterface({
+export function ChatInterface(props: ChatInterfaceProps) {
+  const { data: session, isPending } = useSession();
+  const { enabled: native } = useRealtime();
+  const sessionId = session?.session.id ?? '';
+  const owner = useMemo(
+    () => ({ userId: props.currentUserId, sessionId }),
+    [props.currentUserId, sessionId],
+  );
+  if (native && (!sessionId || session?.user.id !== props.currentUserId))
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        {isPending ? (
+          <Loader2 aria-label="Loading chat session" className="h-8 w-8 animate-spin" />
+        ) : (
+          <div role="alert">
+            Your chat session changed. Refresh to continue.
+            <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
+              Refresh chat
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  return (
+    <ChatView
+      key={`${props.currentUserId}:${sessionId}:${props.matchId}`}
+      {...props}
+      owner={owner}
+      native={native}
+    />
+  );
+}
+
+function ChatView({
   matchId,
   currentUserId,
   otherUserId,
@@ -35,8 +74,17 @@ export function ChatInterface({
   otherUserName,
   currentUserImage,
   currentUserName,
-}: ChatInterfaceProps) {
+  owner,
+  native,
+}: ChatInterfaceProps & { owner: ChatOwner; native: boolean }) {
   const { socket, isConnected } = useSocket();
+  const realtime = useRealtime();
+  const legacySocket = native ? null : socket;
+  const sendMessage = useSendMessage();
+  const cacheKey = useMemo(
+    () => messageQueryKey(matchId, native ? owner : undefined),
+    [matchId, native, owner],
+  );
   const queryClient = useQueryClient();
   const {
     data: messages = EMPTY_MESSAGES,
@@ -45,7 +93,15 @@ export function ChatInterface({
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useMessages(matchId);
+  } = useMessages(matchId, native ? owner : undefined);
+  const activity = useChatActivity(
+    matchId,
+    native ? owner : undefined,
+    realtime.leaseId,
+    native && realtime.status === 'connected',
+    isUnmatched,
+    messages,
+  );
   const historyRef = useRef<HTMLDivElement>(null);
   const olderLoadingRef = useRef(false);
   const olderAnchorRef = useRef<{ id: string; top: number } | null>(null);
@@ -53,7 +109,13 @@ export function ChatInterface({
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const sendOperationRef = useRef<{ id: string; matchId: string; content: string } | null>(null);
+  const [sendDenied, setSendDenied] = useState(false);
+  type Operation = { id: string; matchId: string; content: string; generation: number };
+  const sendOperationRef = useRef<Operation | null>(null);
+  const attemptRef = useRef<Operation | null>(null);
+  const generation = useRef(0);
+  const sendController = useRef<AbortController | null>(null);
+  const canSend = native ? !activity.blocked && !sendDenied : isConnected;
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -70,9 +132,19 @@ export function ChatInterface({
   useEffect(
     () => () => {
       sendOperationRef.current = null;
+      attemptRef.current = null;
+      sendController.current?.abort();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     },
-    [matchId, socket, isUnmatched],
+    [matchId, legacySocket, isUnmatched],
+  );
+  useLayoutEffect(
+    () => () => {
+      sendOperationRef.current = null;
+      attemptRef.current = null;
+      sendController.current?.abort();
+    },
+    [],
   );
 
   // Clear marked messages when matchId changes
@@ -84,17 +156,24 @@ export function ChatInterface({
   // Mark a message as read (helper function)
   const markMessageAsRead = useCallback(
     (messageId: string) => {
-      if (!socket || !isConnected || isUnmatched || markedAsReadRef.current.has(messageId)) return;
+      if (
+        native ||
+        !socket ||
+        !isConnected ||
+        isUnmatched ||
+        markedAsReadRef.current.has(messageId)
+      )
+        return;
 
       markedAsReadRef.current.add(messageId);
       socket.emit('message:read', { messageId });
     },
-    [socket, isConnected, isUnmatched],
+    [socket, isConnected, isUnmatched, native],
   );
 
   // Socket connection and event handlers
   useEffect(() => {
-    if (!socket || !isConnected || isUnmatched) return;
+    if (native || !socket || !isConnected || isUnmatched) return;
 
     let active = true;
 
@@ -151,7 +230,7 @@ export function ChatInterface({
       socket.off('typing:stop', handleTypingStop);
       if (socket.connected) socket.emit('match:leave', { matchId });
     };
-  }, [socket, isConnected, matchId, otherUserId, isUnmatched, queryClient]);
+  }, [socket, isConnected, matchId, otherUserId, isUnmatched, queryClient, native]);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -204,9 +283,15 @@ export function ChatInterface({
   };
 
   const handleInputChange = (value: string) => {
+    generation.current++;
     setNewMessage(value);
     if (sendOperationRef.current?.content !== value.trim()) sendOperationRef.current = null;
     setSendError(null);
+
+    if (native) {
+      activity.updateTyping(!!value.trim());
+      return;
+    }
 
     if (!socket || !isConnected || isUnmatched) return;
 
@@ -231,46 +316,82 @@ export function ChatInterface({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || isSending || !socket || !isConnected || isUnmatched) return;
+    if (!newMessage.trim() || isSending || !canSend || isUnmatched || (!native && !socket)) return;
 
     const messageContent = newMessage.trim();
     const previous = sendOperationRef.current;
     const operation =
       previous?.matchId === matchId && previous.content === messageContent
-        ? previous
-        : { id: crypto.randomUUID(), matchId, content: messageContent };
+        ? { ...previous, generation: generation.current }
+        : {
+            id: crypto.randomUUID(),
+            matchId,
+            content: messageContent,
+            generation: generation.current,
+          };
     sendOperationRef.current = operation;
+    attemptRef.current = operation;
     setIsSending(true);
     setSendError(null);
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    socket.emit('typing:stop', { matchId });
+    if (native) activity.updateTyping(false);
+    else socket?.emit('typing:stop', { matchId });
 
+    let deadline: ReturnType<typeof setTimeout> | undefined;
     try {
-      const result = await socket.timeout(8000).emitWithAck('message:send', {
-        matchId,
-        content: messageContent,
-        clientRequestId: operation.id,
-      });
-      if (sendOperationRef.current !== operation) return;
-      setIsSending(false);
-      if (!result.ok) {
-        setSendError(result.message);
-        return;
+      const payload = { matchId, content: messageContent, clientRequestId: operation.id };
+      let saved: Message;
+      if (native) {
+        const controller = new AbortController();
+        sendController.current = controller;
+        deadline = setTimeout(() => controller.abort(), 8000);
+        saved = await sendMessage.mutateAsync({
+          ...payload,
+          ...expectedChatOwner(owner),
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) throw new Error('Message response abandoned');
+      } else {
+        if (!socket) return;
+        const result = await socket.timeout(8000).emitWithAck('message:send', payload);
+        if (attemptRef.current !== operation) return;
+        if (!result.ok) {
+          setSendError(result.message);
+          return;
+        }
+        saved = result.message;
       }
-      queryClient.setQueryData<MessagePages>(['messages', matchId], (previousMessages) =>
-        addSavedMessages(matchId, previousMessages, [
-          { ...result.message, readAt: result.message.readAt ?? null },
-        ]),
+      if (attemptRef.current !== operation) return;
+      queryClient.setQueryData<MessagePages>(cacheKey, (previousMessages) =>
+        addSavedMessages(matchId, previousMessages, [{ ...saved, readAt: saved.readAt ?? null }]),
       );
-      setNewMessage('');
-      sendOperationRef.current = null;
-    } catch {
-      if (sendOperationRef.current !== operation) return;
-      setIsSending(false);
-      setSendError('Send not confirmed. Your draft is kept. Retry when connected.');
+      if (sendOperationRef.current === operation && generation.current === operation.generation) {
+        setNewMessage('');
+        sendOperationRef.current = null;
+      }
+    } catch (error) {
+      if (attemptRef.current !== operation) return;
+      if (chatAccessDenied(error)) {
+        setSendDenied(true);
+        void queryClient.invalidateQueries({ queryKey: ['match', matchId] });
+        setSendError('Chat access changed. Refresh the page to continue.');
+      } else if (error instanceof FetchError && [400, 409].includes(error.status)) {
+        setSendError('Message rejected. Review or edit your draft before trying again.');
+      } else
+        setSendError(
+          native
+            ? 'Send not confirmed. Your draft is kept. Retry to check.'
+            : 'Send not confirmed. Your draft is kept. Retry when connected.',
+        );
+    } finally {
+      if (deadline) clearTimeout(deadline);
+      if (attemptRef.current === operation) {
+        attemptRef.current = null;
+        setIsSending(false);
+      }
     }
   };
 
@@ -324,8 +445,8 @@ export function ChatInterface({
             />
           ))
         )}
-        {isTyping && !isUnmatched && (
-          <div className="mb-4 flex justify-start">
+        {(native ? activity.typing : isTyping) && !isUnmatched && (
+          <div role="status" aria-label="Typing indicator" className="mb-4 flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-border-main bg-bg-card px-4 py-2 text-text-muted">
               <div className="flex gap-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-text-muted"></span>
@@ -353,7 +474,31 @@ export function ChatInterface({
           </div>
         ) : (
           <>
-            {!isConnected && (
+            {native && realtime.status !== 'connected' && (
+              <div role="status" className="mb-2 text-center text-sm text-warning">
+                Live updates unavailable. You can still send messages.
+                <Button type="button" variant="ghost" onClick={realtime.retry}>
+                  Retry live updates
+                </Button>
+              </div>
+            )}
+            {native && (activity.blocked || sendDenied) && (
+              <div role="alert">
+                Chat access changed. Refresh the page to continue.
+                <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
+                  Refresh chat
+                </Button>
+              </div>
+            )}
+            {native && activity.readError && !activity.blocked && (
+              <Button type="button" variant="ghost" onClick={activity.retryRead}>
+                Retry read receipts
+              </Button>
+            )}
+            {native && activity.typingError && !activity.blocked && (
+              <p role="status">Typing updates are unavailable.</p>
+            )}
+            {!native && !isConnected && (
               <div className="mb-2 text-center text-sm text-warning">Connecting to server...</div>
             )}
             {isSending && (
@@ -385,12 +530,12 @@ export function ChatInterface({
                   'placeholder:text-text-muted',
                 )}
                 maxLength={5000}
-                disabled={isSending || !isConnected}
+                disabled={isSending || !canSend}
               />
               <Button
                 type="submit"
                 aria-label={sendError ? 'Retry send' : 'Send message'}
-                disabled={!newMessage.trim() || isSending || !isConnected}
+                disabled={!newMessage.trim() || isSending || !canSend}
                 className={cn(
                   'h-10 rounded-full bg-primary-main text-primary-text hover:bg-primary-hover',
                   sendError ? 'px-4' : 'w-10 p-0',
