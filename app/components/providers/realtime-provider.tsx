@@ -1,11 +1,13 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
 import { browserRealtimeConfiguration } from '@/lib/client/env';
 import { subscribeRealtime, type RealtimeConnectionState } from '@/lib/client/realtime';
 import { refreshRealtimeMessages } from '@/lib/client/realtime-queries';
+import { maintainPresence } from '@/lib/client/presence';
+import { Button } from '@/app/components/ui/button';
 
 const RealtimeContext = createContext<
   RealtimeConnectionState & { enabled: boolean; retry: () => void }
@@ -28,7 +30,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [revision, setRevision] = useState(0);
   const retry = useCallback(() => setRevision((value) => value + 1), []);
   const [connection, setConnection] = useState<
-    (RealtimeConnectionState & { userId: string; sessionId: string }) | null
+    (RealtimeConnectionState & { userId: string; sessionId: string; revision: number }) | null
   >(null);
   useEffect(() => {
     const configuration = browserRealtimeConfiguration();
@@ -54,7 +56,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         }
       },
       (state) => {
-        if (active) setConnection({ ...state, userId, sessionId });
+        if (active) setConnection({ ...state, userId, sessionId, revision });
       },
     );
     return () => {
@@ -64,7 +66,25 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId, sessionId, queryClient, revision]);
   const owned =
-    connection?.userId === userId && connection?.sessionId === sessionId ? connection : null;
+    connection?.userId === userId &&
+    connection?.sessionId === sessionId &&
+    connection?.revision === revision
+      ? connection
+      : null;
+  const leaseId = owned?.status === 'connected' ? owned.leaseId : null;
+  const counter = useRef({ leaseId: '', value: 0 });
+  const [presence, setPresence] = useState<{
+    leaseId: string;
+    revision: number;
+    unavailable: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!userId || !sessionId || !leaseId) return;
+    if (counter.current.leaseId !== leaseId) counter.current = { leaseId, value: 0 };
+    return maintainPresence({ userId, sessionId }, leaseId, counter.current, (unavailable) => {
+      setPresence({ leaseId, revision, unavailable });
+    });
+  }, [userId, sessionId, leaseId, revision]);
   return (
     <RealtimeContext.Provider
       value={{
@@ -74,6 +94,16 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         retry,
       }}
     >
+      {presence?.leaseId === leaseId &&
+        presence?.revision === revision &&
+        presence?.unavailable && (
+          <div role="alert" className="flex items-center justify-center gap-2 p-2 text-sm">
+            Online status is unavailable.
+            <Button type="button" variant="ghost" onClick={retry}>
+              Retry online status
+            </Button>
+          </div>
+        )}
       {children}
     </RealtimeContext.Provider>
   );

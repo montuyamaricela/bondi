@@ -1,9 +1,9 @@
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { createAppError } from '@/lib/app-error';
-import { realtimeEnvironment } from '@/lib/server/env';
+import { authEnvironment, realtimeEnvironment } from '@/lib/server/env';
 import { mintRealtimeToken, REALTIME_LIFETIME_SECONDS } from '@/lib/server/realtime-signing';
 
 export const realtimeOwnerInput = z
@@ -13,6 +13,37 @@ export const realtimeOwnerInput = z
     leaseId: z.string().min(1).max(128).optional(),
   })
   .strict();
+
+export const realtimeCloseInput = realtimeOwnerInput.extend({
+  leaseId: z.string().min(1).max(128),
+  closeToken: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+});
+
+function closeToken(lease: { id: string; userId: string; sessionId: string }) {
+  return createHmac('sha256', authEnvironment().secret)
+    .update(JSON.stringify(['bondi:realtime-close:v1', lease.userId, lease.sessionId, lease.id]))
+    .digest('hex');
+}
+
+// A retired browser owner may lose its cookie before cleanup. This capability
+// authorizes only closing this exact lease; it grants no application access.
+export function canCloseRealtimeLease(input: z.infer<typeof realtimeCloseInput>) {
+  if (!input.closeToken) return false;
+  return timingSafeEqual(
+    Buffer.from(input.closeToken, 'hex'),
+    Buffer.from(
+      closeToken({
+        id: input.leaseId,
+        userId: input.expectedUserId,
+        sessionId: input.expectedSessionId,
+      }),
+      'hex',
+    ),
+  );
+}
 
 const signingKeySchema = z
   .object({
@@ -92,6 +123,7 @@ export async function issueRealtimeCredential(
     leaseId: lease.id,
     topic: lease.topic,
     expiresAt: lease.expiresAt.toISOString(),
+    closeToken: closeToken(lease),
     token: await signRealtimeCredential(lease),
   };
 }

@@ -4,11 +4,14 @@ model RealtimeLease {
   userId    String
   sessionId String
   expiresAt DateTime
+  presenceSequence Int @default(0)
+  presenceExpiresAt DateTime?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   typing    TypingLease[]
 
   @@index([userId, expiresAt])
+  @@index([userId, presenceExpiresAt])
   @@index([sessionId])
 }
 

@@ -6,12 +6,15 @@ import { handleApiError, readJson } from '@/lib/errors';
 import { getSocketInstance } from '@/lib/socket-instance';
 import { refreshPresence } from '@/lib/server/presence';
 import { updateLocation } from '@/lib/server/location';
+import { notifyPresenceChange } from '@/lib/server/native-presence';
+import { createAppError } from '@/lib/app-error';
 
 const privacyUpdateSchema = z.object({
   showOnlineStatus: z.boolean().optional(),
   showDistance: z.boolean().optional(),
   showCity: z.boolean().optional(),
   expectedUserId: z.string().min(1).max(128).optional(),
+  expectedSessionId: z.string().min(1).max(128).optional(),
   expectedRevision: z.number().int().min(0).max(2_147_483_647).optional(),
 });
 
@@ -25,6 +28,12 @@ export async function PATCH(request: NextRequest) {
 
     const body = await readJson(request);
     const validated = privacyUpdateSchema.parse(body);
+    if (
+      (validated.expectedUserId !== undefined && validated.expectedUserId !== session.user.id) ||
+      (validated.expectedSessionId !== undefined &&
+        validated.expectedSessionId !== session.session.id)
+    )
+      throw createAppError('Session changed', 409, 'SESSION_CHANGED');
 
     const hasLocationVisibility =
       validated.showDistance !== undefined || validated.showCity !== undefined;
@@ -60,6 +69,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (validated.showOnlineStatus !== undefined) {
+      await notifyPresenceChange(session.user.id);
       await refreshPresence(getSocketInstance(), session.user.id).catch(() => {
         console.error('Could not refresh privacy visibility');
       });

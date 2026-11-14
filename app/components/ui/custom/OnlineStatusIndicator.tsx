@@ -15,6 +15,17 @@ export function OnlineStatusIndicator({
   size = 'md',
 }: OnlineStatusIndicatorProps) {
   const presence = useOnlineStatus(userId, enabled);
+  if (presence.unavailable)
+    return (
+      <span
+        role="img"
+        aria-label="Online status unavailable"
+        title="Online status unavailable"
+        className="text-xs text-text-muted"
+      >
+        ?
+      </span>
+    );
   if (!presence.online || !presence.visible) return null;
 
   const sizeClasses = {

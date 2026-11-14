@@ -3,6 +3,7 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/fetch-wrapper';
 import { uniquePageItems, type CursorPage } from '@/lib/pagination';
+import { useSession } from '@/lib/auth-client';
 
 interface Match {
   matchId: string;
@@ -71,15 +72,24 @@ export function useMatch(matchId: string) {
 
 export function useUnmatchMutation() {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
     mutationFn: async (matchId: string) => {
       return await api.patch<{ success: boolean; matchId: string }>(
         `/api/matches/${matchId}/unmatch`,
-        {},
+        session ? { expectedUserId: session.user.id, expectedSessionId: session.session.id } : {},
       );
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ['match', data.matchId] }),
+        queryClient.cancelQueries({ queryKey: ['online-status'] }),
+      ]);
+      queryClient.setQueryData<MatchDetail>(['match', data.matchId], (previous) =>
+        previous ? { ...previous, status: 'UNMATCHED' } : undefined,
+      );
+      void queryClient.resetQueries({ queryKey: ['online-status'] });
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match', data.matchId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });

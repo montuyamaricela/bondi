@@ -41,8 +41,8 @@ credentials and random, receive-only session leases. Its private native policy
 checks the live Better Auth session through a private boolean lookup. Minimal hints
 invalidate authorized HTTP queries; neither cached channel permissions nor a JWT
 authorize application reads/writes. Native chat uses authenticated HTTP commands;
-the ordinary UI and remaining presence consumers retain Socket.IO until their
-dependent migration slices retire it. The native owner is explicitly enabled,
+the ordinary UI retains Socket.IO until its retirement slice. Native online status
+uses owned server liveness and authorized snapshots. The native owner is explicitly enabled,
 without an automatic fallback. The [decision](adr/0001-session-owned-realtime.md)
 records the privacy constraints and retained authentication/schema ownership.
 
@@ -117,6 +117,19 @@ and ignores late snapshots after newer events. Chat and inbox use that same stat
 Different processes do not share connection state without an adapter; choose one
 socket topology for the app. Idle expiry is filtered from subsequent queries and
 actions, rather than proactively terminating idle sockets.
+
+The native path uses `lib/server/native-presence.ts` instead of socket counts.
+Each connected tab refreshes a private `RealtimeLease` liveness deadline through
+HTTP every 20 seconds. The server caps it at 60 seconds and at lease/session expiry;
+ordered leave/heartbeat requests cannot resurrect an older state. Native snapshots
+combine active peer membership, current visibility and live valid sessions/leases.
+They expose only visible/online booleans. Private hints refresh peers after normal
+join/leave, privacy changes, session deletion and both participants after unmatch.
+The provider owns heartbeat timers, request aborts, retry errors and cleanup.
+Observers poll every 15 seconds with a five-second request bound, hide stale results
+on errors/disconnection/hidden documents and revalidate on focus. Abrupt-loss
+detection is bounded rather than instantaneous; the maintained [contract](realtime.md)
+records the limits. Legacy socket snapshots are retained only for the outgoing path.
 
 `SocketProvider` owns a connection by user ID and session ID. Token responses echo
 the server-resolved identity so a cookie change cannot connect a different session

@@ -91,9 +91,9 @@ they do not change the live transport or provision/migrate a Supabase project.
 Native Supabase verification uses an explicitly prepared disposable local stack and
 an independent CI check. The [private subscription contract](docs/realtime.md)
 documents explicit activation, session ownership, managed durable message hints,
-retry/retention limits, HTTP chat commands and signing-key rotation.
-Native chat uses authenticated HTTP commands. Presence and other outgoing consumers
-retain Socket.IO until their dependent migration slices land.
+retry/retention limits, HTTP chat commands, server-owned presence and signing-key
+rotation. Native chat and online status use authenticated HTTP with private refresh
+hints. Socket.IO remains for the explicit ordinary path until its retirement slice.
 See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
 
@@ -285,6 +285,23 @@ reconnection, revocation on the next protected request and retained drafts acros
 timeouts, conversations and account changes. Lost-response retries retain their
 operation ID. Only synthetic data is used; these are separate from ordinary
 PostgreSQL's temporarily retained command-path checks.
+
+Native presence cases verify owned, sequenced liveness heartbeats, the 60-second
+server deadline and lease/session caps, active-match-only audience and hidden
+status, expired sessions, logout hints and multi-tab aggregation. Real browsers
+exercise graceful leave, delayed privacy snapshots, both chats becoming read-only
+after unmatch, visible refresh failures and explicit retry. Native WebSocket loss
+is real; expiry and the 15-second observer polling window use a controlled synthetic
+deadline/browser clock. A buffered real heartbeat across an SPA account switch
+cannot update the new owner or restart the abandoned timer. These are distinct
+from waiting a full production lease duration on the wall clock.
+The privacy/unmatch journey blocks legacy socket traffic, proving native hints
+repair both UIs. Repeated native hints cancelling held HTTP reads cannot extend an
+unrefreshed online indicator past its independent 20-second display deadline.
+An original account-switch assertion also caught liveness surviving a changed
+cookie. A signed, delete-only cleanup capability now closes that exact old lease;
+native API cases reject forged/rebound proofs and prove it grants no read/write
+or heartbeat access. The capability is not persisted in browser storage.
 
 Discovery selection cases cover candidates beyond the original 50-row cutoff and
 across deterministic batches, mutual preferences for all gender values, zero and

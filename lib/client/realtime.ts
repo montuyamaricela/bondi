@@ -7,6 +7,7 @@ const credentialSchema = z.object({
   leaseId: z.string().min(1),
   topic: z.string().regex(/^bondi:[a-f0-9]{64}$/),
   token: z.string().min(1),
+  closeToken: z.string().regex(/^[a-f0-9]{64}$/),
   expiresAt: z.iso.datetime(),
 });
 type Credential = z.infer<typeof credentialSchema>;
@@ -166,6 +167,7 @@ export function subscribeRealtime(
           expectedUserId: owner.userId,
           expectedSessionId: owner.sessionId,
           leaseId: credential.leaseId,
+          closeToken: credential.closeToken,
         }),
       }).catch(() => {});
     credential = null;

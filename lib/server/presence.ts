@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Socket } from 'socket.io';
 import { db } from '@/lib/db';
 import { getAuthorizedUserSockets } from './socket-session';
+import { activePeerIds } from './match-access';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -26,20 +27,6 @@ const requestSchema = z.object({
   refreshOwn: z.boolean().optional(),
 });
 
-async function activePeers(userId: string, requested?: string[]) {
-  const matches = await db.match.findMany({
-    where: {
-      status: 'ACTIVE',
-      OR: [
-        { user1Id: userId, ...(requested ? { user2Id: { in: requested } } : {}) },
-        { user2Id: userId, ...(requested ? { user1Id: { in: requested } } : {}) },
-      ],
-    },
-    select: { user1Id: true, user2Id: true },
-  });
-  return matches.map((match) => (match.user1Id === userId ? match.user2Id : match.user1Id));
-}
-
 export async function getPresence(
   io: SocketServer | null,
   viewerId: string,
@@ -49,7 +36,7 @@ export async function getPresence(
     requested.map((id) => [id, { visible: false, online: false }]),
   );
   if (!requested.length) return result;
-  const peers = await activePeers(viewerId, requested);
+  const peers = await activePeerIds(viewerId, requested);
   const [profiles, connected] = await Promise.all([
     db.profile.findMany({
       where: { userId: { in: peers }, showOnlineStatus: true },
@@ -76,7 +63,7 @@ export async function refreshPresence(io: SocketServer | null, userId: string) {
       const [profile, connected, peers] = await Promise.all([
         db.profile.findUnique({ where: { userId }, select: { showOnlineStatus: true } }),
         getAuthorizedUserSockets(io, [userId]),
-        activePeers(userId),
+        activePeerIds(userId),
       ]);
       const recipients = await getAuthorizedUserSockets(io, peers);
       if (!recipients.length) return;

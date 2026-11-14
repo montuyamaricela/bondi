@@ -15,7 +15,12 @@ publishing. An idle revoked client may keep a cached connection until native tok
 expiry, but it cannot fetch protected data or qualify for future application hints.
 Already in-flight hints carry no private content or resource identifiers. Direct message broadcasts,
 client publishing and raw peer Presence would undermine this contract and are
-deliberately excluded. Presence/typing state must later use authorized server leases.
+deliberately excluded. Presence and typing use authorized server leases and snapshots.
+
+The only cookie-independent HTTP cleanup is a signed, lease-specific close
+capability retained by its browser owner. A cookie may already belong to the next
+account when cleanup runs. This capability only deletes the exact retired lease;
+it cannot authorize application reads, writes, heartbeats or credential renewal.
 
 A private-schema boolean SECURITY DEFINER lookup is necessary because Data API
 roles must not read application sessions or lease capabilities. It has a fixed
@@ -25,7 +30,8 @@ only supported native-schema modification is a SELECT policy on
 `realtime.messages`; application tables remain Prisma-owned and API-denied.
 
 Native chat commands use authenticated HTTP, with private hints prompting authorized
-reads. Socket.IO remains for the ordinary command path and outgoing presence
-consumers during the dependent migration slices. The separately enabled Supabase
+reads. Native presence also uses server-owned liveness deadlines and private refresh
+hints; cached native membership never grants peer status. Socket.IO remains for the
+ordinary path until retirement. The separately enabled Supabase
 owner has no transport fallback. Remove
 the old owner after HTTP commands, durable delivery and privacy behavior migrate.
