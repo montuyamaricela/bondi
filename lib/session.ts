@@ -70,4 +70,3 @@ export async function getServerSession(headers: Headers): Promise<Session | null
  *   return <div>Welcome, {session.user.name}!</div>
  * }
  */
-export { useSession } from '@/lib/auth-client';

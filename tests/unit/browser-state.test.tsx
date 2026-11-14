@@ -16,7 +16,15 @@ test('a newly mounted match opens immediately and closing calls its owner after 
   document.body.append(container);
   const root = createRoot(container);
   let closed = 0;
-  const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+  const router = {
+    bfcacheId: 'synthetic-bfcache',
+    back() {},
+    forward() {},
+    refresh() {},
+    push() {},
+    replace() {},
+    prefetch() {},
+  };
   try {
     await act(async () =>
       root.render(

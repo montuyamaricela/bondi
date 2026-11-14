@@ -8,6 +8,7 @@ import { test } from 'node:test';
 const runner = resolve('scripts/check.mjs');
 const checks = [
   'check:harness',
+  'audit:critical',
   'format:check',
   'test',
   'db:validate',
@@ -52,5 +53,12 @@ test('verification runs every gate in order when each succeeds', () => {
 test('verification propagates failure and never reaches later gates', () => {
   const { result, executed } = runFixture('typecheck');
   assert.equal(result.status, 7, result.stderr);
-  assert.deepEqual(executed, ['check:harness', 'format:check', 'test', 'db:validate', 'typecheck']);
+  assert.deepEqual(executed, [
+    'check:harness',
+    'audit:critical',
+    'format:check',
+    'test',
+    'db:validate',
+    'typecheck',
+  ]);
 });

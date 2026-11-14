@@ -23,13 +23,13 @@ export interface FormState {
 }
 
 export const stepFields: {
-  [key: number]: string[];
+  [key in ProfileStep]: Array<keyof ProfileSetupFormData>;
 } = {
   1: ['name', 'age', 'bio', 'gender', 'location', 'profileImage'],
   2: ['interests', 'hobbies'],
   3: ['relationshipType', 'genderPreference', 'lookingFor'],
 };
 
-export const getFieldsToValidate = (step: ProfileStep): string[] => {
+export const getFieldsToValidate = (step: ProfileStep): Array<keyof ProfileSetupFormData> => {
   return stepFields[step] || [];
 };
