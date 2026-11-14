@@ -66,6 +66,15 @@ Different processes do not share connection state without an adapter; choose one
 socket topology for the app. Idle expiry is filtered from subsequent queries and
 actions, rather than proactively terminating idle sockets.
 
+`SocketProvider` owns a connection by user ID and session ID. Token responses echo
+the server-resolved identity so a cookie change cannot connect a different session
+under stale client ownership. Abort and disposed checks cover both token awaits;
+late callbacks cannot publish connection state or update caches after cleanup.
+Cleanup removes the owned socket's listeners and disconnects it. Context exposes
+only the current owner's connection; ordinary session-object refreshes keep it,
+while a replacement session ID creates a new one. Server handshake and packet
+authorization continue independently of this client ownership bookkeeping.
+
 `lib/server/messages.ts` is the shared HTTP/socket write boundary: parse untrusted
 payloads, check active membership, resolve an owned `MessageAttachment` key, and
 persist canonical content/metadata. UploadThing's trusted completion callback

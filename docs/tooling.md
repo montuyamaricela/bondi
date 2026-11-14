@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current twenty-test browser
+While editing, run focused tests for fast feedback. The current twenty-four-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -114,6 +114,12 @@ three owners, multi-tab aggregation, last disconnect, privacy retraction/re-enab
 unmatch and expired-session filtering. The new presence request also participates
 in the session lifecycle matrix (42 rejected actions). Real chat/inbox indicators
 exercise navigation and privacy changes through the keyboard-accessible settings.
+Four provider lifecycle cases hold real token requests/responses/body parsing across
+logout or account changes. They count new Engine.IO handshakes rather than polls or
+upgrades, check that a still-valid old session cannot become an orphan connection,
+and exercise stable-owner refresh and replacement-session behavior. Date-only clock
+control advances the SDK's focus-refresh throttle; network responses and timers
+remain real. Authentication and session payloads are not mocked.
 The journeys use unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
 security audit or coverage of external storage uploads, swipe gestures, idle socket termination, or every
