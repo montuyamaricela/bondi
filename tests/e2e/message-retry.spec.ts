@@ -203,7 +203,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue(content);
     await expect(
       page.getByRole('log', { name: 'Conversation messages' }).getByText(content, { exact: true }),
-    ).toHaveCount(0);
+    ).toHaveCount(process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true' ? 1 : 0);
     await expect.poll(() => db.message.count({ where: { matchId: match.id, content } })).toBe(1);
     allowReconnect = true;
     const retry = page.getByRole('button', { name: 'Retry send', exact: true });

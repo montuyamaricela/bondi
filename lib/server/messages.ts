@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { nativeMessageTransport } from '@/lib/server/message-transport';
 
 const messageInput = z
   .object({
@@ -101,6 +102,7 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
         if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId))
           throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
         const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
+        const nativeDelivery = await nativeMessageTransport(transaction);
         const existing = await replay(transaction);
         if (existing) return { message: existing, receiverId, replayed: true };
         const attachment = file
@@ -153,12 +155,20 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
           string,
           { userId: string; excludedSocketId?: string; notificationId: string | null }
         >([
-          [userId, { userId, excludedSocketId, notificationId: null }],
+          [
+            userId,
+            {
+              userId,
+              excludedSocketId: nativeDelivery ? undefined : excludedSocketId,
+              notificationId: null,
+            },
+          ],
           [
             receiverId,
             {
               userId: receiverId,
-              excludedSocketId: receiverId === userId ? excludedSocketId : undefined,
+              excludedSocketId:
+                !nativeDelivery && receiverId === userId ? excludedSocketId : undefined,
               notificationId: notification.id,
             },
           ],
@@ -169,6 +179,8 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
             messageId: message.id,
           })),
         });
+        if (nativeDelivery)
+          await transaction.$queryRaw`SELECT bondi_private.dispatch_message_hints(${message.id})`;
         return { message, receiverId, replayed: false };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },

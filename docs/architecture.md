@@ -38,7 +38,7 @@ Prisma owns app migrations; the harness does not modify Supabase-owned native sc
 
 The staged [Supabase subscription owner](realtime.md) uses server-issued ES256
 credentials and random, receive-only session leases. Its private native policy
-checks the live Better Auth session through a private boolean lookup. Empty hints
+checks the live Better Auth session through a private boolean lookup. Minimal hints
 invalidate authorized HTTP queries; neither cached channel permissions nor a JWT
 authorize application reads/writes. Socket.IO remains the command transport until
 the dependent migration slices retire it. The native owner is explicitly enabled,
@@ -122,8 +122,17 @@ Unmatch waits for accepted sends to commit. Identified retries return the canoni
 message without duplicating effects; conflicting payloads remain rejected. The
 trusted upload callback still registers attachment ownership separately.
 
-`lib/server/message-delivery.ts` owns the three runtimes' send handlers and delivery
-relay. Acknowledgements follow durable commit; legacy callers receive a direct
+In native mode, the [managed database outbox](realtime.md#durable-message-hints)
+publishes private invalidations within the persistence transaction and retries due
+intents through pg_cron. A hint carries only an opaque random event ID. Dispatch
+rechecks active membership and live session leases, verifies native enqueue, and
+isolates per-intent failures. The legacy message relay is disabled in all three
+socket owners; retained socket commands still use the same HTTP write operation.
+Notification effects consume account/session-owned HTTP results, baseline historical
+rows and deduplicate new IDs; active membership determines effect eligibility.
+
+Outside native mode, `lib/server/message-delivery.ts` owns the three runtimes' send
+handlers and delivery relay. Acknowledgements follow durable commit; legacy callers receive a direct
 saved-message response. Each relay claims at most 100 pending user intents using
 `FOR UPDATE SKIP LOCKED`, checks active membership and authoritative connected
 sessions, then enqueues private message, inbox and notification hints. Sender
@@ -140,7 +149,8 @@ restart; repeated frames reconcile by saved message ID and notification ID.
 Reconnect refreshes durable inbox/notification queries, and open chats reload
 history after joining. Ended matches suppress queued live communication while
 retaining authorized history. Historical messages are not backfilled with new
-notifications; delivery rows have no new automatic retention policy.
+notifications. Completed intents have an operator-managed seven-day bounded pruning
+procedure in the native contract; pending work is never pruned.
 
 The session-owned provider refreshes inbox/notification caches on private hints
 and connection recovery. Conversation lists no longer remove other consumers'

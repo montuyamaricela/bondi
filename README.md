@@ -90,7 +90,8 @@ they do not change the live transport or provision/migrate a Supabase project.
 
 Native Supabase verification uses an explicitly prepared disposable local stack and
 an independent CI check. The [private subscription contract](docs/realtime.md)
-documents explicit activation, session ownership and signing-key rotation while
+documents explicit activation, session ownership, managed durable message hints,
+retry/retention limits and signing-key rotation while
 the remaining chat migration slices retain Socket.IO commands.
 See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
@@ -265,6 +266,15 @@ entire send; retry preserves the operation ID. A completion failure repeats real
 hints without duplicate browser notifications, and a fresh socket owner recovers the
 pending intent from PostgreSQL. Socket traffic selects the library owner while HTTP
 stays on the combined app; only the OS notification adapter is replaced.
+Native mode uses real private Supabase subscribers followed by authorized HTTP
+reads, and asserts legacy message streams stay silent. Its recovery case pauses
+the managed cron relay, injects completion failure, checks concurrent retry claims,
+restarts the job and verifies offline history repair without historical OS alerts.
+The native-only bounded outbox case verifies 202 real database Broadcast enqueues,
+locked-row skipping, concurrent claims, and ended-match/expired-session suppression.
+Notification eligibility cases retain historical rows while suppressing effects
+for ended, missing and foreign matches. Native results require the separate
+Supabase CI job; ordinary PostgreSQL does not execute these native branches.
 
 Discovery selection cases cover candidates beyond the original 50-row cutoff and
 across deterministic batches, mutual preferences for all gender values, zero and

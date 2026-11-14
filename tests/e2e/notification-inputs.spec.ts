@@ -120,6 +120,55 @@ test('notification lists bound strict limits and filters while retaining default
   }
 });
 
+test('message notification effects require current active membership while history remains available', async ({
+  browser,
+  baseURL,
+}) => {
+  const fixtureData = await fixture(browser, baseURL!, 34);
+  try {
+    const { db, contexts, people, owned } = fixtureData;
+    const outsider = await db.user.create({
+      data: { email: `${owned[0].id}-outsider@example.test` },
+    });
+    const active = await db.match.create({
+      data: { user1Id: people[0], user2Id: people[1] },
+    });
+    const foreign = await db.match.create({
+      data: { user1Id: people[1], user2Id: outsider.id },
+    });
+    const records = await Promise.all(
+      [active.id, foreign.id, null].map((entityId) =>
+        db.notification.create({
+          data: {
+            userId: people[0],
+            entityId,
+            type: 'MESSAGE',
+            title: 'Synthetic message',
+            content: 'Synthetic notification eligibility.',
+          },
+        }),
+      ),
+    );
+    const read = async () => {
+      const response = await contexts[0].request.get('/api/notifications');
+      expect(response.status()).toBe(200);
+      return (await response.json()).notifications as Array<{ id: string; canNotify: boolean }>;
+    };
+    const before = await read();
+    for (const [index, record] of records.entries())
+      expect(before.find(({ id }) => id === record.id)?.canNotify).toBe(index === 0);
+    await db.match.update({ where: { id: active.id }, data: { status: 'UNMATCHED' } });
+    const after = await read();
+    for (const record of records)
+      expect(after.find(({ id }) => id === record.id)?.canNotify).toBe(false);
+    expect(
+      await db.notification.count({ where: { id: { in: records.map(({ id }) => id) } } }),
+    ).toBe(3);
+  } finally {
+    await fixtureData.close();
+  }
+});
+
 test('bulk read-state inputs are bounded and cannot mutate another account, including mark-all', async ({
   browser,
   baseURL,
