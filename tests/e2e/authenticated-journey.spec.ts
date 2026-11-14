@@ -30,6 +30,13 @@ async function completeProfile(page: Page, name: string) {
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('button', { name: 'Complete', exact: true }).click();
   await expect(page).toHaveURL(/\/discover$/);
+  expect(
+    await page.evaluate(() =>
+      Object.values(localStorage).some((value) =>
+        value.includes('A synthetic profile who enjoys music and reading.'),
+      ),
+    ),
+  ).toBe(false);
   const response = await page.request.get('/api/profile');
   expect(response.status()).toBe(200);
   expect((await response.json()).profile).toMatchObject({

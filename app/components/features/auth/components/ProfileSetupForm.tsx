@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { profileSetupDraftKey, clearProfileSetupDrafts } from '@/lib/client/profile-drafts';
 import { useSession } from '@/lib/auth-client';
 import { profileSetupSchema } from '../validation';
 import type { ProfileSetupFormData, ProfileStep } from '../types';
@@ -20,15 +21,80 @@ import { InterestsHobbiesStep } from './InterestsHobbiesStep';
 import { DatingPreferencesStep } from './DatingPreferencesStep';
 
 export function ProfileSetupForm() {
+  const { data: session, isPending: isSessionLoading, error: sessionError } = useSession();
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!isSessionLoading && !sessionError) clearProfileSetupDrafts(userId);
+  }, [userId, isSessionLoading, sessionError]);
+
+  if (isSessionLoading) {
+    return (
+      <div className="w-full space-y-6">
+        <div className="space-y-2 text-center">
+          <p className="text-text-muted">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionError || !session) {
+    return (
+      <div className="w-full space-y-6">
+        <div className="space-y-2 text-center">
+          <p className="text-error">
+            {sessionError ? 'Failed to load session' : 'No session found'}
+          </p>
+          <p className="text-text-muted">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AccountProfileSetupForm
+      key={session.user.id}
+      userId={session.user.id}
+      userName={session.user.name}
+    />
+  );
+}
+
+function AccountProfileSetupForm({
+  userId,
+  userName,
+}: {
+  userId: string;
+  userName?: string | null;
+}) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const profileSetupMutation = useProfileSetupMutation();
-  const { data: session, isPending: isSessionLoading, error: sessionError } = useSession();
 
-  const [savedFormData, setSavedFormData, clearSavedFormData] = useLocalStorage<
+  const [savedFormData, saveDraftData, clearDraftData] = useLocalStorage<
     Partial<ProfileSetupFormData>
-  >('profile-setup-form', {}, 10);
+  >(profileSetupDraftKey(userId), {}, 10);
+
+  const activeRef = useRef(false);
+  const completedRef = useRef(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
+  const setSavedFormData = useCallback(
+    (data: Partial<ProfileSetupFormData>) => {
+      if (activeRef.current && !completedRef.current) saveDraftData(data);
+    },
+    [saveDraftData],
+  );
+  const clearSavedFormData = () => {
+    completedRef.current = true;
+    clearDraftData();
+  };
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(
     savedFormData.profileImage || null,
@@ -52,10 +118,10 @@ export function ProfileSetupForm() {
   });
 
   useEffect(() => {
-    if (session?.user?.name && !savedFormData.name) {
-      form.setValue('name', session.user.name);
+    if (userName && !savedFormData.name) {
+      form.setValue('name', userName);
     }
-  }, [session, form, savedFormData.name]);
+  }, [userName, form, savedFormData.name]);
 
   useEffect(() => {
     return form.subscribe({
@@ -111,60 +177,35 @@ export function ProfileSetupForm() {
 
     try {
       const result = await profileSetupMutation.mutateAsync(dataToSubmit);
+      if (!activeRef.current) return;
 
       if (result.success) {
         clearSavedFormData();
 
         setShowSuccessModal(true);
 
-        setTimeout(() => {
-          router.push('/discover');
+        redirectTimerRef.current = setTimeout(() => {
+          if (activeRef.current) router.push('/discover');
         }, 2500);
       } else {
         const errorMsg = result.error || 'Failed to create profile';
-        console.error('❌ Profile creation failed:', errorMsg);
         setApiError(errorMsg);
         toast.error(errorMsg);
       }
     } catch (error) {
-      console.error('💥 Error during submission:', error);
+      if (!activeRef.current) return;
 
       if (error instanceof FetchError) {
         const errorMsg = error.message;
-        console.error('🌐 Fetch error:', errorMsg);
         setApiError(errorMsg);
         toast.error(errorMsg);
       } else {
         const errorMsg = 'An unexpected error occurred. Please try again.';
-        console.error('⚠️ Unexpected error:', error);
         setApiError(errorMsg);
         toast.error(errorMsg);
       }
     }
   };
-
-  if (isSessionLoading) {
-    return (
-      <div className="w-full space-y-6">
-        <div className="space-y-2 text-center">
-          <p className="text-text-muted">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (sessionError || !session) {
-    return (
-      <div className="w-full space-y-6">
-        <div className="space-y-2 text-center">
-          <p className="text-error">
-            {sessionError ? 'Failed to load session' : 'No session found'}
-          </p>
-          <p className="text-text-muted">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -190,7 +231,6 @@ export function ProfileSetupForm() {
                   onSubmit(data);
                 },
                 (errors) => {
-                  console.error('❌ Form validation failed:', errors);
                   const firstError = Object.values(errors)[0]?.message;
                   if (firstError) {
                     toast.error(firstError);
