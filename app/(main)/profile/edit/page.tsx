@@ -15,12 +15,10 @@ export default function ProfileEditPage() {
 
   if (error) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-bg-main'>
-        <div className='text-center space-y-4'>
-          <h2 className='text-2xl font-bold text-text-heading'>
-            Error loading profile
-          </h2>
-          <p className='text-text-muted'>
+      <div className="flex min-h-screen items-center justify-center bg-bg-main">
+        <div className="space-y-4 text-center">
+          <h2 className="text-2xl font-bold text-text-heading">Error loading profile</h2>
+          <p className="text-text-muted">
             {error instanceof Error ? error.message : 'An error occurred'}
           </p>
         </div>
@@ -30,31 +28,27 @@ export default function ProfileEditPage() {
 
   if (!data?.profile) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-bg-main'>
-        <div className='text-center space-y-4'>
-          <h2 className='text-2xl font-bold text-text-heading'>
-            Profile not found
-          </h2>
-          <p className='text-text-muted'>Please complete your profile setup</p>
+      <div className="flex min-h-screen items-center justify-center bg-bg-main">
+        <div className="space-y-4 text-center">
+          <h2 className="text-2xl font-bold text-text-heading">Profile not found</h2>
+          <p className="text-text-muted">Please complete your profile setup</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className='min-h-screen bg-bg-main py-8'>
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
+    <div className="min-h-screen bg-bg-main py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <Link
-          href='/profile'
-          className='inline-flex items-center space-x-2 text-text-body hover:text-text-heading mb-6'
+          href="/profile"
+          className="mb-6 inline-flex items-center space-x-2 text-text-body hover:text-text-heading"
         >
-          <ArrowLeft className='h-4 w-4' />
+          <ArrowLeft className="h-4 w-4" />
           <span>Back to Profile</span>
         </Link>
 
-        <h1 className='text-3xl font-bold text-text-heading mb-6'>
-          Edit Profile
-        </h1>
+        <h1 className="mb-6 text-3xl font-bold text-text-heading">Edit Profile</h1>
 
         <ProfileEditForm profile={data.profile} />
       </div>

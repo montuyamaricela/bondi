@@ -64,11 +64,7 @@ export class BrowserNotifications {
     });
   }
 
-  static showMessageNotification(
-    senderName: string,
-    message: string,
-    senderImage?: string
-  ): void {
+  static showMessageNotification(senderName: string, message: string, senderImage?: string): void {
     this.show({
       title: `${senderName}`,
       body: message,

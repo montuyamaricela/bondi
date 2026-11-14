@@ -1,61 +1,56 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "@/lib/session"
-import { db } from "@/lib/db"
-import { handleApiError, createAppError } from "@/lib/errors"
-import { likeActionSchema } from "@/app/components/features/discover/validation"
-import { calculateDistance } from "@/lib/geolocation"
-import { getSocketInstance } from "@/lib/socket-instance"
-import { calculateCompatibilityScore } from "@/lib/matching-utils"
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { handleApiError, createAppError } from '@/lib/errors';
+import { likeActionSchema } from '@/app/components/features/discover/validation';
+import { calculateDistance } from '@/lib/geolocation';
+import { getSocketInstance } from '@/lib/socket-instance';
+import { calculateCompatibilityScore } from '@/lib/matching-utils';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(request.headers)
+    const session = await getServerSession(request.headers);
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const searchParams = request.nextUrl.searchParams
-    const minAge = searchParams.get("minAge")
-    const maxAge = searchParams.get("maxAge")
-    const maxDistance = searchParams.get("distance")
+    const searchParams = request.nextUrl.searchParams;
+    const minAge = searchParams.get('minAge');
+    const maxAge = searchParams.get('maxAge');
+    const maxDistance = searchParams.get('distance');
 
-    const currentUserId = session.user.id
+    const currentUserId = session.user.id;
 
     const currentUserProfile = await db.profile.findUnique({
       where: { userId: currentUserId },
-    })
+    });
 
     if (!currentUserProfile) {
       return NextResponse.json(
-        { error: "Profile not found. Please complete your profile first." },
-        { status: 404 }
-      )
+        { error: 'Profile not found. Please complete your profile first.' },
+        { status: 404 },
+      );
     }
 
     const alreadyInteractedWith: { targetUserId: string }[] = await db.like.findMany({
       where: { userId: currentUserId },
       select: { targetUserId: true },
-    })
+    });
 
-    const interactedUserIds = alreadyInteractedWith.map((like) => like.targetUserId)
+    const interactedUserIds = alreadyInteractedWith.map((like) => like.targetUserId);
 
     const matchedUserIds: { user1Id: string; user2Id: string }[] = await db.match.findMany({
       where: {
         OR: [{ user1Id: currentUserId }, { user2Id: currentUserId }],
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
       select: { user1Id: true, user2Id: true },
-    })
+    });
 
-    const matchedIds = matchedUserIds.flatMap((match) => [
-      match.user1Id,
-      match.user2Id,
-    ])
+    const matchedIds = matchedUserIds.flatMap((match) => [match.user1Id, match.user2Id]);
 
-    const excludedIds = [
-      ...new Set([...interactedUserIds, ...matchedIds, currentUserId]),
-    ]
+    const excludedIds = [...new Set([...interactedUserIds, ...matchedIds, currentUserId])];
 
     const ageFilter =
       minAge && maxAge
@@ -65,12 +60,12 @@ export async function GET(request: NextRequest) {
               lte: parseInt(maxAge),
             },
           }
-        : {}
+        : {};
 
     const genderFilter =
-      currentUserProfile.genderPreference && currentUserProfile.genderPreference !== "EVERYONE"
-        ? { gender: currentUserProfile.genderPreference as "MALE" | "FEMALE" }
-        : {}
+      currentUserProfile.genderPreference && currentUserProfile.genderPreference !== 'EVERYONE'
+        ? { gender: currentUserProfile.genderPreference as 'MALE' | 'FEMALE' }
+        : {};
 
     const profiles = await db.profile.findMany({
       where: {
@@ -85,14 +80,14 @@ export async function GET(request: NextRequest) {
           include: {
             files: {
               orderBy: {
-                createdAt: "asc",
+                createdAt: 'asc',
               },
             },
           },
         },
       },
       take: 50,
-    })
+    });
 
     const profilesWithScores = profiles
       .map((profile) => {
@@ -106,7 +101,7 @@ export async function GET(request: NextRequest) {
         ) {
           distance = calculateDistance(
             { latitude: currentUserProfile.latitude, longitude: currentUserProfile.longitude },
-            { latitude: profile.latitude, longitude: profile.longitude }
+            { latitude: profile.latitude, longitude: profile.longitude },
           );
         }
 
@@ -114,10 +109,7 @@ export async function GET(request: NextRequest) {
           return null;
         }
 
-        const compatibilityScore = calculateCompatibilityScore(
-          currentUserProfile,
-          profile
-        )
+        const compatibilityScore = calculateCompatibilityScore(currentUserProfile, profile);
 
         const distanceScore = distance !== null ? Math.max(0, 100 - distance / 5) : 0;
         const finalScore = compatibilityScore * 0.7 + distanceScore * 0.3;
@@ -144,53 +136,53 @@ export async function GET(request: NextRequest) {
           compatibilityScore: finalScore,
         };
       })
-      .filter((profile): profile is NonNullable<typeof profile> => profile !== null)
+      .filter((profile): profile is NonNullable<typeof profile> => profile !== null);
 
     const rankedProfiles = profilesWithScores
       .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
-      .slice(0, 10)
+      .slice(0, 10);
 
-    return NextResponse.json(rankedProfiles)
+    return NextResponse.json(rankedProfiles);
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(request.headers)
+    const session = await getServerSession(request.headers);
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json()
+    const body = await request.json();
 
-    const validationResult = likeActionSchema.safeParse(body)
+    const validationResult = likeActionSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
         {
-          error: "Invalid request data",
+          error: 'Invalid request data',
           details: validationResult.error.issues,
         },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
-    const { targetUserId, action } = validationResult.data
-    const currentUserId = session.user.id
+    const { targetUserId, action } = validationResult.data;
+    const currentUserId = session.user.id;
 
     if (currentUserId === targetUserId) {
-      throw createAppError("Cannot interact with your own profile", 400)
+      throw createAppError('Cannot interact with your own profile', 400);
     }
 
     const targetUser = await db.user.findUnique({
       where: { id: targetUserId },
       include: { profile: true },
-    })
+    });
 
     if (!targetUser || !targetUser.profile) {
-      throw createAppError("Target user not found", 404)
+      throw createAppError('Target user not found', 404);
     }
 
     const existingLike = await db.like.findUnique({
@@ -200,13 +192,13 @@ export async function POST(request: NextRequest) {
           targetUserId,
         },
       },
-    })
+    });
 
     if (existingLike) {
       return NextResponse.json(
-        { error: "You have already interacted with this profile" },
-        { status: 400 }
-      )
+        { error: 'You have already interacted with this profile' },
+        { status: 400 },
+      );
     }
 
     await db.like.create({
@@ -215,16 +207,16 @@ export async function POST(request: NextRequest) {
         targetUserId,
         action,
       },
-    })
+    });
 
-    if (action === "LIKE") {
+    if (action === 'LIKE') {
       const mutualLike = await db.like.findFirst({
         where: {
           userId: targetUserId,
           targetUserId: currentUserId,
-          action: "LIKE",
+          action: 'LIKE',
         },
-      })
+      });
 
       if (mutualLike) {
         const existingMatch = await db.match.findFirst({
@@ -234,65 +226,65 @@ export async function POST(request: NextRequest) {
               { user1Id: targetUserId, user2Id: currentUserId },
             ],
           },
-        })
+        });
 
         if (!existingMatch) {
           const match = await db.match.create({
             data: {
               user1Id: currentUserId,
               user2Id: targetUserId,
-              status: "ACTIVE",
+              status: 'ACTIVE',
             },
-          })
+          });
 
           const currentUserProfile = await db.profile.findUnique({
             where: { userId: currentUserId },
-          })
+          });
 
           const currentUserPhoto = await db.file.findFirst({
             where: { userId: currentUserId },
-            orderBy: { order: "asc" },
-          })
+            orderBy: { order: 'asc' },
+          });
 
           const targetUserPhoto = await db.file.findFirst({
             where: { userId: targetUserId },
-            orderBy: { order: "asc" },
-          })
+            orderBy: { order: 'asc' },
+          });
 
           await db.notification.create({
             data: {
               userId: currentUserId,
               title: "It's a Match! 🎉",
               content: `You matched with ${targetUser.profile.name}!`,
-              type: "MATCH",
+              type: 'MATCH',
               entityId: match.id,
               actionUrl: `/messages/${match.id}`,
               isRead: false,
             },
-          })
+          });
 
           await db.notification.create({
             data: {
               userId: targetUserId,
               title: "It's a Match! 🎉",
-              content: `You matched with ${currentUserProfile?.name || "someone"}!`,
-              type: "MATCH",
+              content: `You matched with ${currentUserProfile?.name || 'someone'}!`,
+              type: 'MATCH',
               entityId: match.id,
               actionUrl: `/messages/${match.id}`,
               isRead: false,
             },
-          })
+          });
 
-          const io = getSocketInstance()
+          const io = getSocketInstance();
           if (io) {
-            io.to(`user:${currentUserId}`).emit("notification:new", {
-              type: "MATCH",
+            io.to(`user:${currentUserId}`).emit('notification:new', {
+              type: 'MATCH',
               matchId: match.id,
-            })
-            io.to(`user:${targetUserId}`).emit("notification:new", {
-              type: "MATCH",
+            });
+            io.to(`user:${targetUserId}`).emit('notification:new', {
+              type: 'MATCH',
               matchId: match.id,
-            })
+            });
           }
 
           return NextResponse.json({
@@ -305,16 +297,16 @@ export async function POST(request: NextRequest) {
             },
             currentUser: {
               id: currentUserId,
-              name: currentUserProfile?.name || "",
+              name: currentUserProfile?.name || '',
               photo: currentUserPhoto?.url || null,
             },
-          })
+          });
         }
       }
     }
 
-    return NextResponse.json({ matched: false })
+    return NextResponse.json({ matched: false });
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

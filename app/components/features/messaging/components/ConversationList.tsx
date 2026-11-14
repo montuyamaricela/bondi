@@ -22,25 +22,23 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
     if (!searchQuery.trim()) return conversations;
 
     const query = searchQuery.toLowerCase();
-    return conversations.filter((conv) =>
-      conv.otherUser.name.toLowerCase().includes(query)
-    );
+    return conversations.filter((conv) => conv.otherUser.name.toLowerCase().includes(query));
   }, [conversations, searchQuery]);
 
   const unreadConversations = useMemo(
     () => filteredConversations.filter((conv) => conv.unreadCount > 0),
-    [filteredConversations]
+    [filteredConversations],
   );
 
   const readConversations = useMemo(
     () => filteredConversations.filter((conv) => conv.unreadCount === 0),
-    [filteredConversations]
+    [filteredConversations],
   );
 
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const handleNewMessage = (message: { matchId: string }) => {
+    const handleNewMessage = () => {
       console.log('ConversationList: Received message:new, invalidating conversations query');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
@@ -67,31 +65,27 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center py-12'>
-        <Loader2 className='w-8 h-8 animate-spin text-primary-main' />
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-main" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className='flex flex-col items-center justify-center py-12 text-center px-4'>
-        <p className='text-error font-semibold mb-2'>
-          Failed to load conversations
-        </p>
-        <p className='text-text-muted text-sm'>Please try again later</p>
+      <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+        <p className="mb-2 font-semibold text-error">Failed to load conversations</p>
+        <p className="text-sm text-text-muted">Please try again later</p>
       </div>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <div className='flex flex-col items-center justify-center py-12 text-center px-4'>
-        <MessageCircle className='w-16 h-16 text-text-muted mb-4 opacity-50' />
-        <h3 className='text-lg font-semibold text-text-heading mb-2'>
-          No conversations yet
-        </h3>
-        <p className='text-text-muted max-w-sm'>
+      <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+        <MessageCircle className="mb-4 h-16 w-16 text-text-muted opacity-50" />
+        <h3 className="mb-2 text-lg font-semibold text-text-heading">No conversations yet</h3>
+        <p className="max-w-sm text-text-muted">
           Start swiping and matching with people to begin chatting!
         </p>
       </div>
@@ -99,47 +93,47 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
   }
 
   return (
-    <div className='flex flex-col h-full'>
+    <div className="flex h-full flex-col">
       {/* Search Bar */}
-      <div className='p-3 border-b border-border-main bg-bg-card sticky top-0 z-10'>
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted' />
+      <div className="sticky top-0 z-10 border-b border-border-main bg-bg-card p-3">
+        <div className="relative">
+          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <Input
-            type='text'
-            placeholder='Search conversations...'
+            type="text"
+            placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='pl-10 pr-10 bg-bg-input border-border-input dark:border-secondary-main focus:border-primary-main transition-colors'
+            className="border-border-input bg-bg-input pr-10 pl-10 transition-colors focus:border-primary-main dark:border-secondary-main"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className='absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-heading transition-colors'
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-text-muted transition-colors hover:text-text-heading"
             >
-              <X className='w-4 h-4' />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className='flex-1 overflow-y-auto'>
+      <div className="flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
-          <div className='flex flex-col items-center justify-center py-12 text-center px-4'>
-            <Search className='w-12 h-12 text-text-muted mb-3 opacity-50' />
-            <p className='text-text-muted'>No conversations found</p>
+          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+            <Search className="mb-3 h-12 w-12 text-text-muted opacity-50" />
+            <p className="text-text-muted">No conversations found</p>
           </div>
         ) : (
           <>
             {/* Unread Conversations */}
             {unreadConversations.length > 0 && (
               <div>
-                <div className='px-4 py-2 bg-bg-main sticky top-0 z-10'>
-                  <h3 className='text-xs font-semibold text-text-muted uppercase tracking-wider'>
+                <div className="sticky top-0 z-10 bg-bg-main px-4 py-2">
+                  <h3 className="text-xs font-semibold tracking-wider text-text-muted uppercase">
                     Unread ({unreadConversations.length})
                   </h3>
                 </div>
-                <div className='divide-y divide-border-main'>
+                <div className="divide-y divide-border-main">
                   {unreadConversations.map((conversation) => (
                     <ConversationCard
                       key={conversation.matchId}
@@ -155,13 +149,13 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
             {readConversations.length > 0 && (
               <div>
                 {unreadConversations.length > 0 && (
-                  <div className='px-4 py-2 bg-bg-main sticky top-0 z-10'>
-                    <h3 className='text-xs font-semibold text-text-muted uppercase tracking-wider'>
+                  <div className="sticky top-0 z-10 bg-bg-main px-4 py-2">
+                    <h3 className="text-xs font-semibold tracking-wider text-text-muted uppercase">
                       All Messages
                     </h3>
                   </div>
                 )}
-                <div className='divide-y divide-border-main'>
+                <div className="divide-y divide-border-main">
                   {readConversations.map((conversation) => (
                     <ConversationCard
                       key={conversation.matchId}

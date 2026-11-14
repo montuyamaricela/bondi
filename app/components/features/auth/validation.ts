@@ -31,10 +31,7 @@ export const profileSetupSchema = z.object({
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(50, 'Name must be less than 50 characters'),
-  age: z
-    .number()
-    .min(18, 'You must be at least 18 years old')
-    .max(100, 'Please enter a valid age'),
+  age: z.number().min(18, 'You must be at least 18 years old').max(100, 'Please enter a valid age'),
   bio: z
     .string()
     .min(10, 'Bio must be at least 10 characters')

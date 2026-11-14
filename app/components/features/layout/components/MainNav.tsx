@@ -34,17 +34,17 @@ export function MainNav() {
   ];
 
   return (
-    <nav className='bg-bg-card border-b border-border-main/80'>
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex justify-between items-center h-16'>
-          <div className='flex items-center space-x-8'>
+    <nav className="border-b border-border-main/80 bg-bg-card">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center space-x-8">
             <Link
-              href='/'
-              className='text-2xl font-bold text-secondary-text dark:text-primary-text transition-colors'
+              href="/"
+              className="text-2xl font-bold text-secondary-text transition-colors dark:text-primary-text"
             >
               Bondi
             </Link>
-            <div className='hidden md:flex space-x-1'>
+            <div className="hidden space-x-1 md:flex">
               {navItems.map((item) => {
                 const Icon = item?.icon || null;
                 const isActive = pathname === item.href;
@@ -54,13 +54,13 @@ export function MainNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                      'flex items-center space-x-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                       isActive
-                        ? 'text-primary-main border-primary-main dark:border-primary-text dark:text-primary-text'
-                        : 'text-text-body hover:text-primary-main hover:[&_svg]:text-primary-main border-transparent'
+                        ? 'border-primary-main text-primary-main dark:border-primary-text dark:text-primary-text'
+                        : 'border-transparent text-text-body hover:text-primary-main hover:[&_svg]:text-primary-main',
                     )}
                   >
-                    {Icon && <Icon className='h-4 w-4' />}
+                    {Icon && <Icon className="h-4 w-4" />}
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -68,13 +68,13 @@ export function MainNav() {
             </div>
           </div>
 
-          <div className='flex items-center'>
+          <div className="flex items-center">
             <NotificationCenter />
             <ProfileMenu />
           </div>
         </div>
 
-        <div className='md:hidden flex justify-around border-t border-border-main py-2'>
+        <div className="flex justify-around border-t border-border-main py-2 md:hidden">
           {navItems.map((item) => {
             const Icon = item?.icon || null;
             const isActive = pathname === item.href;
@@ -84,13 +84,13 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                  'flex flex-col items-center space-y-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
                   isActive
-                    ? 'text-primary-main bg-primary-main/10'
-                    : 'text-text-muted hover:text-primary-main hover:[&_svg]:text-primary-main'
+                    ? 'bg-primary-main/10 text-primary-main'
+                    : 'text-text-muted hover:text-primary-main hover:[&_svg]:text-primary-main',
                 )}
               >
-                {Icon && <Icon className='h-5 w-5' />}
+                {Icon && <Icon className="h-5 w-5" />}
                 <span>{item.label}</span>
               </Link>
             );

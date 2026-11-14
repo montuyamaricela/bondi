@@ -86,50 +86,38 @@ export function ChatHeader({
   };
 
   return (
-    <div className='flex items-center gap-4 p-4 border-b border-border-main bg-bg-card shadow-sm sticky top-0 z-20'>
+    <div className="sticky top-0 z-20 flex items-center gap-4 border-b border-border-main bg-bg-card p-4 shadow-sm">
       <Link
-        href='/messages'
-        className='text-text-muted hover:text-text-heading hover:bg-bg-hover rounded-lg p-2 -ml-2 transition-all duration-200'
-        aria-label='Back to messages'
+        href="/messages"
+        className="-ml-2 rounded-lg p-2 text-text-muted transition-all duration-200 hover:bg-bg-hover hover:text-text-heading"
+        aria-label="Back to messages"
       >
-        <ArrowLeft className='w-5 h-5' />
+        <ArrowLeft className="h-5 w-5" />
       </Link>
 
       <button
         onClick={handleViewProfile}
-        className='flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer'
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left transition-opacity hover:opacity-80"
       >
-        <div className='w-12 h-12 rounded-full overflow-hidden bg-bg-input shrink-0 relative ring-2 ring-border-main hover:ring-primary-main transition-all duration-200'>
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-bg-input ring-2 ring-border-main transition-all duration-200 hover:ring-primary-main">
           {image ? (
-            <Image
-              src={image}
-              alt={name}
-              fill
-              className='object-cover'
-              sizes='48px'
-            />
+            <Image src={image} alt={name} fill className="object-cover" sizes="48px" />
           ) : (
-            <div className='w-full h-full flex items-center justify-center bg-primary-main text-primary-text text-xl font-semibold'>
+            <div className="flex h-full w-full items-center justify-center bg-primary-main text-xl font-semibold text-primary-text">
               {name.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
 
-        <div className='flex-1 min-w-0'>
-          <h2 className='font-semibold text-text-heading text-lg truncate'>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-lg font-semibold text-text-heading">
             {name}
-            {age && (
-              <span className='text-text-muted font-normal'>, {age}</span>
-            )}
+            {age && <span className="font-normal text-text-muted">, {age}</span>}
           </h2>
           {showOnlineStatus && (
-            <div className='flex items-center gap-1.5'>
-              {isOnline && (
-                <span className='w-2 h-2 rounded-full bg-success animate-pulse' />
-              )}
-              <p className='text-xs text-text-muted'>
-                {isOnline ? 'Active now' : 'Offline'}
-              </p>
+            <div className="flex items-center gap-1.5">
+              {isOnline && <span className="h-2 w-2 animate-pulse rounded-full bg-success" />}
+              <p className="text-xs text-text-muted">{isOnline ? 'Active now' : 'Offline'}</p>
             </div>
           )}
         </div>
@@ -138,30 +126,24 @@ export function ChatHeader({
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <button
-            className='text-text-muted hover:text-text-heading hover:bg-bg-hover rounded-lg p-2 transition-all duration-200'
-            aria-label='More options'
+            className="rounded-lg p-2 text-text-muted transition-all duration-200 hover:bg-bg-hover hover:text-text-heading"
+            aria-label="More options"
           >
-            <MoreVertical className='w-5 h-5' />
+            <MoreVertical className="h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align='end'
-          className='w-56 bg-bg-card border-border-main'
-        >
-          <DropdownMenuItem
-            onClick={handleViewProfile}
-            className='cursor-pointer'
-          >
-            <User className='w-4 h-4 mr-2' />
+        <DropdownMenuContent align="end" className="w-56 border-border-main bg-bg-card">
+          <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
             View Profile
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleUnmatchClick}
-            variant='destructive'
-            className='cursor-pointer'
+            variant="destructive"
+            className="cursor-pointer"
           >
-            <AlertTriangle className='w-4 h-4 mr-2' />
+            <AlertTriangle className="mr-2 h-4 w-4" />
             Unmatch
           </DropdownMenuItem>
         </DropdownMenuContent>

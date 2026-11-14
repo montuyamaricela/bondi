@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export function LandingNav() {
-  const [currentSection, setCurrentSection] = useState<
-    'dark' | 'light' | 'transparent'
-  >('transparent');
+  const [currentSection, setCurrentSection] = useState<'dark' | 'light' | 'transparent'>(
+    'transparent',
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,16 +41,12 @@ export function LandingNav() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavClick = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    href: string
-  ) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     const element = document.querySelector(href);
     if (element) {
       const navHeight = 80;
-      const elementPosition =
-        element.getBoundingClientRect().top + window.scrollY;
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
       const offsetPosition = elementPosition - navHeight;
 
       window.scrollTo({
@@ -96,13 +92,11 @@ export function LandingNav() {
   const styles = getNavStyles();
 
   return (
-    <nav
-      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${styles.bg}`}
-    >
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='flex h-20 items-center justify-between'>
+    <nav className={`fixed top-0 z-50 w-full transition-colors duration-300 ${styles.bg}`}>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between">
           {/* Left navigation */}
-          <div className='hidden items-center gap-8 lg:flex'>
+          <div className="hidden items-center gap-8 lg:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -116,15 +110,12 @@ export function LandingNav() {
           </div>
 
           {/* Logo */}
-          <Link
-            href='/'
-            className={`text-2xl font-bold transition-colors ${styles.text}`}
-          >
+          <Link href="/" className={`text-2xl font-bold transition-colors ${styles.text}`}>
             Bondi
           </Link>
 
           {/* Right navigation */}
-          <div className='hidden items-center gap-8 lg:flex'>
+          <div className="hidden items-center gap-8 lg:flex">
             {rightNavLinks.map((link) => (
               <Link
                 key={link.href}

@@ -37,38 +37,36 @@ export function BasicInformationStep({
   setSavedFormData,
 }: BasicInformationStepProps) {
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center gap-2 mb-6'>
-        <User className='w-5 h-5 text-primary-main' />
-        <h3 className='text-xl font-semibold text-text-heading'>
-          Basic Information
-        </h3>
+    <div className="space-y-6">
+      <div className="mb-6 flex items-center gap-2">
+        <User className="h-5 w-5 text-primary-main" />
+        <h3 className="text-xl font-semibold text-text-heading">Basic Information</h3>
       </div>
 
       <FormField
         control={form.control}
-        name='profileImage'
+        name="profileImage"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>Profile Picture</FormLabel>
+            <FormLabel className="text-text-heading">Profile Picture</FormLabel>
             <FormControl>
-              <div className='flex flex-col items-center gap-4'>
-                <div className='w-56 h-56 rounded-full flex items-center justify-center overflow-hidden border-2 border-border-input dark:border-secondary-main'>
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border-2 border-border-input dark:border-secondary-main">
                   {uploadedImage ? (
                     <Image
                       src={uploadedImage}
-                      alt='Profile'
+                      alt="Profile"
                       width={128}
                       height={128}
-                      className='w-full h-full object-cover'
+                      className="h-full w-full object-cover"
                       priority
                     />
                   ) : (
-                    <User className='w-16 h-16 text-text-muted' />
+                    <User className="h-16 w-16 text-text-muted" />
                   )}
                 </div>
                 <PhotoUpload
-                  endpoint='profileImage'
+                  endpoint="profileImage"
                   onClientUploadComplete={(res) => {
                     if (res && res[0]) {
                       setUploadedImage(res[0].url);
@@ -92,40 +90,34 @@ export function BasicInformationStep({
 
       <FormField
         control={form.control}
-        name='name'
+        name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>Name</FormLabel>
+            <FormLabel className="text-text-heading">Name</FormLabel>
             <FormControl>
-              <Input
-                placeholder='John Doe'
-                className='bg-bg-input text-text-heading'
-                {...field}
-              />
+              <Input placeholder="John Doe" className="bg-bg-input text-text-heading" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
 
-      <div className='grid grid-cols-2 gap-4'>
-        <div className='grid grid-cols-2 gap-4'>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name='age'
+            name="age"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-text-heading'>Age</FormLabel>
+                <FormLabel className="text-text-heading">Age</FormLabel>
                 <FormControl>
                   <Input
-                    type='number'
-                    min='18'
-                    max='100'
-                    className='bg-bg-input text-text-heading'
+                    type="number"
+                    min="18"
+                    max="100"
+                    className="bg-bg-input text-text-heading"
                     {...field}
-                    onChange={(e) =>
-                      field.onChange(parseInt(e.target.value) || 18)
-                    }
+                    onChange={(e) => field.onChange(parseInt(e.target.value) || 18)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -134,24 +126,21 @@ export function BasicInformationStep({
           />
           <FormField
             control={form.control}
-            name='gender'
+            name="gender"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className='text-text-heading'>Gender</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <FormLabel className="text-text-heading">Gender</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className='bg-bg-input text-text-heading w-full'>
-                      <SelectValue placeholder='Select gender' />
+                    <SelectTrigger className="w-full bg-bg-input text-text-heading">
+                      <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value='MALE'>Male</SelectItem>
-                    <SelectItem value='FEMALE'>Female</SelectItem>
-                    <SelectItem value='NON_BINARY'>Non-binary</SelectItem>
-                    <SelectItem value='OTHER'>Other</SelectItem>
+                    <SelectItem value="MALE">Male</SelectItem>
+                    <SelectItem value="FEMALE">Female</SelectItem>
+                    <SelectItem value="NON_BINARY">Non-binary</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -161,16 +150,14 @@ export function BasicInformationStep({
         </div>
         <FormField
           control={form.control}
-          name='location'
+          name="location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className='text-text-heading'>
-                Location (Optional)
-              </FormLabel>
+              <FormLabel className="text-text-heading">Location (Optional)</FormLabel>
               <FormControl>
                 <Input
-                  placeholder='New York, NY'
-                  className='bg-bg-input text-text-heading'
+                  placeholder="New York, NY"
+                  className="bg-bg-input text-text-heading"
                   {...field}
                 />
               </FormControl>
@@ -182,24 +169,24 @@ export function BasicInformationStep({
 
       <FormField
         control={form.control}
-        name='bio'
+        name="bio"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-text-heading'>
-              Bio <span className='text-error'>*</span>
+            <FormLabel className="text-text-heading">
+              Bio <span className="text-error">*</span>
             </FormLabel>
             <FormControl>
               <Textarea
-                placeholder='Tell us about yourself... (minimum 10 characters)'
+                placeholder="Tell us about yourself... (minimum 10 characters)"
                 rows={4}
-                className='bg-bg-input text-text-heading'
+                className="bg-bg-input text-text-heading"
                 {...field}
               />
             </FormControl>
             <FormDescription className={`text-xs`}>
               {field.value.length}/500 characters
             </FormDescription>
-            <FormMessage className='text-error' />
+            <FormMessage className="text-error" />
           </FormItem>
         )}
       />

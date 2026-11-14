@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -16,13 +16,13 @@ interface LightboxProps {
 export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
+  }, [images.length]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  }, [images.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,30 +42,32 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [images.length, onClose]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+  }, [handleNext, handlePrevious, onClose]);
 
   return (
     <div
-      className='fixed inset-0 z-50 bg-black/90 flex items-center justify-center'
-      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo viewer"
     >
+      <button
+        type="button"
+        aria-label="Close photo viewer"
+        className="absolute inset-0"
+        onClick={onClose}
+      />
       {/* Close button */}
       <button
         onClick={onClose}
-        className='absolute top-4 right-4 p-2 rounded-full bg-bg-main/80 hover:bg-bg-main transition-colors z-10'
-        aria-label='Close lightbox'
+        className="absolute top-4 right-4 z-10 rounded-full bg-bg-main/80 p-2 transition-colors hover:bg-bg-main"
+        aria-label="Close lightbox"
       >
-        <X className='h-6 w-6 text-text-heading' />
+        <X className="h-6 w-6 text-text-heading" />
       </button>
 
       {/* Photo counter */}
-      <div className='absolute top-4 left-4 px-4 py-2 rounded-lg text-primary-text dark:text-primary-text font-medium z-10'>
+      <div className="absolute top-4 left-4 z-10 rounded-lg px-4 py-2 font-medium text-primary-text dark:text-primary-text">
         {currentIndex + 1} / {images.length}
       </div>
 
@@ -73,21 +75,21 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
       {images.length > 1 && (
         <button
           onClick={handlePrevious}
-          className='absolute left-4 p-3 rounded-full bg-bg-main/70 cursor-pointer hover:bg-bg-main transition-colors z-10'
-          aria-label='Previous image'
+          className="absolute left-4 z-10 cursor-pointer rounded-full bg-bg-main/70 p-3 transition-colors hover:bg-bg-main"
+          aria-label="Previous image"
         >
-          <ChevronLeft className='h-6 w-6 text-text-heading' />
+          <ChevronLeft className="h-6 w-6 text-text-heading" />
         </button>
       )}
 
       {/* Image */}
-      <div className='relative w-full h-full max-w-7xl max-h-[90vh] mx-auto p-4'>
+      <div className="relative mx-auto h-full max-h-[90vh] w-full max-w-7xl p-4">
         <Image
           src={images[currentIndex].url}
           alt={images[currentIndex].alt || `Image ${currentIndex + 1}`}
           fill
-          className='object-contain'
-          sizes='100vw'
+          className="object-contain"
+          sizes="100vw"
           priority
         />
       </div>
@@ -96,10 +98,10 @@ export function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
       {images.length > 1 && (
         <button
           onClick={handleNext}
-          className='absolute right-4 p-3 rounded-full bg-bg-main/70 cursor-pointer hover:bg-bg-main transition-colors z-10'
-          aria-label='Next image'
+          className="absolute right-4 z-10 cursor-pointer rounded-full bg-bg-main/70 p-3 transition-colors hover:bg-bg-main"
+          aria-label="Next image"
         >
-          <ChevronRight className='h-6 w-6 text-text-heading' />
+          <ChevronRight className="h-6 w-6 text-text-heading" />
         </button>
       )}
     </div>

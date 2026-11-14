@@ -1,22 +1,22 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { handleApiError } from "@/lib/errors"
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers })
+    const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id
+    const userId = session.user.id;
 
     const matches = await db.match.findMany({
       where: {
         OR: [{ user1Id: userId }, { user2Id: userId }],
-        status: "ACTIVE",
+        status: 'ACTIVE',
       },
       include: {
         user1: {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
             },
             files: {
               take: 1,
-              orderBy: { order: "asc" },
+              orderBy: { order: 'asc' },
               select: {
                 url: true,
               },
@@ -64,27 +64,27 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { matchedAt: "desc" },
-    })
+      orderBy: { matchedAt: 'desc' },
+    });
 
     const matchesData = matches.map((match) => {
-      const otherUser = match.user1Id === userId ? match.user2 : match.user1
+      const otherUser = match.user1Id === userId ? match.user2 : match.user1;
       return {
         matchId: match.id,
         matchedAt: match.matchedAt,
         user: {
           id: otherUser.id,
-          name: otherUser.profile?.name || otherUser.name || "Unknown",
+          name: otherUser.profile?.name || otherUser.name || 'Unknown',
           age: otherUser.profile?.age,
           bio: otherUser.profile?.bio,
           interests: otherUser.profile?.interests || [],
-          image: otherUser.files[0]?.url || otherUser.image || "https://via.placeholder.com/400",
+          image: otherUser.files[0]?.url || otherUser.image || 'https://via.placeholder.com/400',
         },
-      }
-    })
+      };
+    });
 
-    return NextResponse.json(matchesData)
+    return NextResponse.json(matchesData);
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }

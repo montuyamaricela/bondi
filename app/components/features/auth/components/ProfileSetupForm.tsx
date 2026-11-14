@@ -24,18 +24,14 @@ export function ProfileSetupForm() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const profileSetupMutation = useProfileSetupMutation();
-  const {
-    data: session,
-    isPending: isSessionLoading,
-    error: sessionError,
-  } = useSession();
+  const { data: session, isPending: isSessionLoading, error: sessionError } = useSession();
 
   const [savedFormData, setSavedFormData, clearSavedFormData] = useLocalStorage<
     Partial<ProfileSetupFormData>
   >('profile-setup-form', {}, 10);
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(
-    savedFormData.profileImage || null
+    savedFormData.profileImage || null,
   );
 
   const form = useForm<ProfileSetupFormData>({
@@ -62,21 +58,19 @@ export function ProfileSetupForm() {
   }, [session, form, savedFormData.name]);
 
   useEffect(() => {
-    const subscription = form.watch((formData) => {
-      setSavedFormData({
-        ...formData,
-        profileImage: uploadedImage || '',
-        interests:
-          formData.interests?.filter(
-            (interest): interest is string => interest !== undefined
-          ) || [],
-        hobbies:
-          formData.hobbies?.filter(
-            (hobby): hobby is string => hobby !== undefined
-          ) || [],
-      });
+    return form.subscribe({
+      formState: { values: true },
+      callback: ({ values: formData }) => {
+        setSavedFormData({
+          ...formData,
+          profileImage: uploadedImage || '',
+          interests:
+            formData.interests?.filter((interest): interest is string => interest !== undefined) ||
+            [],
+          hobbies: formData.hobbies?.filter((hobby): hobby is string => hobby !== undefined) || [],
+        });
+      },
     });
-    return () => subscription.unsubscribe();
   }, [form, setSavedFormData, uploadedImage]);
 
   const validateStep = async (step: number): Promise<boolean> => {
@@ -90,10 +84,7 @@ export function ProfileSetupForm() {
       const fieldsToValidate = getFieldsToValidate(step as ProfileStep);
 
       const stepSchema = profileSetupSchema.pick(
-        fieldsToValidate.reduce((acc, field) => {
-          acc[field] = true;
-          return acc;
-        }, {} as Record<string, true>)
+        Object.fromEntries(fieldsToValidate.map((field) => [field, true as const])),
       );
 
       stepSchema.parse(dataToValidate);
@@ -111,10 +102,6 @@ export function ProfileSetupForm() {
   };
 
   const onSubmit = async (data: ProfileSetupFormData) => {
-    console.log('🚀 Form submission started');
-    console.log('📋 Form data:', data);
-    console.log('🖼️ Uploaded image:', uploadedImage);
-
     setApiError(null);
 
     const dataToSubmit = {
@@ -122,20 +109,15 @@ export function ProfileSetupForm() {
       profileImage: uploadedImage || undefined,
     };
 
-    console.log('📤 Submitting data:', dataToSubmit);
-
     try {
       const result = await profileSetupMutation.mutateAsync(dataToSubmit);
-      console.log('✅ API response:', result);
 
       if (result.success) {
         clearSavedFormData();
-        console.log('🧹 Cleared saved form data');
 
         setShowSuccessModal(true);
 
         setTimeout(() => {
-          console.log('🔀 Redirecting to /discover');
           router.push('/discover');
         }, 2500);
       } else {
@@ -163,9 +145,9 @@ export function ProfileSetupForm() {
 
   if (isSessionLoading) {
     return (
-      <div className='w-full space-y-6'>
-        <div className='space-y-2 text-center'>
-          <p className='text-text-muted'>Loading...</p>
+      <div className="w-full space-y-6">
+        <div className="space-y-2 text-center">
+          <p className="text-text-muted">Loading...</p>
         </div>
       </div>
     );
@@ -173,33 +155,27 @@ export function ProfileSetupForm() {
 
   if (sessionError || !session) {
     return (
-      <div className='w-full space-y-6'>
-        <div className='space-y-2 text-center'>
-          <p className='text-error'>
+      <div className="w-full space-y-6">
+        <div className="space-y-2 text-center">
+          <p className="text-error">
             {sessionError ? 'Failed to load session' : 'No session found'}
           </p>
-          <p className='text-text-muted'>
-            Redirecting to login...
-          </p>
+          <p className="text-text-muted">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className='w-full max-w-4xl mx-auto'>
-      <div className='space-y-2 text-center mb-8'>
-        <h2 className='text-3xl font-bold text-text-heading'>
-          Complete your profile
-        </h2>
-        <p className='text-text-muted'>
-          Tell us about yourself to get started
-        </p>
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-8 space-y-2 text-center">
+        <h2 className="text-3xl font-bold text-text-heading">Complete your profile</h2>
+        <p className="text-text-muted">Tell us about yourself to get started</p>
       </div>
 
       {apiError && (
-        <div className='mb-6 p-4 rounded-lg bg-error-light border border-error'>
-          <p className='text-sm text-error'>{apiError}</p>
+        <div className="mb-6 rounded-lg border border-error bg-error-light p-4">
+          <p className="text-sm text-error">{apiError}</p>
         </div>
       )}
 
@@ -209,12 +185,8 @@ export function ProfileSetupForm() {
             initialStep={1}
             onStepValidation={validateStep}
             onFinalStepCompleted={() => {
-              console.log(
-                '🎯 Final step completed - triggering form submission'
-              );
               form.handleSubmit(
                 (data) => {
-                  console.log('✅ Form validation passed');
                   onSubmit(data);
                 },
                 (errors) => {
@@ -223,12 +195,12 @@ export function ProfileSetupForm() {
                   if (firstError) {
                     toast.error(firstError);
                   }
-                }
+                },
               )();
             }}
-            stepCircleContainerClassName='bg-bg-card border-border-main'
-            contentClassName='py-8'
-            footerClassName='border-t border-border-main'
+            stepCircleContainerClassName="bg-bg-card border-border-main"
+            contentClassName="py-8"
+            footerClassName="border-t border-border-main"
           >
             <Step>
               <BasicInformationStep
@@ -253,8 +225,8 @@ export function ProfileSetupForm() {
 
       <SuccessModal
         isOpen={showSuccessModal}
-        title='Profile Created!'
-        message='Your profile has been created successfully. Redirecting to discover...'
+        title="Profile Created!"
+        message="Your profile has been created successfully. Redirecting to discover..."
       />
     </div>
   );

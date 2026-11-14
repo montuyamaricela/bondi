@@ -2,41 +2,41 @@ export class FetchError extends Error {
   constructor(
     public status: number,
     public statusText: string,
-    public data?: unknown
+    public data?: unknown,
   ) {
-    super(`HTTP ${status}: ${statusText}`)
-    this.name = "FetchError"
+    super(`HTTP ${status}: ${statusText}`);
+    this.name = 'FetchError';
   }
 }
 
 interface FetchOptions extends RequestInit {
-  baseURL?: string
+  baseURL?: string;
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
-  const contentType = response.headers.get("content-type")
-  const isJSON = contentType?.includes("application/json")
+  const contentType = response.headers.get('content-type');
+  const isJSON = contentType?.includes('application/json');
 
-  const data = isJSON ? await response.json() : await response.text()
+  const data = isJSON ? await response.json() : await response.text();
 
   if (!response.ok) {
-    throw new FetchError(response.status, response.statusText, data)
+    throw new FetchError(response.status, response.statusText, data);
   }
 
-  return data as T
+  return data as T;
 }
 
 export async function fetchWrapper<T = unknown>(
   url: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<T> {
-  const { baseURL = "", ...fetchOptions } = options
+  const { baseURL = '', ...fetchOptions } = options;
 
-  const fullURL = baseURL ? `${baseURL}${url}` : url
+  const fullURL = baseURL ? `${baseURL}${url}` : url;
 
   const defaultHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-  }
+    'Content-Type': 'application/json',
+  };
 
   const config: RequestInit = {
     ...fetchOptions,
@@ -44,44 +44,44 @@ export async function fetchWrapper<T = unknown>(
       ...defaultHeaders,
       ...fetchOptions.headers,
     },
-  }
+  };
 
   try {
-    const response = await fetch(fullURL, config)
-    return await handleResponse<T>(response)
+    const response = await fetch(fullURL, config);
+    return await handleResponse<T>(response);
   } catch (error) {
     if (error instanceof FetchError) {
-      throw error
+      throw error;
     }
-    throw new Error(error instanceof Error ? error.message : "Network error")
+    throw new Error(error instanceof Error ? error.message : 'Network error');
   }
 }
 
 export const api = {
   get: <T = unknown>(url: string, options?: FetchOptions) =>
-    fetchWrapper<T>(url, { ...options, method: "GET" }),
+    fetchWrapper<T>(url, { ...options, method: 'GET' }),
 
   post: <T = unknown>(url: string, body?: unknown, options?: FetchOptions) =>
     fetchWrapper<T>(url, {
       ...options,
-      method: "POST",
+      method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     }),
 
   put: <T = unknown>(url: string, body?: unknown, options?: FetchOptions) =>
     fetchWrapper<T>(url, {
       ...options,
-      method: "PUT",
+      method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
     }),
 
   patch: <T = unknown>(url: string, body?: unknown, options?: FetchOptions) =>
     fetchWrapper<T>(url, {
       ...options,
-      method: "PATCH",
+      method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
     }),
 
   delete: <T = unknown>(url: string, options?: FetchOptions) =>
-    fetchWrapper<T>(url, { ...options, method: "DELETE" }),
-}
+    fetchWrapper<T>(url, { ...options, method: 'DELETE' }),
+};

@@ -34,6 +34,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.test.example
 
 # vercel
 .vercel
@@ -44,4 +45,11 @@ next-env.d.ts
 
 
 PROGRESS.md
-CLAUDE.md
+
+# Local agent state and browser evidence
+/.agent-runs/
+/test-results/
+/playwright-report/
+
+# Local hook overrides
+/lefthook-local.yml

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useUploadThing } from '@/app/api/uploadthing/route';
+import { useUploadThing } from '@/lib/client/uploadthing';
 import { Upload } from 'lucide-react';
 
 interface PhotoUploadProps {
@@ -19,16 +19,12 @@ interface PhotoUploadProps {
           size: number;
           type: string;
         }[]
-      | undefined
+      | undefined,
   ) => void;
   onUploadError?: (error: Error) => void;
 }
 
-export function PhotoUpload({
-  endpoint,
-  onClientUploadComplete,
-  onUploadError,
-}: PhotoUploadProps) {
+export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const { startUpload } = useUploadThing(endpoint);
@@ -104,20 +100,18 @@ export function PhotoUpload({
     <div
       {...getRootProps()}
       className={cn(
-        'cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all w-full',
+        'w-full cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all',
 
-        isUploading && 'opacity-50 cursor-not-allowed'
+        isUploading && 'cursor-not-allowed opacity-50',
       )}
     >
       <input {...getInputProps()} />
 
-      <div className='flex flex-col items-center justify-center space-y-2 text-center'>
+      <div className="flex flex-col items-center justify-center space-y-2 text-center">
         {isUploading ? (
           <>
-            <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-primary-main dark:border-secondary-main'></div>
-            <p className='text-sm font-medium text-text-heading'>
-              Uploading...
-            </p>
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-main dark:border-secondary-main"></div>
+            <p className="text-sm font-medium text-text-heading">Uploading...</p>
           </>
         ) : (
           <>
@@ -126,25 +120,22 @@ export function PhotoUpload({
                 'rounded-full p-3 transition-colors',
                 isDragActive
                   ? 'bg-primary-main/10 dark:bg-text-muted/10'
-                  : 'bg-primary-main dark:bg-secondary-main'
+                  : 'bg-primary-main dark:bg-secondary-main',
               )}
             >
               <Upload
                 className={cn(
                   'h-6 w-6 transition-colors',
-                  isDragActive ? 'text-primary-main' : 'text-primary-text'
+                  isDragActive ? 'text-primary-main' : 'text-primary-text',
                 )}
               />
             </div>
-            <div className='space-y-1'>
-              <p className='text-sm font-medium text-text-heading'>
-                {isDragActive
-                  ? 'Drop your image here'
-                  : 'Drag and drop your image here'}
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-text-heading">
+                {isDragActive ? 'Drop your image here' : 'Drag and drop your image here'}
               </p>
-              <p className='text-xs text-text-muted'>
-                or click to browse{' '}
-                {endpoint === 'profilePhotos' ? '(up to 6 images)' : ''}
+              <p className="text-xs text-text-muted">
+                or click to browse {endpoint === 'profilePhotos' ? '(up to 6 images)' : ''}
               </p>
             </div>
           </>

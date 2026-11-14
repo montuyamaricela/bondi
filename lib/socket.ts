@@ -1,62 +1,62 @@
-import { Server as NetServer } from "http"
-import { Server as SocketIOServer } from "socket.io"
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { Server as NetServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export type ServerToClientEvents = {
-  "message:new": (message: {
-    id: string
-    matchId: string
-    senderId: string
-    content: string
-    type: "TEXT" | "IMAGE" | "FILE"
-    fileUrl?: string | null
-    fileKey?: string | null
-    fileName?: string | null
-    fileSize?: number | null
-    fileType?: string | null
-    createdAt: string
-  }) => void
-  "message:read": (data: { messageId: string; readAt: string }) => void
-  "typing:start": (data: { userId: string; matchId: string }) => void
-  "typing:stop": (data: { userId: string; matchId: string }) => void
-  "user:online": (data: { userId: string }) => void
-  "user:offline": (data: { userId: string }) => void
-  "notification:new": (data: { type: string; matchId?: string }) => void
-}
+  'message:new': (message: {
+    id: string;
+    matchId: string;
+    senderId: string;
+    content: string;
+    type: 'TEXT' | 'IMAGE' | 'FILE';
+    fileUrl?: string | null;
+    fileKey?: string | null;
+    fileName?: string | null;
+    fileSize?: number | null;
+    fileType?: string | null;
+    createdAt: string;
+  }) => void;
+  'message:read': (data: { messageId: string; readAt: string }) => void;
+  'typing:start': (data: { userId: string; matchId: string }) => void;
+  'typing:stop': (data: { userId: string; matchId: string }) => void;
+  'user:online': (data: { userId: string }) => void;
+  'user:offline': (data: { userId: string }) => void;
+  'notification:new': (data: { type: string; matchId?: string }) => void;
+};
 
 export type ClientToServerEvents = {
-  "message:send": (data: {
-    matchId: string
-    content: string
+  'message:send': (data: {
+    matchId: string;
+    content: string;
     file?: {
-      url: string
-      key: string
-      name: string
-      size: number
-      type: string
-    }
-  }) => void
-  "message:read": (data: { messageId: string }) => void
-  "typing:start": (data: { matchId: string }) => void
-  "typing:stop": (data: { matchId: string }) => void
-  "match:join": (data: { matchId: string }) => void
-  "match:leave": (data: { matchId: string }) => void
-}
+      url: string;
+      key: string;
+      name: string;
+      size: number;
+      type: string;
+    };
+  }) => void;
+  'message:read': (data: { messageId: string }) => void;
+  'typing:start': (data: { matchId: string }) => void;
+  'typing:stop': (data: { matchId: string }) => void;
+  'match:join': (data: { matchId: string }) => void;
+  'match:leave': (data: { matchId: string }) => void;
+};
 
-export type InterServerEvents = Record<string, never>
+export type InterServerEvents = Record<string, never>;
 
 export type SocketData = {
-  userId: string
-  sessionId: string
-}
+  userId: string;
+  sessionId: string;
+};
 
 export type SocketServer = SocketIOServer<
   ClientToServerEvents,
   ServerToClientEvents,
   InterServerEvents,
   SocketData
->
+>;
 
 export function initializeSocket(httpServer: NetServer): SocketServer {
   const io = new SocketIOServer<
@@ -66,119 +66,120 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     SocketData
   >(httpServer, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      methods: ["GET", "POST"],
+      origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      methods: ['GET', 'POST'],
       credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,
-  })
+  });
 
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token
+      const token = socket.handshake.auth.token;
 
       if (!token) {
-        return next(new Error("Authentication required"))
+        return next(new Error('Authentication required'));
       }
 
-      const cookieName = process.env.NODE_ENV === "production"
-        ? "__Secure-better-auth.session_token"
-        : "better-auth.session_token"
+      const cookieName =
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-better-auth.session_token'
+          : 'better-auth.session_token';
 
       const session = await auth.api.getSession({
         headers: {
           authorization: `Bearer ${token}`,
           cookie: `${cookieName}=${token}`,
         },
-      })
+      });
 
       if (!session?.user) {
-        return next(new Error("Invalid session"))
+        return next(new Error('Invalid session'));
       }
 
-      socket.data.userId = session.user.id
-      socket.data.sessionId = token
+      socket.data.userId = session.user.id;
+      socket.data.sessionId = token;
 
-      next()
+      next();
     } catch (error) {
-      console.error("Socket authentication error:", error)
-      next(new Error("Authentication failed"))
+      console.error('Socket authentication error:', error);
+      next(new Error('Authentication failed'));
     }
-  })
+  });
 
-  io.on("connection", async (socket) => {
-    const userId = socket.data.userId
+  io.on('connection', async (socket) => {
+    const userId = socket.data.userId;
 
-    console.log(`User connected: ${userId}`)
+    console.log(`User connected: ${userId}`);
 
     const profile = await db.profile.findUnique({
       where: { userId },
       select: { showOnlineStatus: true },
-    })
+    });
 
     if (profile?.showOnlineStatus) {
-      socket.broadcast.emit("user:online", { userId })
+      socket.broadcast.emit('user:online', { userId });
     }
 
-    socket.join(`user:${userId}`)
+    socket.join(`user:${userId}`);
 
-    socket.on("match:join", async ({ matchId }) => {
+    socket.on('match:join', async ({ matchId }) => {
       try {
         const match = await db.match.findUnique({
           where: { id: matchId },
           select: { user1Id: true, user2Id: true, status: true },
-        })
+        });
 
         if (!match) {
-          return
+          return;
         }
 
-        if (match.status !== "ACTIVE") {
-          return
+        if (match.status !== 'ACTIVE') {
+          return;
         }
 
         if (match.user1Id !== userId && match.user2Id !== userId) {
-          return
+          return;
         }
 
-        socket.join(`match:${matchId}`)
-        console.log(`User ${userId} joined match room: ${matchId}`)
+        socket.join(`match:${matchId}`);
+        console.log(`User ${userId} joined match room: ${matchId}`);
       } catch (error) {
-        console.error("Error joining match room:", error)
+        console.error('Error joining match room:', error);
       }
-    })
+    });
 
-    socket.on("match:leave", ({ matchId }) => {
-      socket.leave(`match:${matchId}`)
-      console.log(`User ${userId} left match room: ${matchId}`)
-    })
+    socket.on('match:leave', ({ matchId }) => {
+      socket.leave(`match:${matchId}`);
+      console.log(`User ${userId} left match room: ${matchId}`);
+    });
 
-    socket.on("message:send", async ({ matchId, content, file }) => {
+    socket.on('message:send', async ({ matchId, content, file }) => {
       try {
         const match = await db.match.findUnique({
           where: { id: matchId },
           select: { user1Id: true, user2Id: true, status: true },
-        })
+        });
 
-        if (!match || match.status !== "ACTIVE") {
-          return
+        if (!match || match.status !== 'ACTIVE') {
+          return;
         }
 
         if (match.user1Id !== userId && match.user2Id !== userId) {
-          return
+          return;
         }
 
-        let messageType: "TEXT" | "IMAGE" | "FILE" = "TEXT"
+        let messageType: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT';
         if (file) {
-          messageType = file.type?.startsWith("image/") ? "IMAGE" : "FILE"
+          messageType = file.type?.startsWith('image/') ? 'IMAGE' : 'FILE';
         }
 
         const message = await db.message.create({
           data: {
             matchId,
             senderId: userId,
-            content: content || "",
+            content: content || '',
             type: messageType,
             fileUrl: file?.url || null,
             fileKey: file?.key || null,
@@ -199,9 +200,9 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
             fileType: true,
             createdAt: true,
           },
-        })
+        });
 
-        io.to(`match:${matchId}`).emit("message:new", {
+        io.to(`match:${matchId}`).emit('message:new', {
           id: message.id,
           matchId: message.matchId,
           senderId: message.senderId,
@@ -213,45 +214,46 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           fileSize: message.fileSize,
           fileType: message.fileType,
           createdAt: message.createdAt.toISOString(),
-        })
+        });
 
-        const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id
+        const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
 
         const senderProfile = await db.profile.findUnique({
           where: { userId },
           select: { name: true },
-        })
+        });
 
-        const notificationContent = message.type === "IMAGE"
-          ? `${senderProfile?.name || "Someone"} sent you an image`
-          : message.type === "FILE"
-          ? `${senderProfile?.name || "Someone"} sent you a file`
-          : `${senderProfile?.name || "Someone"} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? "..." : ""}`
+        const notificationContent =
+          message.type === 'IMAGE'
+            ? `${senderProfile?.name || 'Someone'} sent you an image`
+            : message.type === 'FILE'
+              ? `${senderProfile?.name || 'Someone'} sent you a file`
+              : `${senderProfile?.name || 'Someone'} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`;
 
         await db.notification.create({
           data: {
             userId: receiverId,
-            title: "New Message",
+            title: 'New Message',
             content: notificationContent,
-            type: "MESSAGE",
+            type: 'MESSAGE',
             entityId: matchId,
             actionUrl: `/messages/${matchId}`,
             isRead: false,
           },
-        })
+        });
 
-        io.to(`user:${receiverId}`).emit("notification:new", {
-          type: "MESSAGE",
+        io.to(`user:${receiverId}`).emit('notification:new', {
+          type: 'MESSAGE',
           matchId,
-        })
+        });
 
-        console.log(`Message sent in match ${matchId} by user ${userId}`)
+        console.log(`Message sent in match ${matchId} by user ${userId}`);
       } catch (error) {
-        console.error("Error sending message:", error)
+        console.error('Error sending message:', error);
       }
-    })
+    });
 
-    socket.on("message:read", async ({ messageId }) => {
+    socket.on('message:read', async ({ messageId }) => {
       try {
         const message = await db.message.findUnique({
           where: { id: messageId },
@@ -264,62 +266,62 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
               select: { user1Id: true, user2Id: true },
             },
           },
-        })
+        });
 
         if (!message) {
-          return
+          return;
         }
 
         if (message.match.user1Id !== userId && message.match.user2Id !== userId) {
-          return
+          return;
         }
 
         if (message.senderId === userId) {
-          return
+          return;
         }
 
         if (message.readAt) {
-          return
+          return;
         }
 
         const updatedMessage = await db.message.update({
           where: { id: messageId },
           data: { readAt: new Date() },
           select: { id: true, readAt: true },
-        })
+        });
 
-        io.to(`match:${message.matchId}`).emit("message:read", {
+        io.to(`match:${message.matchId}`).emit('message:read', {
           messageId: updatedMessage.id,
           readAt: updatedMessage.readAt!.toISOString(),
-        })
+        });
 
-        console.log(`Message ${messageId} marked as read by user ${userId}`)
+        console.log(`Message ${messageId} marked as read by user ${userId}`);
       } catch (error) {
-        console.error("Error marking message as read:", error)
+        console.error('Error marking message as read:', error);
       }
-    })
+    });
 
-    socket.on("typing:start", ({ matchId }) => {
-      socket.to(`match:${matchId}`).emit("typing:start", { userId, matchId })
-    })
+    socket.on('typing:start', ({ matchId }) => {
+      socket.to(`match:${matchId}`).emit('typing:start', { userId, matchId });
+    });
 
-    socket.on("typing:stop", ({ matchId }) => {
-      socket.to(`match:${matchId}`).emit("typing:stop", { userId, matchId })
-    })
+    socket.on('typing:stop', ({ matchId }) => {
+      socket.to(`match:${matchId}`).emit('typing:stop', { userId, matchId });
+    });
 
-    socket.on("disconnect", async () => {
-      console.log(`User disconnected: ${userId}`)
+    socket.on('disconnect', async () => {
+      console.log(`User disconnected: ${userId}`);
 
       const profile = await db.profile.findUnique({
         where: { userId },
         select: { showOnlineStatus: true },
-      })
+      });
 
       if (profile?.showOnlineStatus) {
-        socket.broadcast.emit("user:offline", { userId })
+        socket.broadcast.emit('user:offline', { userId });
       }
-    })
-  })
+    });
+  });
 
-  return io
+  return io;
 }

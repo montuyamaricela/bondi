@@ -3,12 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import {
-  Heart,
-  MapPin,
-  Briefcase,
-  Check,
-} from 'lucide-react';
+import { Heart, MapPin, Briefcase, Check } from 'lucide-react';
 import type { DiscoverableProfile } from '../types';
 import { formatDistance } from '@/lib/geolocation';
 import { getInitials } from '@/lib/utils/initials';
@@ -66,21 +61,21 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
   return (
     <motion.div
       style={{ x, rotate, opacity }}
-      drag='x'
+      drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
       animate={{ x: exitX }}
       transition={{ duration: 0.3 }}
-      className='absolute inset-0 cursor-grab active:cursor-grabbing'
+      className="absolute inset-0 cursor-grab active:cursor-grabbing"
     >
-      <div className='relative h-full w-full overflow-hidden rounded-2xl bg-bg-card shadow-2xl'>
+      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-bg-card shadow-2xl">
         {/* Photo Display */}
-        <div className='relative h-full w-full'>
+        <div className="relative h-full w-full">
           <AnimatePresence initial={false}>
             {currentPhoto ? (
               <motion.div
                 key={currentPhoto.url}
-                className='absolute inset-0 h-full w-full'
+                className="absolute inset-0 h-full w-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -90,31 +85,26 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
                   src={currentPhoto.url}
                   alt={profile.name}
                   fill
-                  className='object-cover'
-                  sizes='(max-width: 768px) 100vw, 500px'
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 500px"
                   priority={currentPhotoIndex === 0}
                 />
               </motion.div>
             ) : (
-              <div className='flex h-full w-full items-center justify-center bg-primary-main'>
-                <span className='text-9xl font-bold text-primary-text'>
-                  {initials}
-                </span>
+              <div className="flex h-full w-full items-center justify-center bg-primary-main">
+                <span className="text-9xl font-bold text-primary-text">{initials}</span>
               </div>
             )}
           </AnimatePresence>
 
-
           {/* Photo indicators */}
           {profile.photos.length > 1 && (
-            <div className='absolute top-4 left-0 right-0 flex justify-center gap-1 px-4 z-20'>
+            <div className="absolute top-4 right-0 left-0 z-20 flex justify-center gap-1 px-4">
               {profile.photos.map((_, index) => (
                 <div
                   key={index}
                   className={`h-1 flex-1 rounded-full transition-colors ${
-                    index === currentPhotoIndex
-                      ? 'bg-primary-main'
-                      : 'bg-white/50'
+                    index === currentPhotoIndex ? 'bg-primary-main' : 'bg-white/50'
                   }`}
                 />
               ))}
@@ -122,73 +112,71 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
           )}
 
           {/* Gradient Overlay */}
-          <div className='absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10'></div>
+          <div className="absolute right-0 bottom-0 left-0 z-10 h-2/3 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
         </div>
 
         {/* Profile Info - Absolute positioned over image */}
-        <div className='absolute bottom-0 left-0 right-0 p-6 space-y-4 z-20'>
+        <div className="absolute right-0 bottom-0 left-0 z-20 space-y-4 p-6">
           {/* Name with Verification Badge and Details */}
-          <div className='space-y-2'>
-            <div className='flex items-center gap-2'>
-              <h2 className='text-3xl font-bold text-white'>{profile.name}, {profile.age}</h2>
-              <div className='flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full'>
-                <Check className='h-4 w-4 text-white' />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-3xl font-bold text-white">
+                {profile.name}, {profile.age}
+              </h2>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+                <Check className="h-4 w-4 text-white" />
               </div>
             </div>
 
             {/* Location, Distance and Relationship Type */}
-            <div className='flex items-center gap-4 text-white/90 text-sm'>
+            <div className="flex items-center gap-4 text-sm text-white/90">
               {profile.distance !== null && profile.showDistance && (
-                <div className='flex items-center gap-1'>
-                  <MapPin className='h-4 w-4' />
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
                   <span>{formatDistance(profile.distance)}</span>
                 </div>
               )}
               {!profile.showDistance && profile.location && (
-                <div className='flex items-center gap-1'>
-                  <MapPin className='h-4 w-4' />
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
                   <span>{profile.location}</span>
                 </div>
               )}
-              <div className='flex items-center gap-1'>
-                <Briefcase className='h-4 w-4' />
+              <div className="flex items-center gap-1">
+                <Briefcase className="h-4 w-4" />
                 <span>{relationshipTypeLabel}</span>
               </div>
             </div>
 
             {/* Bio */}
-            {profile.bio && (
-              <p className='text-white/90 text-sm leading-relaxed'>
-                {profile.bio}
-              </p>
-            )}
+            {profile.bio && <p className="text-sm leading-relaxed text-white/90">{profile.bio}</p>}
           </div>
 
           {/* Profile Data Section */}
-          <div className='flex items-center justify-between py-4 border-t border-white/20'>
-            <div className='flex items-center gap-2'>
-              <Heart className='h-5 w-5 text-pink-400 fill-pink-400' />
+          <div className="flex items-center justify-between border-t border-white/20 py-4">
+            <div className="flex items-center gap-2">
+              <Heart className="h-5 w-5 fill-pink-400 text-pink-400" />
               <div>
-                <div className='text-2xl font-bold text-white'>{profile.interests.length}</div>
-                <div className='text-xs text-white/70'>Interests</div>
+                <div className="text-2xl font-bold text-white">{profile.interests.length}</div>
+                <div className="text-xs text-white/70">Interests</div>
               </div>
             </div>
-            <div className='h-8 w-px bg-white/20'></div>
-            <div className='text-center'>
-              <div className='text-2xl font-bold text-white'>{profile.hobbies.length}</div>
-              <div className='text-xs text-white/70'>Hobbies</div>
+            <div className="h-8 w-px bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{profile.hobbies.length}</div>
+              <div className="text-xs text-white/70">Hobbies</div>
             </div>
-            <div className='h-8 w-px bg-white/20'></div>
-            <div className='text-center'>
-              <div className='text-2xl font-bold text-white'>{relationshipTypeLabel}</div>
-              <div className='text-xs text-white/70'>Looking For</div>
+            <div className="h-8 w-px bg-white/20"></div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{relationshipTypeLabel}</div>
+              <div className="text-xs text-white/70">Looking For</div>
             </div>
           </div>
 
           {/* Looking For Section */}
           {profile.lookingFor && (
-            <div className='text-white/90 text-sm'>
-              <span className='font-semibold'>Looking for:</span> {profile.lookingFor}
+            <div className="text-sm text-white/90">
+              <span className="font-semibold">Looking for:</span> {profile.lookingFor}
             </div>
           )}
         </div>

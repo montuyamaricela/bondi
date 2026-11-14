@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface StorageValue<T> {
   data: T;
@@ -8,7 +8,7 @@ interface StorageValue<T> {
 export function useLocalStorage<T>(
   key: string,
   initialValue: T,
-  expirationMinutes: number = 10
+  expirationMinutes: number = 10,
 ): [T, (value: T | ((val: T) => T)) => void, () => void] {
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') {

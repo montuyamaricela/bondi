@@ -1,71 +1,30 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme } from 'next-themes';
+import { useSyncExternalStore, type ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
+const subscribe = () => () => {};
 
-interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  actualTheme: 'light' | 'dark';
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored) {
-      setThemeState(stored);
-    }
-  }, []);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    const applyTheme = (newTheme: 'light' | 'dark') => {
-      root.classList.remove('light', 'dark');
-      root.classList.add(newTheme);
-      setActualTheme(newTheme);
-    };
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      applyTheme(systemTheme);
-
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      applyTheme(theme);
-    }
-  }, [theme]);
-
-  const setTheme = (newTheme: Theme) => {
-    localStorage.setItem('theme', newTheme);
-    setThemeState(newTheme);
-  };
-
+export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, actualTheme }}>
+    <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
       {children}
-    </ThemeContext.Provider>
+    </NextThemeProvider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
+  const { theme, setTheme, resolvedTheme } = useNextTheme();
+  // Match the server snapshot during hydration before exposing the saved preference.
+  const hydrated = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false,
+  );
+  return {
+    theme: hydrated && (theme === 'light' || theme === 'dark') ? theme : 'system',
+    setTheme: (value: Theme) => setTheme(value),
+    actualTheme: hydrated && resolvedTheme === 'dark' ? 'dark' : 'light',
+  };
 }

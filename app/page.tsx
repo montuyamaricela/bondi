@@ -7,7 +7,7 @@ import { HowItWorksSection } from '@/app/components/features/landing/components/
 
 export default function Home() {
   return (
-    <div className='min-h-screen bg-white'>
+    <div className="min-h-screen bg-white">
       <LandingNav />
       <HeroSection />
       <OurApproachSection />

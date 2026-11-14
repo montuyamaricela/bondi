@@ -29,7 +29,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
           size: number;
           type: string;
         }[]
-      | undefined
+      | undefined,
   ) => {
     if (res && res.length > 0) {
       const newPhotos = res.map((file) => ({
@@ -55,9 +55,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
       onPhotosChange(photos.filter((p) => p.key !== photoKey));
       toast.success('Photo deleted successfully');
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to delete photo'
-      );
+      toast.error(error instanceof Error ? error.message : 'Failed to delete photo');
     }
   };
 
@@ -87,17 +85,16 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
   const canAddMore = photos.length < 6;
 
   return (
-    <div className='space-y-4'>
+    <div className="space-y-4">
       <div>
-        <h3 className='text-lg font-semibold text-text-heading mb-2'>Photos</h3>
-        <p className='text-sm text-text-muted mb-4'>
-          Upload up to 6 photos. Drag to reorder. The first photo will be your
-          main profile picture.
+        <h3 className="mb-2 text-lg font-semibold text-text-heading">Photos</h3>
+        <p className="mb-4 text-sm text-text-muted">
+          Upload up to 6 photos. Drag to reorder. The first photo will be your main profile picture.
         </p>
       </div>
 
       {photos.length > 0 && (
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4'>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {photos.map((photo, index) => (
             <div
               key={photo.id}
@@ -105,7 +102,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={`relative aspect-square rounded-lg overflow-hidden border-2 border-border-main cursor-move transition-opacity ${
+              className={`relative aspect-square cursor-move overflow-hidden rounded-lg border-2 border-border-main transition-opacity ${
                 draggedIndex === index ? 'opacity-50' : 'opacity-100'
               }`}
             >
@@ -113,19 +110,19 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
                 src={photo.url}
                 alt={photo.name}
                 fill
-                className='object-cover'
-                sizes='(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw'
+                className="object-cover"
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
               />
-              <div className='absolute top-2 left-2 bg-bg-main/80 p-1 rounded'>
-                <GripVertical className='h-4 w-4 text-text-muted' />
+              <div className="absolute top-2 left-2 rounded bg-bg-main/80 p-1">
+                <GripVertical className="h-4 w-4 text-text-muted" />
               </div>
               {index === 0 && (
-                <div className='absolute bottom-2 left-2 bg-primary-main dark:bg-secondary-main text-primary-text dark:text-secondary-text text-xs px-2 py-1 rounded'>
+                <div className="absolute bottom-2 left-2 rounded bg-primary-main px-2 py-1 text-xs text-primary-text dark:bg-secondary-main dark:text-secondary-text">
                   Main
                 </div>
               )}
               <button
-                type='button'
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(photo.key);
@@ -133,9 +130,9 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
                 onMouseDown={(e) => e.stopPropagation()}
                 onDragStart={(e) => e.preventDefault()}
                 disabled={deleteMutation.isPending}
-                className='absolute top-2 right-2 bg-error hover:bg-error/90 text-white p-1.5 rounded-full transition-colors disabled:opacity-50 z-10 cursor-pointer'
+                className="absolute top-2 right-2 z-10 cursor-pointer rounded-full bg-error p-1.5 text-white transition-colors hover:bg-error/90 disabled:opacity-50"
               >
-                <X className='h-4 w-4' />
+                <X className="h-4 w-4" />
               </button>
             </div>
           ))}
@@ -144,14 +141,14 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
 
       {canAddMore ? (
         <PhotoUpload
-          endpoint='profilePhotos'
+          endpoint="profilePhotos"
           onClientUploadComplete={handleUploadComplete}
           onUploadError={(error: Error) => {
             toast.error(`Upload failed: ${error.message}`);
           }}
         />
       ) : (
-        <p className='text-sm text-text-muted text-center'>
+        <p className="text-center text-sm text-text-muted">
           Maximum of 6 photos reached. Delete a photo to add more.
         </p>
       )}

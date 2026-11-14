@@ -13,10 +13,7 @@ interface ConversationCardProps {
   currentUserId: string;
 }
 
-export function ConversationCard({
-  conversation,
-  currentUserId,
-}: ConversationCardProps) {
+export function ConversationCard({ conversation, currentUserId }: ConversationCardProps) {
   const pathname = usePathname();
   const { matchId, otherUser, lastMessage, unreadCount, status } = conversation;
 
@@ -37,21 +34,20 @@ export function ConversationCard({
         'group block transition-all duration-200',
         !isActive && 'hover:bg-primary-main dark:hover:bg-secondary-main',
         isActive &&
-          'bg-primary-main/10 border-l-4 border-l-primary-main dark:border-l-secondary-main dark:bg-secondary-main/10'
+          'border-l-4 border-l-primary-main bg-primary-main/10 dark:border-l-secondary-main dark:bg-secondary-main/10',
       )}
     >
       <div
         className={cn(
           'flex items-start gap-4 p-4 transition-colors duration-200',
-          !isActive &&
-            'border-b border-border-main group-hover:border-transparent'
+          !isActive && 'border-b border-border-main group-hover:border-transparent',
         )}
       >
-        <div className='relative shrink-0'>
+        <div className="relative shrink-0">
           <div
             className={cn(
-              'w-14 h-14 rounded-full overflow-hidden bg-bg-input relative ring-2 ring-transparent transition-all duration-200',
-              !isActive && 'group-hover:ring-white/20'
+              'relative h-14 w-14 overflow-hidden rounded-full bg-bg-input ring-2 ring-transparent transition-all duration-200',
+              !isActive && 'group-hover:ring-white/20',
             )}
           >
             {otherUser.image ? (
@@ -61,37 +57,37 @@ export function ConversationCard({
                 fill
                 className={cn(
                   'object-cover transition-transform duration-200',
-                  !isActive && 'group-hover:scale-110'
+                  !isActive && 'group-hover:scale-110',
                 )}
-                sizes='56px'
+                sizes="56px"
               />
             ) : (
-              <div className='w-full h-full flex items-center justify-center bg-primary-main  text-primary-text text-xl font-semibold'>
+              <div className="flex h-full w-full items-center justify-center bg-primary-main text-xl font-semibold text-primary-text">
                 {otherUser.name.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
-          <div className='absolute bottom-0 right-0'>
+          <div className="absolute right-0 bottom-0">
             <OnlineStatusIndicator
               userId={otherUser.userId}
               showOnlineStatus={otherUser.showOnlineStatus}
-              size='md'
+              size="md"
             />
           </div>
           {unreadCount > 0 && (
-            <div className='absolute -top-1 -right-1 w-5 h-5 rounded-full bg-app-accent text-app-accent-text flex items-center justify-center text-xs font-bold shadow-lg animate-pulse'>
+            <div className="absolute -top-1 -right-1 flex h-5 w-5 animate-pulse items-center justify-center rounded-full bg-app-accent text-xs font-bold text-app-accent-text shadow-lg">
               {unreadCount > 9 ? '9+' : unreadCount}
             </div>
           )}
         </div>
 
-        <div className='flex-1 min-w-0'>
-          <div className='flex items-baseline justify-between gap-2 mb-1'>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-baseline justify-between gap-2">
             <h3
               className={cn(
-                'font-semibold truncate transition-colors duration-200',
+                'truncate font-semibold transition-colors duration-200',
                 isActive && 'text-primary-main dark:text-primary-text',
-                !isActive && 'text-text-heading group-hover:text-white'
+                !isActive && 'text-text-heading group-hover:text-white',
               )}
             >
               {otherUser.name}
@@ -100,7 +96,7 @@ export function ConversationCard({
                   className={cn(
                     'font-normal transition-colors duration-200',
                     isActive && 'text-text-muted',
-                    !isActive && 'text-text-muted group-hover:text-white/80'
+                    !isActive && 'text-text-muted group-hover:text-white/80',
                   )}
                 >
                   , {otherUser.age}
@@ -109,10 +105,9 @@ export function ConversationCard({
             </h3>
             <span
               className={cn(
-                'text-xs shrink-0 transition-colors duration-200',
-                isActive &&
-                  'text-primary-main dark:text-primary-text font-medium',
-                !isActive && 'text-text-muted group-hover:text-white/80'
+                'shrink-0 text-xs transition-colors duration-200',
+                isActive && 'font-medium text-primary-main dark:text-primary-text',
+                !isActive && 'text-text-muted group-hover:text-white/80',
               )}
             >
               {formattedTime}
@@ -122,8 +117,8 @@ export function ConversationCard({
           {isUnmatched && (
             <p
               className={cn(
-                'text-xs text-text-muted mb-1 italic transition-colors duration-200',
-                !isActive && 'group-hover:text-white/70'
+                'mb-1 text-xs text-text-muted italic transition-colors duration-200',
+                !isActive && 'group-hover:text-white/70',
               )}
             >
               Unmatched
@@ -131,12 +126,10 @@ export function ConversationCard({
           )}
           <p
             className={cn(
-              'text-sm truncate transition-colors duration-200',
-              unreadCount > 0
-                ? 'font-semibold text-text-body'
-                : 'text-text-muted',
+              'truncate text-sm transition-colors duration-200',
+              unreadCount > 0 ? 'font-semibold text-text-body' : 'text-text-muted',
               isActive && 'text-text-body',
-              !isActive && 'group-hover:text-white/90'
+              !isActive && 'group-hover:text-white/90',
             )}
           >
             {lastMessage ? (
@@ -146,7 +139,7 @@ export function ConversationCard({
                     className={cn(
                       'transition-colors duration-200',
                       isActive && 'text-text-muted',
-                      !isActive && 'text-text-muted group-hover:text-white/70'
+                      !isActive && 'text-text-muted group-hover:text-white/70',
                     )}
                   >
                     You:{' '}
@@ -159,7 +152,7 @@ export function ConversationCard({
                 className={cn(
                   'italic transition-colors duration-200',
                   isActive && 'text-text-muted',
-                  !isActive && 'text-text-muted group-hover:text-white/70'
+                  !isActive && 'text-text-muted group-hover:text-white/70',
                 )}
               >
                 Start a conversation!

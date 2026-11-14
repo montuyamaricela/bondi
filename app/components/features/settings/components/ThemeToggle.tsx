@@ -20,10 +20,10 @@ export function ThemeToggle() {
           key={value}
           onClick={() => setTheme(value)}
           className={cn(
-            'flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            'flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
             theme === value
               ? 'bg-primary-main text-primary-text'
-              : 'bg-bg-input text-text-body hover:bg-primary-main hover:text-white hover:[&_svg]:text-white'
+              : 'bg-bg-input text-text-body hover:bg-primary-main hover:text-white hover:[&_svg]:text-white',
           )}
         >
           <Icon className="h-4 w-4" />

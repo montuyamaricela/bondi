@@ -4,9 +4,7 @@ import { db } from '@/lib/db';
 import { ProfileSetupForm } from '@/app/components/features/auth/components/ProfileSetupForm';
 
 export default async function ProfileSetupPage() {
-  const session = await getServerSession(
-    await import('next/headers').then((m) => m.headers())
-  );
+  const session = await getServerSession(await import('next/headers').then((m) => m.headers()));
 
   if (!session?.user) {
     redirect('/login');
@@ -21,7 +19,7 @@ export default async function ProfileSetupPage() {
   }
 
   return (
-    <div className='container mx-auto '>
+    <div className="container mx-auto">
       <ProfileSetupForm />
     </div>
   );

@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(request.headers);
 
-    console.log('session', session);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -43,7 +42,7 @@ export async function POST(request: NextRequest) {
             message: issue.message,
           })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,10 +64,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingProfile) {
-      return NextResponse.json(
-        { error: 'Profile already exists' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Profile already exists' }, { status: 400 });
     }
 
     if (name !== session.user.name) {
@@ -105,7 +101,7 @@ export async function POST(request: NextRequest) {
           gender: profile.gender,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return handleApiError(error);
@@ -132,7 +128,7 @@ export async function PATCH(request: NextRequest) {
             message: issue.message,
           })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -141,10 +137,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (!existingProfile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     const {
@@ -195,8 +188,8 @@ export async function PATCH(request: NextRequest) {
             data: {
               order: index,
             },
-          })
-        )
+          }),
+        ),
       );
     }
 

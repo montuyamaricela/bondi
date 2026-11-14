@@ -16,15 +16,15 @@ export function InterestSelector({ value, onChange, options }: InterestSelectorP
   };
 
   return (
-    <div className='flex flex-wrap gap-2'>
+    <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const isSelected = value.includes(option);
         return (
           <button
             key={option}
-            type='button'
+            type="button"
             onClick={() => toggleInterest(option)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
               isSelected
                 ? 'bg-primary-main text-primary-text'
                 : 'bg-secondary-main text-secondary-text hover:bg-primary-main hover:text-white'
