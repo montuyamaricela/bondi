@@ -58,3 +58,44 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 3
+
+  native-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Generation needs a syntactic URL before the explicit stack preparation replaces it.
+      DATABASE_URL: postgresql://postgres:synthetic-generation-only@127.0.0.1:54322/postgres
+      DIRECT_URL: postgresql://postgres:synthetic-generation-only@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Start owned disposable native Supabase stack
+        run: npm run supabase:start
+      - name: Prepare native target identity and private synthetic environment
+        run: npm run supabase:test:prepare
+      - name: Apply application migrations explicitly to disposable Supabase Postgres
+        run: npm run db:migrate
+      - run: npm run check
+      - run: npx --no-install playwright install --with-deps chromium
+      - name: Retained application journeys on native Supabase Postgres
+        run: npm run test:e2e
+      - name: Native API role and database safety boundaries
+        run: npm run test:supabase
+      - name: Stop only the owned native project
+        if: always()
+        run: npm run supabase:stop
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: synthetic-native-browser-failures
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 3

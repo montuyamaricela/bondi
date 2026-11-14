@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { PrismaClient } from '@prisma/client';
@@ -20,9 +21,7 @@ test('connected sockets in all three runtimes reject revoked and expired session
   baseURL,
 }) => {
   test.setTimeout(120_000);
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const httpServer = createServer();
   const initializer = initializeSocket(httpServer);

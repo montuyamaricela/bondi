@@ -53,3 +53,8 @@ PROGRESS.md
 
 # Local hook overrides
 /lefthook-local.yml
+
+# Supabase local state and signing material
+/supabase/.temp/
+/supabase/.branches/
+/supabase/signing_keys.json

@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
@@ -11,9 +12,7 @@ test('photo deletion keeps an owned retry reference until storage and database c
   request,
 }) => {
   test.setTimeout(90_000);
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   expect(process.env.UPLOADTHING_TOKEN || '').toBe('');
   const db = new PrismaClient();
   const contexts = await Promise.all(

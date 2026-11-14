@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { betterAuth } from 'better-auth';
@@ -11,9 +12,7 @@ test('revoked and expired cached sessions fail their next protected read and wri
   request,
   baseURL,
 }) => {
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const email = `bondi-e2e-${randomUUID()}-revocation@example.test`;
   const password = 'SyntheticRevocationPassword42!';

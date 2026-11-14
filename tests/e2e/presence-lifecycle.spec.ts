@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { PrismaClient } from '@prisma/client';
@@ -10,9 +11,7 @@ const password = 'SyntheticPresence26!';
 const invisible = { visible: false, online: false };
 
 function testDatabase() {
-  const url = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(url.hostname);
-  expect(url.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
 }
 
 async function participants(browser: Browser, baseURL: string, db: PrismaClient, offset: number) {

@@ -30,6 +30,12 @@ and Cloudflare Worker architecture without a separate runtime redesign.
 
 ## Runtime cautions
 
+Application tables are private to the server connection: the additive RLS/grant
+migration denies anonymous/authenticated Data API table access, while server HTTP
+operations retain their session/ownership checks. The explicit native Supabase test
+stack and its test-only marker schema are described in [native setup](supabase-testing.md).
+Prisma owns app migrations; the harness does not modify Supabase-owned native schemas.
+
 The sample environment points sockets at the combined app server on port 3000.
 `npm run dev` starts that process. The optional `npm run socket` entry point uses
 port 3001; point clients at it only when intentionally choosing that topology.

@@ -1,11 +1,10 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomInt, randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test, type Browser } from '@playwright/test';
 
 async function fixture(browser: Browser, baseURL: string, offset: number) {
-  const target = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(target.hostname);
-  expect(target.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const prefix = `bondi-e2e-${randomUUID()}-location-mode`;
   const contexts = await Promise.all(

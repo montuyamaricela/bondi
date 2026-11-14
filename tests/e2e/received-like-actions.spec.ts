@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test, type Browser, type BrowserContext } from '@playwright/test';
@@ -13,9 +14,7 @@ const fields = (name: string) => ({
   genderPreference: 'EVERYONE',
 });
 async function fixture(browser: Browser, baseURL: string, ip: number) {
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const prefix = `bondi-e2e-${randomUUID()}-received-likes`;
   const contexts: BrowserContext[] = [];
