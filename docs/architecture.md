@@ -174,8 +174,16 @@ Zero coordinates are valid; missing distance is excluded only under a radius.
 Explicit serialization omits coordinates/auth data and suppresses numeric distance
 when hidden. This display setting still allows location to influence ranking.
 The browser exposes a settings link or filter removal for LOCATION_REQUIRED and
-does not retry deterministic client errors. Location acquisition and feed transition
-ownership remain separate slices (#35 and #30).
+does not retry deterministic client errors. Location acquisition remains a separate
+slice (#35).
+
+The discovery page owns the current candidate by user identity, choosing the first
+unhandled result instead of advancing an independent array index. Confirmed actions
+remain excluded across late refetches and filter changes for the mounted page;
+server eligibility still owns persistence. An immediate action guard and the busy
+card prevent concurrent submissions. The card returns to its origin until success
+replaces it, so rejection retains the same usable candidate. Optional browser match
+feedback cannot falsely reject an already committed action.
 
 ## Structural work after the harness
 

@@ -12,11 +12,11 @@ interface SwipeCardProps {
   profile: DiscoverableProfile;
   onLike: () => void;
   onPass: () => void;
+  isPending?: boolean;
 }
 
-export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
+export function SwipeCard({ profile, onLike, onPass, isPending = false }: SwipeCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [exitX, setExitX] = useState(0);
   const initials = getInitials(profile.name);
 
   const x = useMotionValue(0);
@@ -39,8 +39,7 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
   }, [profile.photos.length]);
 
   const handleDragEnd = (_: unknown, info: { offset: { x: number } }) => {
-    if (Math.abs(info.offset.x) > 100) {
-      setExitX(info.offset.x > 0 ? 200 : -200);
+    if (!isPending && Math.abs(info.offset.x) > 100) {
       if (info.offset.x > 0) {
         onLike();
       } else {
@@ -61,10 +60,11 @@ export function SwipeCard({ profile, onLike, onPass }: SwipeCardProps) {
   return (
     <motion.div
       style={{ x, rotate, opacity }}
-      drag="x"
+      drag={isPending ? false : 'x'}
+      aria-busy={isPending}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
-      animate={{ x: exitX }}
+      animate={{ x: 0 }}
       transition={{ duration: 0.3 }}
       className="absolute inset-0 cursor-grab active:cursor-grabbing"
     >

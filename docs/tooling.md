@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current thirty-one-test browser
+While editing, run focused tests for fast feedback. The current thirty-three-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -168,3 +168,10 @@ or active-match exclusions. Invalid/partial filters and missing-location respons
 use the public API. A browser applies a distance filter, follows actionable error
 controls and removes the filter without reloading. The old automatic permission
 request is suppressed only in this fixture; its lifecycle remains tracked in #35.
+
+Discovery transition cases drag real browser cards and hold actual API response
+bodies across accepted like/pass writes and refetches. A/B/C/D stay in order both
+before and after shifted feed responses. A scoped PostgreSQL Like-insert failure
+leaves the same card centered and usable; retry succeeds. Holding that accepted
+POST response keeps the card busy and further gestures cannot submit another write.
+No auth, feed result or write is mocked; the fixture removes its failure trigger.
