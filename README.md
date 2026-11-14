@@ -196,6 +196,16 @@ legacy unowned drafts. Synthetic saved-image data checks image isolation without
 uploading an asset. Unit cases verify unrelated preferences survive cleanup and
 malformed private data is not printed in storage error logs.
 
+Unmatching keeps existing conversation history readable to its two participants.
+Both open chats become read-only; sends, typing and receipt writes require an
+active match. The unmatch cases exercise outsider typing rejection, room eviction,
+receipt preservation, session expiry and retained authorized history across all
+three socket owners, plus two real open browser chats. Repeated unmatch requests
+are safe to retry. The UI leaves the ended live room after HTTP success so its
+selected socket owner also reconciles participant state.
+Online-status queries return visible presence only for active matches, including
+after an unmatch; the same-process singleton cannot expose status to outsiders.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,

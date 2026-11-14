@@ -37,8 +37,8 @@ export function UnmatchModal({
             <DialogTitle className="text-text-heading">Unmatch with {userName}?</DialogTitle>
           </div>
           <DialogDescription className="pt-4 text-text-muted">
-            This action cannot be undone. You will no longer be able to message each other, and this
-            conversation will be archived.
+            This action cannot be undone. You will no longer be able to message each other. Both of
+            you can still read the existing conversation.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">

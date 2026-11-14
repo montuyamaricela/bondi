@@ -1,11 +1,12 @@
 import type { SocketServer } from './socket';
 
-let io: SocketServer | null = null;
+// Next route bundles and the custom server share a process, but not a module cache.
+const runtime = globalThis as typeof globalThis & { bondiSocketServer?: SocketServer };
 
 export function setSocketInstance(instance: SocketServer) {
-  io = instance;
+  runtime.bondiSocketServer = instance;
 }
 
 export function getSocketInstance(): SocketServer | null {
-  return io;
+  return runtime.bondiSocketServer ?? null;
 }

@@ -60,8 +60,9 @@ export function ChatInterface({
   useEffect(
     () => () => {
       sendOperationRef.current = null;
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     },
-    [matchId],
+    [matchId, socket, isUnmatched],
   );
 
   // Clear marked messages when matchId changes
@@ -73,17 +74,17 @@ export function ChatInterface({
   // Mark a message as read (helper function)
   const markMessageAsRead = useCallback(
     (messageId: string) => {
-      if (!socket || !isConnected || markedAsReadRef.current.has(messageId)) return;
+      if (!socket || !isConnected || isUnmatched || markedAsReadRef.current.has(messageId)) return;
 
       markedAsReadRef.current.add(messageId);
       socket.emit('message:read', { messageId });
     },
-    [socket, isConnected],
+    [socket, isConnected, isUnmatched],
   );
 
   // Socket connection and event handlers
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !isConnected || isUnmatched) return;
 
     let active = true;
 
@@ -133,8 +134,9 @@ export function ChatInterface({
       .emitWithAck('match:join', { matchId })
       .then((result) => {
         if (!active) return;
-        if (result.ok || isUnmatched)
+        if (result.ok)
           return queryClient.invalidateQueries({ queryKey: ['messages', matchId], exact: true });
+        void queryClient.invalidateQueries({ queryKey: ['match', matchId], exact: true });
         toast.error('Unable to join live chat. Reconnect to try again.');
       })
       .catch(() => {
@@ -167,7 +169,7 @@ export function ChatInterface({
     if (sendOperationRef.current?.content !== value.trim()) sendOperationRef.current = null;
     setSendError(null);
 
-    if (!socket || !isConnected) return;
+    if (!socket || !isConnected || isUnmatched) return;
 
     if (value.trim()) {
       socket.emit('typing:start', { matchId });
@@ -265,7 +267,7 @@ export function ChatInterface({
             />
           ))
         )}
-        {isTyping && (
+        {isTyping && !isUnmatched && (
           <div className="mb-4 flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-border-main bg-bg-card px-4 py-2 text-text-muted">
               <div className="flex gap-1">
@@ -289,8 +291,7 @@ export function ChatInterface({
         {isUnmatched ? (
           <div className="rounded-lg border border-border-main bg-bg-hover px-4 py-3 text-center">
             <p className="text-sm text-text-muted">
-              You&apos;ve unmatched with this person. You can view chat history but cannot send new
-              messages.
+              This match has ended. You can still read the conversation.
             </p>
           </div>
         ) : (

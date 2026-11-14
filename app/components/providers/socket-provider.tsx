@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
+import { useQueryClient } from '@tanstack/react-query';
+import type { MatchDetail } from '@/app/components/features/matching/hooks';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/lib/socket';
 
 type SocketContextType = {
@@ -25,6 +27,7 @@ export function useSocket() {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const { data: session, isPending } = useSession();
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
     null,
@@ -92,6 +95,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         });
 
         socketInstance.on('message:error', ({ message }) => toast.error(message));
+        socketInstance.on('match:updated', ({ matchId, status }) => {
+          queryClient.setQueryData<MatchDetail>(['match', matchId], (previous) =>
+            previous ? { ...previous, status } : undefined,
+          );
+          void queryClient.invalidateQueries({ queryKey: ['match', matchId], exact: true });
+          void queryClient.invalidateQueries({ queryKey: ['matches'] });
+          void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+        });
 
         setSocket(socketInstance);
       } catch (error) {
@@ -107,7 +118,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketInstance.disconnect();
       }
     };
-  }, [session, isPending]);
+  }, [session, isPending, queryClient]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>{children}</SocketContext.Provider>

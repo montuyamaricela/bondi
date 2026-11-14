@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current sixteen-test browser
+While editing, run focused tests for fast feedback. The current eighteen-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -105,6 +105,10 @@ The onboarding-draft case uses real accounts in one browser to verify same-owner
 reload/expiry, normal logout, legacy cleanup and a different account signing in from
 another tab. Returning to the original tab refreshes identity without a reload and
 must reset private form/image state. Its saved image is synthetic; it does not upload.
+The unmatch cases exercise actual sessions, PostgreSQL and all three socket owners:
+allowed communication, foreign typing rejection, ended-match updates restricted to
+participants, live-action denial, and retained read-only history. Two open browser
+chats must both become read-only after one participant unmatches.
 The journeys use unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
 security audit or coverage of external storage uploads, swipe gestures, idle socket termination, or every

@@ -24,6 +24,7 @@ interface ChatHeaderProps {
   userId: string;
   matchId: string;
   showOnlineStatus?: boolean;
+  isUnmatched?: boolean;
 }
 
 export function ChatHeader({
@@ -33,6 +34,7 @@ export function ChatHeader({
   userId,
   matchId,
   showOnlineStatus = true,
+  isUnmatched = false,
 }: ChatHeaderProps) {
   const router = useRouter();
   const { socket, isConnected } = useSocket();
@@ -75,7 +77,7 @@ export function ChatHeader({
       await unmatchMutation.mutateAsync(matchId);
       toast.success(`You've unmatched with ${name}`);
       setIsUnmatchModalOpen(false);
-      router.push('/messages');
+      if (socket && isConnected) socket.emit('match:leave', { matchId });
     } catch {
       toast.error('Failed to unmatch. Please try again.');
     }
@@ -137,15 +139,19 @@ export function ChatHeader({
             <User className="mr-2 h-4 w-4" />
             View Profile
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleUnmatchClick}
-            variant="destructive"
-            className="cursor-pointer"
-          >
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Unmatch
-          </DropdownMenuItem>
+          {!isUnmatched && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleUnmatchClick}
+                variant="destructive"
+                className="cursor-pointer"
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Unmatch
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

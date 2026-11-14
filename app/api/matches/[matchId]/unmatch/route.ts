@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { endMatch } from '@/lib/server/match-access';
+import { notifyMatchEnded } from '@/lib/server/socket-live-match';
+import { getSocketInstance } from '@/lib/socket-instance';
 import { handleApiError } from '@/lib/errors';
 
 export async function PATCH(
@@ -15,29 +17,8 @@ export async function PATCH(
     }
 
     const { matchId } = await params;
-    const userId = session.user.id;
-
-    const match = await db.match.findUnique({
-      where: { id: matchId },
-      select: { user1Id: true, user2Id: true, status: true },
-    });
-
-    if (!match) {
-      return NextResponse.json({ error: 'Match not found' }, { status: 404 });
-    }
-
-    if (match.user1Id !== userId && match.user2Id !== userId) {
-      return NextResponse.json({ error: 'Not authorized to unmatch this user' }, { status: 403 });
-    }
-
-    if (match.status === 'UNMATCHED') {
-      return NextResponse.json({ error: 'Match is already unmatched' }, { status: 400 });
-    }
-
-    const updatedMatch = await db.match.update({
-      where: { id: matchId },
-      data: { status: 'UNMATCHED' },
-    });
+    const updatedMatch = await endMatch(session.user.id, matchId);
+    notifyMatchEnded(getSocketInstance(), updatedMatch);
 
     return NextResponse.json({
       success: true,
