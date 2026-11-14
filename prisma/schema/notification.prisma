@@ -18,6 +18,7 @@ model Notification {
   @@index([type])
   @@index([isRead])
   @@index([createdAt])
+  // SQL partial unique index: one MATCH notification per non-null entity/user pair.
 }
 
 enum NotificationType {

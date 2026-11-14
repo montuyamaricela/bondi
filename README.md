@@ -173,6 +173,16 @@ The recovery case disconnects a browser with populated history and a draft, send
 missed messages from its peer, and reconnects without reloading. Room joins are
 acknowledged before history refresh. A delayed older HTTP snapshot cannot erase a
 newer live message; both views converge in order without duplicates and keep the draft.
+The matching case injects a PostgreSQL notification failure and verifies the like,
+match, and notifications roll back together. It retries successfully, repairs a
+missing notification without replacing an existing read notification, and runs
+three rounds of eight concurrent opposite-direction/repeated likes. The database
+rejects reversed duplicate pairs; passes and unmatched pairs retain their rules.
+
+The canonical-matching migration stops if historical duplicate pairs or match
+notifications exist. It never deletes or reassigns history. Resolve those findings
+with a separately reviewed data-repair plan before applying that migration; no
+production data repair is included here.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts

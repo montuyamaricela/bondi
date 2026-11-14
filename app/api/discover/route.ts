@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { db } from '@/lib/db';
-import { handleApiError, createAppError } from '@/lib/errors';
+import { handleApiError } from '@/lib/errors';
+import { recordDiscoveryAction } from '@/lib/server/matching';
 import { likeActionSchema } from '@/app/components/features/discover/validation';
 import { calculateDistance } from '@/lib/geolocation';
 import { getSocketInstance } from '@/lib/socket-instance';
@@ -156,7 +157,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
     const validationResult = likeActionSchema.safeParse(body);
     if (!validationResult.success) {
@@ -170,142 +176,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { targetUserId, action } = validationResult.data;
-    const currentUserId = session.user.id;
-
-    if (currentUserId === targetUserId) {
-      throw createAppError('Cannot interact with your own profile', 400);
-    }
-
-    const targetUser = await db.user.findUnique({
-      where: { id: targetUserId },
-      include: { profile: true },
-    });
-
-    if (!targetUser || !targetUser.profile) {
-      throw createAppError('Target user not found', 404);
-    }
-
-    const existingLike = await db.like.findUnique({
-      where: {
-        userId_targetUserId: {
-          userId: currentUserId,
-          targetUserId,
-        },
-      },
-    });
-
-    if (existingLike) {
-      return NextResponse.json(
-        { error: 'You have already interacted with this profile' },
-        { status: 400 },
-      );
-    }
-
-    await db.like.create({
-      data: {
-        userId: currentUserId,
-        targetUserId,
-        action,
-      },
-    });
-
-    if (action === 'LIKE') {
-      const mutualLike = await db.like.findFirst({
-        where: {
-          userId: targetUserId,
-          targetUserId: currentUserId,
-          action: 'LIKE',
-        },
-      });
-
-      if (mutualLike) {
-        const existingMatch = await db.match.findFirst({
-          where: {
-            OR: [
-              { user1Id: currentUserId, user2Id: targetUserId },
-              { user1Id: targetUserId, user2Id: currentUserId },
-            ],
-          },
+    const outcome = await recordDiscoveryAction(session.user.id, targetUserId, action);
+    // Notifications are durable before these best-effort refresh hints leave the process.
+    try {
+      const io = getSocketInstance();
+      for (const notification of outcome.notify) {
+        io?.to(`user:${notification.userId}`).emit('notification:new', {
+          type: 'MATCH',
+          matchId: notification.matchId,
         });
-
-        if (!existingMatch) {
-          const match = await db.match.create({
-            data: {
-              user1Id: currentUserId,
-              user2Id: targetUserId,
-              status: 'ACTIVE',
-            },
-          });
-
-          const currentUserProfile = await db.profile.findUnique({
-            where: { userId: currentUserId },
-          });
-
-          const currentUserPhoto = await db.file.findFirst({
-            where: { userId: currentUserId },
-            orderBy: { order: 'asc' },
-          });
-
-          const targetUserPhoto = await db.file.findFirst({
-            where: { userId: targetUserId },
-            orderBy: { order: 'asc' },
-          });
-
-          await db.notification.create({
-            data: {
-              userId: currentUserId,
-              title: "It's a Match! 🎉",
-              content: `You matched with ${targetUser.profile.name}!`,
-              type: 'MATCH',
-              entityId: match.id,
-              actionUrl: `/messages/${match.id}`,
-              isRead: false,
-            },
-          });
-
-          await db.notification.create({
-            data: {
-              userId: targetUserId,
-              title: "It's a Match! 🎉",
-              content: `You matched with ${currentUserProfile?.name || 'someone'}!`,
-              type: 'MATCH',
-              entityId: match.id,
-              actionUrl: `/messages/${match.id}`,
-              isRead: false,
-            },
-          });
-
-          const io = getSocketInstance();
-          if (io) {
-            io.to(`user:${currentUserId}`).emit('notification:new', {
-              type: 'MATCH',
-              matchId: match.id,
-            });
-            io.to(`user:${targetUserId}`).emit('notification:new', {
-              type: 'MATCH',
-              matchId: match.id,
-            });
-          }
-
-          return NextResponse.json({
-            matched: true,
-            matchId: match.id,
-            matchedUser: {
-              id: targetUser.id,
-              name: targetUser.profile.name,
-              photo: targetUserPhoto?.url || null,
-            },
-            currentUser: {
-              id: currentUserId,
-              name: currentUserProfile?.name || '',
-              photo: currentUserPhoto?.url || null,
-            },
-          });
-        }
       }
+    } catch {
+      console.error('Match notification refresh failed after commit');
     }
-
-    return NextResponse.json({ matched: false });
+    return NextResponse.json(outcome.response);
   } catch (error) {
     return handleApiError(error);
   }
