@@ -242,6 +242,12 @@ partial age/radius filters, and missing-location feedback. The browser applies a
 removes a distance filter through the live interface. Exact coordinates remain
 absent from public results; missing location can still participate without a radius.
 
+Discovery transition cases use real pointer gestures, delayed actual feed/write
+responses and a scoped PostgreSQL failure. Like/pass refetches retain candidate
+order, rejected swipes leave the original card usable, and pending actions cannot
+submit twice. Confirmed candidate identities prevent older feed snapshots from
+showing handled profiles again during the mounted page's lifetime.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,

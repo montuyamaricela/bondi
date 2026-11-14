@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -19,11 +19,12 @@ export default function DiscoverPage() {
     minAge: 18,
     maxAge: 100,
   });
-  const [currentProfileIndex, setCurrentProfileIndex] = useState(0);
+  const [handledUserIds, setHandledUserIds] = useState<Set<string>>(() => new Set());
+  const actionInFlight = useRef(false);
   const [matchNotification, setMatchNotification] = useState<MatchNotification | null>(null);
   const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
 
-  const { data: profiles, isLoading, error, refetch } = useDiscoverProfiles(filters);
+  const { data: profiles, isLoading, isFetching, error } = useDiscoverProfiles(filters);
   const likeActionMutation = useLikeActionMutation();
   const { showMatchNotification, permission } = useNotifications();
   const { requestLocation } = useGeolocation();
@@ -55,7 +56,8 @@ export default function DiscoverPage() {
     autoRequestLocation();
   }, [requestLocation, hasRequestedLocation]);
 
-  const currentProfile = profiles?.[currentProfileIndex];
+  const currentProfile = profiles?.find((profile) => !handledUserIds.has(profile.userId));
+  const waitingForProfiles = isLoading || (!currentProfile && isFetching);
   const locationRequired =
     error instanceof FetchError &&
     !!error.data &&
@@ -63,68 +65,42 @@ export default function DiscoverPage() {
     'code' in error.data &&
     error.data.code === 'LOCATION_REQUIRED';
 
-  const handleLike = async () => {
-    if (!currentProfile) return;
-
+  const handleAction = async (action: 'LIKE' | 'PASS') => {
+    if (!currentProfile || actionInFlight.current) return;
+    const targetUserId = currentProfile.userId;
+    actionInFlight.current = true;
     try {
-      const result = await likeActionMutation.mutateAsync({
-        targetUserId: currentProfile.userId,
-        action: 'LIKE',
-      });
-
-      if (result.matched && result.matchId && result.matchedUser) {
-        setMatchNotification({
-          matchId: result.matchId,
-          matchedUser: result.matchedUser,
-        });
+      const result = await likeActionMutation.mutateAsync({ targetUserId, action });
+      // A late refetch may still contain this candidate; advance by confirmed identity.
+      setHandledUserIds((previous) => new Set([...previous, targetUserId]));
+      if (action === 'LIKE' && result.matched && result.matchId && result.matchedUser) {
+        setMatchNotification({ matchId: result.matchId, matchedUser: result.matchedUser });
         toast.success("It's a Match!");
-
-        const notificationSettings = localStorage.getItem('notificationSettings');
-        const settings = notificationSettings
-          ? JSON.parse(notificationSettings)
-          : { matchNotifications: true };
-
-        if (permission === 'granted' && settings.matchNotifications) {
-          showMatchNotification(result.matchedUser.name, result.matchedUser.photo || undefined);
+        try {
+          const notificationSettings = localStorage.getItem('notificationSettings');
+          const settings = notificationSettings
+            ? JSON.parse(notificationSettings)
+            : { matchNotifications: true };
+          if (permission === 'granted' && settings.matchNotifications)
+            showMatchNotification(result.matchedUser.name, result.matchedUser.photo || undefined);
+        } catch {
+          // Optional browser feedback cannot turn a committed action into a failed swipe.
+          console.error('Could not show match notification');
         }
       }
-
-      if (currentProfileIndex < (profiles?.length ?? 0) - 1) {
-        setCurrentProfileIndex((prev) => prev + 1);
-      } else {
-        setCurrentProfileIndex(0);
-        refetch();
-      }
-    } catch (error) {
-      console.error('Failed to like profile:', error);
-      toast.error('Failed to like profile. Please try again.');
-    }
-  };
-
-  const handlePass = async () => {
-    if (!currentProfile) return;
-
-    try {
-      await likeActionMutation.mutateAsync({
-        targetUserId: currentProfile.userId,
-        action: 'PASS',
-      });
-
-      if (currentProfileIndex < (profiles?.length ?? 0) - 1) {
-        setCurrentProfileIndex((prev) => prev + 1);
-      } else {
-        setCurrentProfileIndex(0);
-        refetch();
-      }
-    } catch (error) {
-      console.error('Failed to pass profile:', error);
-      toast.error('Failed to pass profile. Please try again.');
+    } catch {
+      toast.error(
+        action === 'LIKE'
+          ? 'Failed to like profile. Please try again.'
+          : 'Failed to pass profile. Please try again.',
+      );
+    } finally {
+      actionInFlight.current = false;
     }
   };
 
   const handleApplyFilters = (newFilters: DiscoverFilters) => {
     setFilters(newFilters);
-    setCurrentProfileIndex(0);
   };
 
   return (
@@ -138,7 +114,7 @@ export default function DiscoverPage() {
 
       {/* Main Content */}
       <div className="flex flex-1 items-center justify-center bg-bg-main p-6">
-        {isLoading && (
+        {waitingForProfiles && (
           <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary-main" />
             <p className="text-text-muted">Loading profiles...</p>
@@ -171,20 +147,25 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {!isLoading && !error && profiles && profiles.length === 0 && (
+        {!waitingForProfiles && !error && profiles && !currentProfile && (
           <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4 text-center">
             <p className="text-xl text-text-heading">No more profiles</p>
             <p className="text-text-muted">Check back later or adjust your filters</p>
           </div>
         )}
 
-        {!isLoading && !error && currentProfile && (
+        {!waitingForProfiles && !error && currentProfile && (
           <div className="relative h-[calc(100vh-200px)] w-full max-w-md">
             <SwipeCard
               key={currentProfile.id}
               profile={currentProfile}
-              onLike={handleLike}
-              onPass={handlePass}
+              isPending={likeActionMutation.isPending}
+              onLike={() => {
+                void handleAction('LIKE');
+              }}
+              onPass={() => {
+                void handleAction('PASS');
+              }}
             />
           </div>
         )}
