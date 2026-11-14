@@ -146,6 +146,8 @@ ephemeral port. Across all three owners, it checks real room/message delivery an
 read receipts, then rejects all six incoming actions after session revocation or
 expiry with an explicit auth error and disconnect. Rejected actions cannot save a
 message, change a read receipt, or forward typing.
+It also holds a PostgreSQL lock on profile reads while clients connect: room joins
+and typing must work before profile initialization finishes in every runtime.
 The message-write case exercises HTTP and all three socket owners against the same
 validation boundary: malformed/blank/oversized text, the 5,000-character boundary,
 active membership, and owned attachment records. It invokes the actual upload

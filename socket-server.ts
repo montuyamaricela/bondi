@@ -73,17 +73,6 @@ io.on('connection', async (socket) => {
 
   console.log(`User connected: ${userId}`);
 
-  const profile = await db.profile.findUnique({
-    where: { userId },
-    select: { showOnlineStatus: true },
-  });
-
-  if (!socket.connected) return;
-
-  if (profile?.showOnlineStatus) {
-    socket.broadcast.emit('user:online', { userId });
-  }
-
   socket.join(`user:${userId}`);
 
   socket.on('match:join', async (payload, acknowledge) => {
@@ -255,6 +244,18 @@ io.on('connection', async (socket) => {
       socket.broadcast.emit('user:offline', { userId });
     }
   });
+
+  // Attach protected listeners before the first asynchronous profile lookup.
+  try {
+    const profile = await db.profile.findUnique({
+      where: { userId },
+      select: { showOnlineStatus: true },
+    });
+    if (!socket.connected) return;
+    if (profile?.showOnlineStatus) socket.broadcast.emit('user:online', { userId });
+  } catch {
+    console.error('Socket profile initialization failed');
+  }
 });
 
 httpServer

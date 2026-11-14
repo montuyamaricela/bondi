@@ -45,6 +45,9 @@ action handler runs. Authorization completions stay in packet order; late profil
 initialization stops after disconnect. Match policies remain in the event owners.
 The socket lifecycle test exercises this contract in all three runtimes; idle
 session termination and broader presence behavior need separate coverage.
+Protected/disconnect handlers and the user's private room attach before the first
+asynchronous profile lookup. Profile initialization cannot drop an immediate join;
+its eventual presence broadcast still checks that the socket remains connected.
 
 `lib/server/messages.ts` is the shared HTTP/socket write boundary: parse untrusted
 payloads, check active membership, resolve an owned `MessageAttachment` key, and
