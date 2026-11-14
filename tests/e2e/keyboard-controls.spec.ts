@@ -173,13 +173,14 @@ test('keyboard discovery actions preserve retry, pending guards and accepted lik
   browser,
   baseURL,
 }) => {
-  const owned = await fixture(browser, baseURL!, 54);
+  const owned = await fixture(browser, baseURL!, 54 + test.info().repeatEachIndex * 4);
   const trigger = `bondi_e2e_keyboard_${randomUUID().replaceAll('-', '')}`;
   const removeFailure = async () => {
     await owned.db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${trigger}" ON "Like"`);
     await owned.db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
   };
   let release: (() => void) | undefined;
+  let releaseFailure: (() => void) | undefined;
   try {
     const { db, contexts, people } = owned;
     const candidates = await ownedDiscoveryCandidates(owned);
@@ -194,8 +195,25 @@ test('keyboard discovery actions preserve retry, pending guards and accepted lik
     await page.goto('/discover');
     const pass = page.getByRole('button', { name: 'Pass profile', exact: true });
     const like = page.getByRole('button', { name: 'Like profile', exact: true });
+    let failureHeld = false;
+    let holdFailure = true;
+    await page.route('**/api/discover', async (route) => {
+      if (route.request().method() !== 'POST' || !holdFailure) return route.continue();
+      holdFailure = false;
+      const failed = await route.fetch();
+      expect(failed.status()).toBe(500);
+      failureHeld = true;
+      await new Promise<void>((resolve) => {
+        releaseFailure = resolve;
+      });
+      await route.fulfill({ response: failed });
+    });
     await tabTo(page, pass);
     await page.keyboard.press('Enter');
+    await expect.poll(() => failureHeld).toBe(true);
+    await expect(pass).toBeDisabled();
+    releaseFailure?.();
+    releaseFailure = undefined;
     await expect(
       page.getByText('Failed to pass profile. Please try again.', { exact: true }),
     ).toBeVisible();
@@ -203,6 +221,7 @@ test('keyboard discovery actions preserve retry, pending guards and accepted lik
       page.getByRole('heading', { name: `${candidates[0].name}, 28`, exact: true }),
     ).toBeVisible();
     await expect(pass).toBeEnabled();
+    await expect(pass).toBeFocused();
     expect(await db.like.count({ where: { userId: people[0] } })).toBe(0);
     await removeFailure();
     let held = false;
@@ -250,6 +269,7 @@ test('keyboard discovery actions preserve retry, pending guards and accepted lik
     ).toBe('LIKE');
   } finally {
     release?.();
+    releaseFailure?.();
     await removeFailure();
     await owned.close();
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -20,11 +20,20 @@ export default function DiscoverPage() {
   });
   const [handledUserIds, setHandledUserIds] = useState<Set<string>>(() => new Set());
   const actionInFlight = useRef(false);
+  const keyboardAction = useRef<HTMLButtonElement | null>(null);
   const [matchNotification, setMatchNotification] = useState<MatchNotification | null>(null);
 
   const { data: profiles, isLoading, isFetching, error } = useDiscoverProfiles(filters);
   const likeActionMutation = useLikeActionMutation();
   const { showMatchNotification, permission } = useNotifications();
+
+  useLayoutEffect(() => {
+    if (likeActionMutation.isPending) return;
+    const trigger = keyboardAction.current;
+    keyboardAction.current = null;
+    // Disabling a pending action can drop focus; preserve deliberate focus moves.
+    if (trigger?.isConnected && document.activeElement === document.body) trigger.focus();
+  }, [likeActionMutation.isPending]);
   const currentProfile = profiles?.find((profile) => !handledUserIds.has(profile.userId));
   const waitingForProfiles = isLoading || (!currentProfile && isFetching);
   const locationRequired =
@@ -131,9 +140,11 @@ export default function DiscoverPage() {
                 profile={currentProfile}
                 isPending={likeActionMutation.isPending}
                 onLike={() => {
+                  keyboardAction.current = null;
                   void handleAction('LIKE');
                 }}
                 onPass={() => {
+                  keyboardAction.current = null;
                   void handleAction('PASS');
                 }}
               />
@@ -145,7 +156,8 @@ export default function DiscoverPage() {
                 className="h-12 flex-1"
                 aria-label="Pass profile"
                 disabled={likeActionMutation.isPending}
-                onClick={() => {
+                onClick={(event) => {
+                  keyboardAction.current = event.detail === 0 ? event.currentTarget : null;
                   void handleAction('PASS');
                 }}
               >
@@ -156,7 +168,8 @@ export default function DiscoverPage() {
                 className="h-12 flex-1"
                 aria-label="Like profile"
                 disabled={likeActionMutation.isPending}
-                onClick={() => {
+                onClick={(event) => {
+                  keyboardAction.current = event.detail === 0 ? event.currentTarget : null;
                   void handleAction('LIKE');
                 }}
               >
