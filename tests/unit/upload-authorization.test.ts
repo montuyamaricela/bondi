@@ -3,6 +3,7 @@ import { mock, test } from 'node:test';
 import { NextRequest } from 'next/server';
 import { createRouteHandler } from 'uploadthing/next';
 import { auth } from '../../lib/auth';
+import { db } from '../../lib/db';
 import { uploadRouter } from '../../lib/server/uploadthing';
 
 const token = Buffer.from(
@@ -49,6 +50,9 @@ test('all upload entry points reject missing or unresolved expired sessions befo
 });
 
 test('an authenticated upload registers the server session identity as storage metadata', async () => {
+  const originalCount = db.file.count;
+  const count = mock.fn(async () => 0);
+  Object.assign(db.file, { count });
   const now = new Date('2026-11-14T00:00:00Z');
   const session = mock.method(auth.api, 'getSession', async () => ({
     user: {
@@ -97,5 +101,6 @@ test('an authenticated upload registers the server session identity as storage m
     assert.deepEqual(payload.metadata, { userId: 'synthetic-user' });
   } finally {
     session.mock.restore();
+    Object.assign(db.file, { count: originalCount });
   }
 });

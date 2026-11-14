@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const photos = await db.file.findMany({
       where: { userId: session.user.id },
-      orderBy: { order: 'asc' },
+      orderBy: [{ order: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
         url: true,

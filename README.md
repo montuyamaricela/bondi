@@ -272,6 +272,17 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Profile-photo cases race twelve completions across both profile uploaders and verify
+six saved rows, unique append order, owned replay, foreign rejection, account-local
+capacity and slot reuse after deletion. Actual authenticated upload middleware rejects
+requests exceeding the remaining total before a controlled provider metadata call.
+Saved primary photos agree across discovery, owned/public profiles, incoming likes,
+matching responses, matches and inbox; browser profile display follows the same order.
+Legacy ties use an ID tie-breaker. These cases exercise trusted completion callbacks
+and synthetic provider requests, rather than live uploads or webhook signatures.
+The cap applies to registered gallery rows; unregistered provider objects require a
+separate orphan-cleanup policy.
+
 API-error cases inject a synthetic PostgreSQL failure and verify a generic 500,
 matching response/log correlation ID, rollback and successful retry. Unit cases
 verify redacted logging and retain safe validation/access/conflict/retry contracts.

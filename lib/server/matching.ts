@@ -56,12 +56,12 @@ export async function recordDiscoveryAction(
           });
           const currentPhoto = await transaction.file.findFirst({
             where: { userId },
-            orderBy: { order: 'asc' },
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
             select: { url: true },
           });
           const targetPhoto = await transaction.file.findFirst({
             where: { userId: targetUserId },
-            orderBy: { order: 'asc' },
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
             select: { url: true },
           });
           const existingNotifications = await transaction.notification.findMany({

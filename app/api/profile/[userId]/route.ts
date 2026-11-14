@@ -22,7 +22,7 @@ export async function GET(
         user: {
           select: {
             files: {
-              orderBy: { order: 'asc' },
+              orderBy: [{ order: 'asc' }, { id: 'asc' }],
               select: {
                 id: true,
                 url: true,

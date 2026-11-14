@@ -49,7 +49,7 @@ export async function readConversations(userId: string, pagination: Pagination, 
           },
           files: {
             take: 1,
-            orderBy: { order: 'asc' },
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
             select: {
               url: true,
             },
@@ -70,7 +70,7 @@ export async function readConversations(userId: string, pagination: Pagination, 
           },
           files: {
             take: 1,
-            orderBy: { order: 'asc' },
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
             select: {
               url: true,
             },
