@@ -62,20 +62,8 @@ export default defineConfig([
     rules: { 'no-param-reassign': 'off', 'no-restricted-syntax': 'off' },
   },
   {
-    // Existing owners stay explicit until validated server/client env modules replace them.
-    files: [
-      '**/env.{ts,js,mjs}',
-      'server.ts',
-      'socket-server.ts',
-      'lib/auth.ts',
-      'lib/auth-client.ts',
-      'lib/db.ts',
-      'lib/socket.ts',
-      'app/api/profile/photos/**/route.ts',
-      'app/components/providers/socket-provider.tsx',
-      'scripts/**',
-      'tests/**',
-    ],
+    // Runtime reads belong to the validated env modules; upload credentials remain an owned seam.
+    files: ['**/env.{ts,js,mjs}', 'app/api/profile/photos/**/route.ts', 'scripts/**', 'tests/**'],
     rules: { 'no-restricted-syntax': 'off' },
   },
   prettier,

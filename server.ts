@@ -9,6 +9,7 @@ import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
 import { attachPresenceHandlers } from '@/lib/server/presence';
 import { setSocketInstance } from '@/lib/socket-instance';
+import { applicationEnvironment } from '@/lib/server/env';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -16,9 +17,7 @@ import type {
   SocketData,
 } from '@/lib/socket';
 
-const dev = process.env.NODE_ENV !== 'production';
-const hostname = process.env.HOSTNAME || 'localhost';
-const port = parseInt(process.env.PORT || '3000', 10);
+const { dev, hostname, port, clientOrigin } = applicationEnvironment();
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -42,7 +41,7 @@ app.prepare().then(() => {
     SocketData
   >(httpServer, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      origin: clientOrigin,
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -108,7 +107,7 @@ app.prepare().then(() => {
     .listen(port, () => {
       console.log(
         `> Next.js server with Socket.IO listening at http://${hostname}:${port} as ${
-          dev ? 'development' : process.env.NODE_ENV
+          dev ? 'development' : 'production'
         }`,
       );
     });

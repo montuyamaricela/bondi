@@ -7,6 +7,7 @@ import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
 import { attachPresenceHandlers } from '@/lib/server/presence';
 import { setSocketInstance } from '@/lib/socket-instance';
+import { socketEnvironment } from '@/lib/server/env';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -14,8 +15,7 @@ import type {
   SocketData,
 } from '@/lib/socket';
 
-const port = parseInt(process.env.SOCKET_PORT || '3001', 10);
-const clientUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const { port, clientOrigin } = socketEnvironment();
 
 const httpServer = createServer();
 
@@ -26,7 +26,7 @@ const io = new SocketIOServer<
   SocketData
 >(httpServer, {
   cors: {
-    origin: clientUrl,
+    origin: clientOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },

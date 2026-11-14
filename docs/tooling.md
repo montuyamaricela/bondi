@@ -15,11 +15,12 @@ safe promise executors, explicit assignment/parameter flow, and unused-disable
 reporting. `eslint-config-prettier` runs last so Prettier owns formatting.
 `npm run lint` treats warnings as failures; `npm run lint:fix` applies safe fixes.
 
-Environment access is restricted to explicit existing owners, config files,
-scripts/tests, and future env modules. MVP Realty already has validated env
-modules; Bondi does not yet have that layer. The compatibility list in the shared
-config prevents new environment readers from spreading without changing runtime
-validation during this tooling migration. Socket.IO's `socket.data` and Node's
+Environment access is restricted to `env` modules, config files, scripts/tests,
+and the remaining owned upload-credential route. `lib/server/env.ts` validates
+runtime database, auth, origin and port configuration; `lib/client/env.ts` reads
+only explicit public socket settings. Pure parsing lives in `lib/configuration.ts`.
+The former auth/socket/provider compatibility exceptions have been removed, so new
+runtime readers must use these owners. Socket.IO's `socket.data` and Node's
 response object use documented mutable APIs, so property writes to `socket` and
 `res` are the narrow parameter-mutation exceptions.
 
