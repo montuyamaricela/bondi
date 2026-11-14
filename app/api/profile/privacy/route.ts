@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { handleApiError, readJson } from '@/lib/errors';
 import { getSocketInstance } from '@/lib/socket-instance';
 import { refreshPresence } from '@/lib/server/presence';
 
@@ -18,7 +19,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readJson(request);
     const validated = privacyUpdateSchema.parse(body);
 
     const profile = await db.profile.update({
@@ -37,8 +38,6 @@ export async function PATCH(request: NextRequest) {
     }
     return NextResponse.json(profile);
   } catch (error) {
-    console.error('Privacy update error:', error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
@@ -46,6 +45,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: 'Failed to update privacy settings' }, { status: 500 });
+    return handleApiError(error);
   }
 }

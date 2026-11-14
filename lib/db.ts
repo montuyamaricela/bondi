@@ -7,7 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    // API handlers report redacted correlation IDs; raw Prisma logs can include private values.
+    log: [],
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;

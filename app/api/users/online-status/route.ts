@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getPresence } from '@/lib/server/presence';
-import { handleApiError } from '@/lib/errors';
+import { handleApiError, readJson } from '@/lib/errors';
 import { getSocketInstance } from '@/lib/socket-instance';
 
 export async function POST(request: NextRequest) {
@@ -12,8 +12,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const userIds = body?.userIds;
+    const body = await readJson(request);
+    const userIds =
+      body && typeof body === 'object' && 'userIds' in body ? body.userIds : undefined;
 
     if (
       !Array.isArray(userIds) ||

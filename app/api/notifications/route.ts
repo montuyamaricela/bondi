@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { handleApiError, readJson } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,8 +29,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ notifications });
   } catch (error) {
-    console.error('Fetch notifications error:', error);
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await readJson(request);
     const validated = markAsReadSchema.parse(body);
 
     const ids = Array.isArray(validated.ids) ? validated.ids : [validated.ids];
@@ -63,8 +63,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Mark notifications as read error:', error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.issues },
@@ -72,6 +70,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 });
+    return handleApiError(error);
   }
 }

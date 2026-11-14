@@ -15,8 +15,6 @@ function isAppError(error: unknown): error is AppError {
 
 // Handle API errors and return formatted NextResponse
 export function handleApiError(error: unknown): NextResponse {
-  console.error('API Error:', error);
-
   if (error instanceof ZodError) {
     return NextResponse.json(
       {
@@ -40,23 +38,21 @@ export function handleApiError(error: unknown): NextResponse {
     );
   }
 
-  // Generic error
-  if (error instanceof Error) {
-    return NextResponse.json(
-      {
-        error: error.message || 'Internal server error',
-      },
-      { status: 500 },
-    );
-  }
-
-  // Unknown error
+  const requestId = crypto.randomUUID();
+  // Log only the correlation ID: exceptions may contain SQL, paths or private values.
+  console.error('API request failed', { requestId });
   return NextResponse.json(
-    {
-      error: 'An unexpected error occurred',
-    },
-    { status: 500 },
+    { error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR', requestId },
+    { status: 500, headers: { 'X-Request-ID': requestId } },
   );
+}
+
+export async function readJson(request: Pick<Request, 'json'>): Promise<unknown> {
+  try {
+    return await request.json();
+  } catch {
+    throw createAppError('Invalid JSON', 400, 'INVALID_JSON');
+  }
 }
 
 export const Errors = {

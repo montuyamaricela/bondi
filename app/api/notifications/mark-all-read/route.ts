@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { handleApiError } from '@/lib/errors';
 import { db } from '@/lib/db';
 
 export async function PATCH(request: NextRequest) {
@@ -22,10 +23,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Mark all notifications as read error:', error);
-    return NextResponse.json(
-      { error: 'Failed to mark all notifications as read' },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

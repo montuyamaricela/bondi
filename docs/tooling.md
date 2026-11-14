@@ -235,3 +235,17 @@ order for a nonempty gallery. Parallel successful writes return each request's
 complete profile/order and leave one coherent final result. No storage provider is
 called. A browser verifies decimals and cleared ages in both forms and saves a valid
 edit through the normal interface. Pure schema tests keep both client forms aligned.
+
+### API-error verification
+
+`tests/e2e/api-errors.spec.ts` uses authenticated synthetic accounts and a scoped
+PostgreSQL Profile-update failure. The 500 response contains only a generic message,
+code and UUID, echoed in `X-Request-ID`; no injected SQL/path/credential marker escapes.
+Account/profile writes roll back, valid retry succeeds, and anonymous/expired writes
+remain rejected. A second case sends raw malformed bytes to eight application JSON
+handlers, checks 400 and unchanged profile state, then exercises valid location,
+privacy, notification and presence requests plus safe validation failure.
+`tests/unit/api-errors.test.ts` checks exact redacted logger arguments and generic
+non-Error/SyntaxError handling while retaining trusted validation, access, conflict
+and photo-deletion-style retry responses. It does not assert third-party SDK logging
+or a separate private telemetry pipeline. Raw Prisma query/error logging is disabled.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +34,6 @@ export async function GET(request: NextRequest) {
       sessionId: session.session.id,
     });
   } catch (error) {
-    console.error('Error getting socket token:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error);
   }
 }
