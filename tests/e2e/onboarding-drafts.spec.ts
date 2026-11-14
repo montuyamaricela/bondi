@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
@@ -7,9 +8,7 @@ test('onboarding drafts survive same-account reloads but never logout or account
   baseURL,
 }) => {
   test.setTimeout(90_000);
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const context = await browser.newContext({
     extraHTTPHeaders: { 'x-forwarded-for': '192.0.2.244' },

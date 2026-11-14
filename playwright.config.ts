@@ -5,6 +5,7 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
+  globalSetup: './tests/helpers/database-setup.ts',
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   workers: 1,

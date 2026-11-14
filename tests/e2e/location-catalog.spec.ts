@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomInt, randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
@@ -7,9 +8,7 @@ test('authenticated city search is bounded, disambiguated, normalized and distin
   browser,
   baseURL,
 }) => {
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const context = await browser.newContext({
     extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.203' },

@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { expect, test } from '@playwright/test';
@@ -9,9 +10,7 @@ test('an existing legacy credential retains its account and profile after signin
   request,
   baseURL,
 }) => {
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const runId = randomUUID();
   const userId = `legacy-user-${runId}`;

@@ -8,6 +8,12 @@ to this connection on 2026-11-14; this is not a claim to have copied that remote
 
 ## Shared configuration
 
+The [native Supabase harness](supabase-testing.md) adds a separate non-skipping
+`npm run test:supabase` command and CI check. Infrastructure preparation and Prisma
+migration are explicit setup steps; neither changes ordinary build/test startup.
+All existing browser fixtures share the test database guard, and native fixtures
+require a real prepared marker rather than a `postgres` name exception.
+
 `tooling/eslint-config.mjs` combines Bondi's version-matched Next/TypeScript flat
 configs with the source's core JavaScript and full accessibility recommendations,
 plus MVP Realty's correctness rules: strict equality, unused-value errors,

@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { PrismaClient } from '@prisma/client';
@@ -7,9 +8,7 @@ import { initializeSocket } from '../../lib/socket';
 import { connect } from './socket-helpers';
 
 async function participants(browser: Browser, baseURL: string, offset: number) {
-  const url = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(url.hostname);
-  expect(url.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const contexts: BrowserContext[] = [];
   const emails: string[] = [];

@@ -1,3 +1,4 @@
+import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
 import { io, type Socket } from 'socket.io-client';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/lib/socket';
@@ -53,9 +54,7 @@ test('two users onboard, match and chat while an outsider cannot access private 
 }) => {
   test.setTimeout(90_000);
   // Cleanup is restricted to our exact synthetic emails in a local disposable database.
-  const database = new URL(process.env.DATABASE_URL || '');
-  expect(['localhost', '127.0.0.1', '[::1]']).toContain(database.hostname);
-  expect(database.pathname.slice(1)).toMatch(/(?:^|[_-])(?:test|e2e|harness)(?:[_-]|$)/i);
+  assertTestDatabase();
   const db = new PrismaClient();
   const runId = randomUUID();
   const emails = ['alice', 'bob', 'outsider'].map(
