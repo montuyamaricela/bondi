@@ -168,6 +168,15 @@ query's abort signal prevents a pre-action snapshot from restoring the card.
 Failed writes leave the existing card intact. This changes actionable eligibility
 and cache state, not stored interactions: passes are never reset and no undo is added.
 
+Notification list inputs use a strict integer limit from 1–100 (default 20), explicit
+`unreadOnly=true|false` and single values for each parameter. Invalid inputs return
+400 before the notification query. Latest rows sort by creation time then ID descending.
+Bulk read-state writes accept a single opaque ID or at most 100 raw entries; each
+ID is nonblank and at most 128 characters. Duplicates within the bound and empty-array
+no-ops retain their semantics. All list/update predicates still use the server session
+owner; foreign IDs receive the same success response without modification. Mark-all
+continues to update the server-selected owned unread set.
+
 `lib/server/match-access.ts` owns member authorization and idempotent unmatching.
 `lib/server/socket-live-match.ts` shares the room/read/typing handlers across the
 three owners: only active members can communicate, while former participants

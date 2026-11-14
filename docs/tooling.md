@@ -319,3 +319,18 @@ a failed profile read after a synthetic session resolution and asserts safe reco
 and redacted logging. That unit adapter and the browser's controlled profile HTTP
 failure are distinct from a real PostgreSQL outage; ordinary auth/profile/onboarding
 paths use the dedicated database. Runtime builds remain separate from migrations.
+
+### Notification input verification
+
+`tests/e2e/notification-inputs.spec.ts` creates synthetic owned/foreign rows in the
+local test database. The list checks default 20, limits 1/100, tied timestamp order,
+explicit unread filtering, owner isolation and rejection of negative/nonnumeric/empty/
+fractional/scientific/huge limits and duplicate parameters. Native query values stay
+bounded before Prisma reads. Anonymous and expired sessions remain unauthorized.
+
+Bulk cases reject invalid/blank/oversized IDs, more than 100 raw entries, invalid
+members/booleans and malformed JSON without changing read state. Empty arrays remain
+successful no-ops; within-bound duplicates, a single ID and mixed owned/foreign IDs
+retain existing ownership behavior. Mark-all modifies only the actor's unread set.
+The pre-fix list regression stops at a negative limit returning 200, before reaching
+the oversized test values; no production-sized query is used for reproduction.
