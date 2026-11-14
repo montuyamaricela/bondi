@@ -110,13 +110,39 @@ notification preferences. Durable inbox/notification state refreshes independent
 of those browser preferences. Mounted drafts still reuse their operation ID after
 failure; a crash-safe client draft outbox remains a separate feature.
 
-The React Query message cache owns saved chat state. HTTP history, live messages,
-saved acknowledgements and read receipts reconcile there by message ID, ordered by
-creation time then ID. Late history responses retain newer live messages/read
-receipts. Draft/attempt state stays local and separate. Each socket owner acknowledges
-an authorized room join after it completes; the chat refreshes history after that
-acknowledgement on initial subscription and reconnection, without listener churn
-on every history update.
+The React Query message cache owns saved chat state as cursor pages. HTTP history,
+live messages, saved acknowledgements and read receipts reconcile by message ID,
+ordered by creation time then ID. `message-pages.ts` updates an existing page by ID
+and reconciles at the whole-query commit, retaining late live arrivals and newer
+read receipts while another page awaits. The TanStack sharing adapter handles both
+stored pages and selected arrays. Draft/attempt state stays local and separate.
+Each socket owner acknowledges an authorized room join before history refresh.
+On reconnection, sequential page refetches advance the loaded latest-history window;
+older history remains available through explicit continuation. Obsolete cached
+rows outside that refreshed window are not merged into an apparent history gap.
+Loading older messages preserves the visible bubble anchor and does not scroll
+the chat to the newest message.
+
+GET messages, conversations and received likes return `{ items, nextCursor }`.
+`lib/server/cursor-pagination.ts` validates a default 50 / maximum 100 item page and
+a bounded versioned bookmark tied to the current user, list and history match or
+conversation search. Bookmarks grant no access: readers independently resolve the
+session and membership/owner predicates, including former participants' history.
+Timestamp/ID keysets give tied rows a stable boundary. Parameterized raw comparisons
+bind UTC cursor text as `timestamp`, matching the existing timestamp-without-time-zone
+columns without session-time-zone conversion.
+
+`message-history.ts` selects recent IDs through the matching compound index before
+reading bounded public records, returning each history page in ascending display
+order. `conversations.ts` computes latest-message-or-match activity before limiting,
+then reads selected matches' existing summaries/unread counts. Inbox substring search
+filters the participant's conversations before pagination and binds its bookmark to
+the normalized search; a debounced input stays mounted through loading and errors.
+`received-likes.ts` pages the existing incoming-like audience, retaining active-match
+exclusions. Clients expose continuation and retry controls rather than fetching all
+pages automatically. Inbox/like pages deduplicate by stable ID when live ordering
+changes; invalidation refreshes the loaded window. These reads do not change
+eligibility or retention. Query budgets and measured limits are in `docs/tooling.md`.
 
 `lib/server/match-access.ts` owns member authorization and idempotent unmatching.
 `lib/server/socket-live-match.ts` shares the room/read/typing handlers across the

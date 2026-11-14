@@ -1,7 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/fetch-wrapper';
+import { uniquePageItems, type CursorPage } from '@/lib/pagination';
 
 interface Match {
   matchId: string;
@@ -87,10 +88,15 @@ export function useUnmatchMutation() {
 }
 
 export function useReceivedLikes() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['receivedLikes'],
-    queryFn: async () => {
-      return await api.get<LikedByUser[]>('/api/likes/received');
-    },
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) =>
+      api.get<CursorPage<LikedByUser>>(
+        `/api/likes/received${pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ''}`,
+        { signal },
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    select: (data) => uniquePageItems(data.pages, (user) => user.userId),
   });
 }

@@ -11,7 +11,15 @@ import { toast } from 'sonner';
 import { getInitials } from '@/lib/utils/initials';
 
 export function LikedYouList() {
-  const { data: likedByUsers, isLoading, error } = useReceivedLikes();
+  const {
+    data: likedByUsers,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+  } = useReceivedLikes();
   const likeActionMutation = useLikeActionMutation();
   const [actingOnUser, setActingOnUser] = useState<string | null>(null);
 
@@ -23,7 +31,7 @@ export function LikedYouList() {
     );
   }
 
-  if (error) {
+  if (error && !likedByUsers?.length) {
     return (
       <div className="rounded-lg bg-bg-card p-12 text-center shadow-md">
         <p className="text-lg text-error">Failed to load likes</p>
@@ -145,6 +153,25 @@ export function LikedYouList() {
           </div>
         </div>
       ))}
+      {hasNextPage && (
+        <div className="col-span-full p-4 text-center">
+          {isFetchNextPageError && (
+            <p role="alert" className="mb-2 text-sm text-error">
+              Could not load more likes. Try again.
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isFetchingNextPage}
+            onClick={() => {
+              void fetchNextPage().catch(() => {});
+            }}
+          >
+            Load more likes
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

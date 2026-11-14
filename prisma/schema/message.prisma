@@ -22,6 +22,7 @@ model Message {
   deliveries MessageDelivery[]
 
   @@index([matchId])
+  @@index([matchId, createdAt, id])
   @@index([senderId])
   @@index([createdAt])
   @@unique([senderId, matchId, clientRequestId])

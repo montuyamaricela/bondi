@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
 import { wakeMessageDelivery } from '@/lib/server/message-delivery';
 import { getSocketInstance } from '@/lib/socket-instance';
+import { readPagination } from '@/lib/server/cursor-pagination';
+import { readMessageHistory } from '@/lib/server/message-history';
 import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -34,33 +36,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'You are not part of this match' }, { status: 403 });
     }
 
-    const messages = await db.message.findMany({
-      where: { matchId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        matchId: true,
-        senderId: true,
-        content: true,
-        type: true,
-        fileUrl: true,
-        fileKey: true,
-        fileName: true,
-        fileSize: true,
-        fileType: true,
-        createdAt: true,
-        readAt: true,
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(messages);
+    const pagination = readPagination(searchParams, 'messages', session.user.id, matchId);
+    return NextResponse.json(await readMessageHistory(session.user.id, matchId, pagination));
   } catch (error) {
     return handleApiError(error);
   }

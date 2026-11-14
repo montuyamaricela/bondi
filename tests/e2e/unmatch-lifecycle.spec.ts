@@ -205,7 +205,7 @@ test('all socket owners deny foreign typing and end live access without deleting
       for (const context of contexts.slice(0, 2)) {
         const history = await context.request.get(`/api/messages?matchId=${match.id}`);
         expect(history.status()).toBe(200);
-        expect(await history.json()).toEqual([
+        expect((await history.json()).items).toEqual([
           expect.objectContaining({ id: message.id, content: message.content }),
         ]);
       }

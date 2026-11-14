@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { readPagination } from '@/lib/server/cursor-pagination';
+import { readConversations } from '@/lib/server/conversations';
 import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -13,116 +14,15 @@ export async function GET(request: NextRequest) {
 
     const userId = session.user.id;
 
-    const matches = await db.match.findMany({
-      where: {
-        OR: [{ user1Id: userId }, { user2Id: userId }],
-      },
-      include: {
-        user1: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-            profile: {
-              select: {
-                name: true,
-                age: true,
-                showOnlineStatus: true,
-              },
-            },
-            files: {
-              take: 1,
-              orderBy: { order: 'asc' },
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-        user2: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-            profile: {
-              select: {
-                name: true,
-                age: true,
-                showOnlineStatus: true,
-              },
-            },
-            files: {
-              take: 1,
-              orderBy: { order: 'asc' },
-              select: {
-                url: true,
-              },
-            },
-          },
-        },
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: {
-            id: true,
-            content: true,
-            senderId: true,
-            createdAt: true,
-            readAt: true,
-          },
-        },
-        _count: {
-          select: {
-            messages: {
-              where: {
-                readAt: null,
-                senderId: { not: userId },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { matchedAt: 'desc' },
-    });
-
-    const conversations = matches.map((match) => {
-      const otherUser = match.user1Id === userId ? match.user2 : match.user1;
-      const lastMessage = match.messages[0] || null;
-
-      const unreadCount = match._count.messages;
-
-      return {
-        matchId: match.id,
-        matchedAt: match.matchedAt,
-        status: match.status,
-        otherUser: {
-          id: otherUser.id,
-          userId: otherUser.id,
-          name: otherUser.profile?.name || otherUser.name || 'Unknown',
-          age: otherUser.profile?.age || null,
-          image: otherUser.files[0]?.url || otherUser.image || null,
-          showOnlineStatus: otherUser.profile?.showOnlineStatus ?? true,
-        },
-        lastMessage: lastMessage
-          ? {
-              id: lastMessage.id,
-              content: lastMessage.content,
-              senderId: lastMessage.senderId,
-              createdAt: lastMessage.createdAt,
-              readAt: lastMessage.readAt,
-            }
-          : null,
-        unreadCount,
-      };
-    });
-
-    conversations.sort((a, b) => {
-      const aTime = a.lastMessage?.createdAt || a.matchedAt;
-      const bTime = b.lastMessage?.createdAt || b.matchedAt;
-      return new Date(bTime).getTime() - new Date(aTime).getTime();
-    });
-
-    return NextResponse.json(conversations);
+    const params = request.nextUrl.searchParams;
+    const search = (params.get('q') ?? '').trim();
+    if (search.length > 100 || params.getAll('q').length > 1)
+      return NextResponse.json(
+        { error: 'Search must be at most 100 characters', code: 'INVALID_SEARCH' },
+        { status: 400 },
+      );
+    const pagination = readPagination(params, 'conversations', userId, search || undefined);
+    return NextResponse.json(await readConversations(userId, pagination, search));
   } catch (error) {
     return handleApiError(error);
   }

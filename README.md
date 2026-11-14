@@ -169,7 +169,8 @@ rejection also retains a retryable draft.
 New chat sends keep their draft until a durable acknowledgement. Failed/uncertain
 sends can be retried in the open chat using the same operation ID. Legacy callers
 without an ID remain supported but cannot receive deduplication guarantees. This
-does not guarantee delivery across process crashes or persist drafts across page reloads.
+does not guarantee browser receipt or persist drafts across page reloads. The server
+recovers incomplete committed delivery attempts after restart.
 The recovery case disconnects a browser with populated history and a draft, sends
 missed messages from its peer, and reconnects without reloading. Room joins are
 acknowledged before history refresh. A delayed older HTTP snapshot cannot erase a
@@ -247,6 +248,20 @@ responses and a scoped PostgreSQL failure. Like/pass refetches retain candidate
 order, rejected swipes leave the original card usable, and pending actions cannot
 submit twice. Confirmed candidate identities prevent older feed snapshots from
 showing handled profiles again during the mounted page's lifetime.
+
+History, inbox and received-likes GETs use `{ items, nextCursor }` pages (50 by
+default, at most 100). Histories initially show the newest page; Load older messages
+exposes earlier history while preserving the draft and scroll position. Inboxes and
+likes offer Load more controls. Inbox search includes unloaded conversations and
+keeps its input available during fetching or retry. Existing history consumers must
+read `items`; message POSTs and socket acknowledgements retain their contracts.
+
+Pagination cases walk 10,000 tied history rows and 120+ inbox/like rows without gaps
+or duplicates, validate ownership/session/cursor boundaries, and check timestamp
+boundaries in three PostgreSQL time zones. Browser cases exercise all continuation
+controls, search an unloaded conversation, and retain a live arrival during a held
+older-history response. Query-plan and payload-budget attachments are available in
+the Playwright report. See [tooling](docs/tooling.md) for the measured fixture budgets.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts

@@ -146,10 +146,12 @@ test('two users onboard, match and chat while an outsider cannot access private 
       ).status(),
     ).toBe(403);
     expect((await outsider.request.patch(`/api/matches/${matchId}/unmatch`)).status()).toBe(403);
-    for (const path of ['/api/matches', '/api/matches/conversations']) {
+    for (const path of ['/api/matches', '/api/matches/conversations', '/api/likes/received']) {
       const response = await outsider.request.get(path);
       expect(response.status()).toBe(200);
-      expect(await response.json()).toEqual([]);
+      expect(await response.json()).toEqual(
+        path === '/api/matches' ? [] : { items: [], nextCursor: null },
+      );
     }
     const ownProfile = await outsider.request.get(`/api/profile?userId=${userIds[0]}`);
     expect(ownProfile.status()).toBe(200);
@@ -227,7 +229,8 @@ test('two users onboard, match and chat while an outsider cannot access private 
           .getByRole('log', { name: 'Conversation messages' })
           .getByText('Hello Alice, this is Bob.', { exact: true }),
       ).toBeVisible();
-      const history = await (await page.request.get(`/api/messages?matchId=${matchId}`)).json();
+      const history = (await (await page.request.get(`/api/messages?matchId=${matchId}`)).json())
+        .items;
       expect(
         history.map((message: { content: string; senderId: string }) => ({
           content: message.content,

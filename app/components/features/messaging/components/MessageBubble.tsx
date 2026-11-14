@@ -52,6 +52,7 @@ export function MessageBubble({
 
   return (
     <div
+      data-message-id={message.id}
       className={cn(
         'mb-4 flex w-full items-start gap-2',
         isOwnMessage ? 'justify-end' : 'justify-start',
