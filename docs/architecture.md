@@ -36,8 +36,8 @@ delivery to clients connected to the other process. Unmatch also reconciles the
 selected owner through the existing authenticated room-leave action after HTTP
 success; there is no cross-process event bus.
 HTTP online-status queries restrict results to active matches with visibility
-enabled before using that instance. Cross-tab aggregation and presence event
-audiences still need their own lifecycle repair.
+enabled before using that instance. Browser presence snapshots use the selected
+socket owner directly, including the optional standalone topology.
 
 `lib/session.ts` owns the server session helper; browser components import the
 session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out of
@@ -47,13 +47,24 @@ a disposable test PostgreSQL instance to keep any session-dependent queries isol
 All three socket owners capture the database session ID during an authoritative
 handshake and share incoming-action validation in `lib/server/socket-session.ts`.
 An invalid/expired/revoked session receives `auth:error` and disconnects before the
-action handler runs. Authorization completions stay in packet order; late profile
-initialization stops after disconnect. Match policies remain in the event owners.
-The socket lifecycle test exercises this contract in all three runtimes; idle
-session termination and broader presence behavior need separate coverage.
+action handler runs. Authorization completions stay in packet order. Match policies
+live in shared domain handlers. The socket lifecycle test exercises all seven
+incoming actions across all three runtimes; idle session termination is not covered.
 Protected/disconnect handlers and the user's private room attach before the first
-asynchronous profile lookup. Profile initialization cannot drop an immediate join;
-its eventual presence broadcast still checks that the socket remains connected.
+asynchronous presence lookup, so profile initialization cannot drop an immediate join.
+
+`lib/server/presence.ts` counts connected sessions against authoritative database
+expiry/ownership and shares snapshots and refreshes across HTTP and the three
+socket owners. Events target valid connections of active matches only. Per-user
+refreshes serialize within the selected runtime; the process-global queue also
+coordinates Next route bundles. Hiding visibility, unmatching and last-connection
+disconnect retract status. Privacy HTTP writes notify the combined owner, and
+the settings client asks its selected owner to refresh stored state after success.
+The shared `useOnlineStatus` hook owns listeners, loads an initial socket snapshot
+and ignores late snapshots after newer events. Chat and inbox use that same state.
+Different processes do not share connection state without an adapter; choose one
+socket topology for the app. Idle expiry is filtered from subsequent queries and
+actions, rather than proactively terminating idle sockets.
 
 `lib/server/messages.ts` is the shared HTTP/socket write boundary: parse untrusted
 payloads, check active membership, resolve an owned `MessageAttachment` key, and

@@ -6,6 +6,10 @@ import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
+import { attachPresenceHandlers } from '@/lib/server/presence';
+
+export type PresenceStatus = { visible: boolean; online: boolean };
+export type PresenceSnapshot = Record<string, PresenceStatus>;
 
 export type ServerToClientEvents = {
   'auth:error': (error: { code: 'UNAUTHORIZED'; message: string }) => void;
@@ -29,12 +33,17 @@ export type ServerToClientEvents = {
   'message:read': (data: { messageId: string; readAt: string }) => void;
   'typing:start': (data: { userId: string; matchId: string }) => void;
   'typing:stop': (data: { userId: string; matchId: string }) => void;
-  'user:online': (data: { userId: string }) => void;
-  'user:offline': (data: { userId: string }) => void;
+  'presence:updated': (data: PresenceStatus & { userId: string }) => void;
   'notification:new': (data: { type: string; matchId?: string }) => void;
 };
 
 export type ClientToServerEvents = {
+  'presence:sync': (
+    data: { userIds: string[]; refreshOwn?: boolean },
+    acknowledge: (
+      result: { ok: true; statuses: PresenceSnapshot } | { ok: false; message: string },
+    ) => void,
+  ) => void;
   'message:send': (
     data: {
       matchId: string;
@@ -123,7 +132,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     }
   });
 
-  io.on('connection', async (socket) => {
+  io.on('connection', (socket) => {
     attachSocketSessionGuard(socket);
     const userId = socket.data.userId;
 
@@ -193,30 +202,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       }
     });
 
-    socket.on('disconnect', async () => {
-      console.log(`User disconnected: ${userId}`);
-
-      const profile = await db.profile.findUnique({
-        where: { userId },
-        select: { showOnlineStatus: true },
-      });
-
-      if (profile?.showOnlineStatus) {
-        socket.broadcast.emit('user:offline', { userId });
-      }
-    });
-
-    // Attach protected listeners before the first asynchronous profile lookup.
-    try {
-      const profile = await db.profile.findUnique({
-        where: { userId },
-        select: { showOnlineStatus: true },
-      });
-      if (!socket.connected) return;
-      if (profile?.showOnlineStatus) socket.broadcast.emit('user:online', { userId });
-    } catch {
-      console.error('Socket profile initialization failed');
-    }
+    attachPresenceHandlers(io, socket);
   });
 
   return io;

@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
+import { attachPresenceHandlers } from '@/lib/server/presence';
 import { setSocketInstance } from '@/lib/socket-instance';
 import type {
   ClientToServerEvents,
@@ -68,7 +69,7 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on('connection', async (socket) => {
+io.on('connection', (socket) => {
   attachSocketSessionGuard(socket);
   const userId = socket.data.userId;
 
@@ -138,30 +139,7 @@ io.on('connection', async (socket) => {
     }
   });
 
-  socket.on('disconnect', async () => {
-    console.log(`User disconnected: ${userId}`);
-
-    const profile = await db.profile.findUnique({
-      where: { userId },
-      select: { showOnlineStatus: true },
-    });
-
-    if (profile?.showOnlineStatus) {
-      socket.broadcast.emit('user:offline', { userId });
-    }
-  });
-
-  // Attach protected listeners before the first asynchronous profile lookup.
-  try {
-    const profile = await db.profile.findUnique({
-      where: { userId },
-      select: { showOnlineStatus: true },
-    });
-    if (!socket.connected) return;
-    if (profile?.showOnlineStatus) socket.broadcast.emit('user:online', { userId });
-  } catch {
-    console.error('Socket profile initialization failed');
-  }
+  attachPresenceHandlers(io, socket);
 });
 
 httpServer

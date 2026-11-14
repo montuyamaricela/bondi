@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ import {
 } from '@/app/components/ui/dropdown-menu';
 import { useUnmatchMutation } from '@/app/components/features/matching/hooks';
 import { UnmatchModal } from '@/app/components/features/messaging/components/UnmatchModal';
+import { useOnlineStatus } from '../useOnlineStatus';
 
 interface ChatHeaderProps {
   name: string;
@@ -23,7 +24,6 @@ interface ChatHeaderProps {
   image: string | null;
   userId: string;
   matchId: string;
-  showOnlineStatus?: boolean;
   isUnmatched?: boolean;
 }
 
@@ -33,39 +33,14 @@ export function ChatHeader({
   image,
   userId,
   matchId,
-  showOnlineStatus = true,
   isUnmatched = false,
 }: ChatHeaderProps) {
   const router = useRouter();
   const { socket, isConnected } = useSocket();
-  const [isOnline, setIsOnline] = useState(false);
+  const presence = useOnlineStatus(userId, !isUnmatched);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUnmatchModalOpen, setIsUnmatchModalOpen] = useState(false);
   const unmatchMutation = useUnmatchMutation();
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleUserOnline = (data: { userId: string }) => {
-      if (data.userId === userId) {
-        setIsOnline(true);
-      }
-    };
-
-    const handleUserOffline = (data: { userId: string }) => {
-      if (data.userId === userId) {
-        setIsOnline(false);
-      }
-    };
-
-    socket.on('user:online', handleUserOnline);
-    socket.on('user:offline', handleUserOffline);
-
-    return () => {
-      socket.off('user:online', handleUserOnline);
-      socket.off('user:offline', handleUserOffline);
-    };
-  }, [socket, isConnected, userId]);
 
   const handleUnmatchClick = () => {
     setIsDropdownOpen(false);
@@ -116,10 +91,14 @@ export function ChatHeader({
             {name}
             {age && <span className="font-normal text-text-muted">, {age}</span>}
           </h2>
-          {showOnlineStatus && (
+          {presence.visible && (
             <div className="flex items-center gap-1.5">
-              {isOnline && <span className="h-2 w-2 animate-pulse rounded-full bg-success" />}
-              <p className="text-xs text-text-muted">{isOnline ? 'Active now' : 'Offline'}</p>
+              {presence.online && (
+                <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
+              )}
+              <p className="text-xs text-text-muted">
+                {presence.online ? 'Active now' : 'Offline'}
+              </p>
             </div>
           )}
         </div>

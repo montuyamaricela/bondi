@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { getPresence } from '@/lib/server/presence';
 import { handleApiError } from '@/lib/errors';
 import { getSocketInstance } from '@/lib/socket-instance';
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userIds } = body;
+    const userIds = body?.userIds;
 
     if (
       !Array.isArray(userIds) ||
@@ -26,49 +26,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const matches = await db.match.findMany({
-      where: {
-        status: 'ACTIVE',
-        OR: [
-          { user1Id: session.user.id, user2Id: { in: userIds } },
-          { user2Id: session.user.id, user1Id: { in: userIds } },
-        ],
-      },
-      select: { user1Id: true, user2Id: true },
-    });
-    const allowedIds = matches.map((match) =>
-      match.user1Id === session.user.id ? match.user2Id : match.user1Id,
+    const statuses = await getPresence(getSocketInstance(), session.user.id, userIds);
+    const onlineUsers = Object.fromEntries(
+      Object.entries(statuses).map(([id, status]) => [id, status.visible && status.online]),
     );
-
-    const profiles = await db.profile.findMany({
-      where: {
-        userId: { in: allowedIds },
-      },
-      select: {
-        userId: true,
-        showOnlineStatus: true,
-      },
-    });
-
-    const usersWithPublicStatus = new Set(
-      profiles.filter((p) => p.showOnlineStatus).map((p) => p.userId),
-    );
-
-    const io = getSocketInstance();
-    const onlineUsers: Record<string, boolean> = {};
-
-    if (io) {
-      const sockets = await io.fetchSockets();
-      const onlineUserIds = new Set(sockets.map((socket) => socket.data.userId));
-
-      userIds.forEach((userId) => {
-        onlineUsers[userId] = usersWithPublicStatus.has(userId) && onlineUserIds.has(userId);
-      });
-    } else {
-      userIds.forEach((userId) => {
-        onlineUsers[userId] = false;
-      });
-    }
 
     return NextResponse.json(onlineUsers);
   } catch (error) {

@@ -144,7 +144,7 @@ expiring their backing sessions. The next protected HTTP read/write must reject
 them without changing data; valid reads, writes, and session renewal still work.
 The socket lifecycle case also exercises the library initializer on an owned
 ephemeral port. Across all three owners, it checks real room/message delivery and
-read receipts, then rejects all six incoming actions after session revocation or
+read receipts, then rejects all seven incoming actions after session revocation or
 expiry with an explicit auth error and disconnect. Rejected actions cannot save a
 message, change a read receipt, or forward typing.
 It also holds a PostgreSQL lock on profile reads while clients connect: room joins
@@ -211,11 +211,19 @@ selected socket owner also reconciles participant state.
 Online-status queries return visible presence only for active matches, including
 after an unmatch; the same-process singleton cannot expose status to outsiders.
 
+Presence snapshots and live updates use the selected socket runtime. A user remains
+online while any valid session connection is open there. Updates reach only active
+matches with valid sessions; hiding visibility or unmatching retracts the signal.
+The presence cases exercise initial snapshots, two tabs, last-tab disconnect,
+privacy hide/re-enable, outsider/former-match denial and expired-session filtering
+in all three owners. Real browser chat and inbox indicators exercise initial
+navigation, keyboard privacy controls, multiple tabs and unmatching.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
 distance, form validation, and upload-handler access with mocked adapters. External
-storage uploads, swipe gestures, idle socket termination, multi-tab presence, mobile layouts, and other browsers remain
+storage uploads, swipe gestures, idle socket termination, mobile layouts, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and

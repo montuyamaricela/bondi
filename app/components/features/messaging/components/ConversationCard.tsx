@@ -68,11 +68,7 @@ export function ConversationCard({ conversation, currentUserId }: ConversationCa
             )}
           </div>
           <div className="absolute right-0 bottom-0">
-            <OnlineStatusIndicator
-              userId={otherUser.userId}
-              showOnlineStatus={otherUser.showOnlineStatus}
-              size="md"
-            />
+            <OnlineStatusIndicator userId={otherUser.userId} enabled={!isUnmatched} size="md" />
           </div>
           {unreadCount > 0 && (
             <div className="absolute -top-1 -right-1 flex h-5 w-5 animate-pulse items-center justify-center rounded-full bg-app-accent text-xs font-bold text-app-accent-text shadow-lg">
