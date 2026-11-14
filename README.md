@@ -272,6 +272,12 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Incoming-like cards exclude people the viewer has already liked or passed, before
+pagination. A confirmed action removes its card from cached pages while the list
+refreshes; failed writes retain the card. Regression cases hold actual old/fresh
+responses to verify that a passed card cannot reappear, then confirm absence after
+reload. Stored interactions remain intact and passing has no undo.
+
 Location is requested only through Settings Enable/Refresh, with no background
 tracking. Saved coordinates remain last-known with an update timestamp; zero is a
 valid coordinate. Denial, unavailable position, timeout and unsupported/insecure
