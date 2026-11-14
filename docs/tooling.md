@@ -63,9 +63,10 @@ falls back to a production database URL from the shell. The file remains local.
 Apply database migrations explicitly against that test database before the first
 run, and install Chromium with `npx --no-install playwright install chromium`.
 The hook never migrates or seeds a database. Missing setup blocks runtime commits
-with a setup message. Keep port 3100 free for the hook's owned server.
+with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
+and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current nine-test browser
+While editing, run focused tests for fast feedback. The current ten-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -74,9 +75,13 @@ chat and history, and outsider HTTP/socket denial. A separate legacy-credential
 case verifies account/profile preservation and rejected access after upgrades.
 The session lifecycle case verifies immediate HTTP rejection after revocation or
 expiry with retained signed cache cookies, plus valid session renewal.
-They run against the combined server with unique synthetic accounts and targeted cleanup. Use a local database
+The socket lifecycle case exercises the combined, standalone, and library
+initializer owners: valid room/message/read behavior and all six incoming actions
+after expiry/revocation. It verifies an auth error, disconnect, and no unauthorized
+message/read/typing side effects using real sessions and sockets.
+The journeys use unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
-security audit or coverage of uploads, swipe gestures, session expiry, or every
+security audit or coverage of uploads, swipe gestures, idle socket termination, or every
 socket lifecycle event. See README for the exercised boundaries.
 
 Pre-push runs type checking, strict lint, and formatting checks. It does not apply

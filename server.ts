@@ -5,6 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
 import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
+import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { setSocketInstance } from '@/lib/socket-instance';
 import type {
   ClientToServerEvents,
@@ -53,13 +54,14 @@ app.prepare().then(() => {
     try {
       const token = socket.handshake.auth.token;
 
-      if (!token) {
+      if (typeof token !== 'string' || !token || token.length > 4096) {
         return next(new Error('Authentication required'));
       }
 
       const cookieName = getCookies(auth.options).sessionToken.name;
 
       const session = await auth.api.getSession({
+        query: { disableCookieCache: true },
         headers: {
           authorization: `Bearer ${token}`,
           cookie: `${cookieName}=${token}`,
@@ -71,16 +73,17 @@ app.prepare().then(() => {
       }
 
       socket.data.userId = session.user.id;
-      socket.data.sessionId = token;
+      socket.data.sessionId = session.session.id;
 
       next();
-    } catch (error) {
-      console.error('Socket authentication error:', error);
+    } catch {
+      console.error('Socket authentication failed');
       next(new Error('Authentication failed'));
     }
   });
 
   io.on('connection', async (socket) => {
+    attachSocketSessionGuard(socket);
     const userId = socket.data.userId;
 
     console.log(`User connected: ${userId}`);
@@ -89,6 +92,8 @@ app.prepare().then(() => {
       where: { userId },
       select: { showOnlineStatus: true },
     });
+
+    if (!socket.connected) return;
 
     if (profile?.showOnlineStatus) {
       socket.broadcast.emit('user:online', { userId });

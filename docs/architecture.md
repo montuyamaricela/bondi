@@ -38,12 +38,21 @@ session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out o
 browser bundles. Middleware performs server auth/profile lookups. Run browser checks against
 a disposable test PostgreSQL instance to keep any session-dependent queries isolated.
 
+All three socket owners capture the database session ID during an authoritative
+handshake and share incoming-action validation in `lib/server/socket-session.ts`.
+An invalid/expired/revoked session receives `auth:error` and disconnects before the
+action handler runs. Authorization completions stay in packet order; late profile
+initialization stops after disconnect. Match policies remain in the event owners.
+The socket lifecycle test exercises this contract in all three runtimes; idle
+session termination and broader presence behavior need separate coverage.
+
 ## Structural work after the harness
 
-1. Extend the authenticated journey with session expiry, privacy preferences,
+1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,
    uploads, and additional ownership boundaries before moving their data code.
    Current coverage exercises onboarding, mutual matches, live chat/history, and
-   outsider match/message denial through the combined server.
+   outsider match/message denial through the combined server. Separate cases cover
+   authoritative HTTP revocation/renewal and event-time socket validity across owners.
 2. Define one socket runtime owner; consolidate the three event implementations
    behind tested authorization and delivery interfaces. Exercise two synthetic
    users, a non-member, unmatch, reconnect, typing, and read receipts.
