@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { supabaseFailureSymptoms } from './supabase-failure.mjs';
 
 const action = process.argv[2];
 if (
@@ -36,6 +37,11 @@ const result = spawnSync('npx', ['--no-install', 'supabase', ...args], {
   maxBuffer: 16 * 1024 * 1024,
 });
 if (result.status !== 0) {
+  const symptoms = supabaseFailureSymptoms(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+  console.error(
+    'Native setup diagnostic categories:',
+    symptoms.length ? symptoms.join('; ') : 'unclassified failure',
+  );
   console.error(
     `Local Supabase ${action} failed. Check Docker availability, disk space and container health; credential output is omitted.`,
   );
