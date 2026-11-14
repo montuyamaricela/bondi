@@ -21,6 +21,8 @@ Requests cannot select another owner. Expired leases require a fresh allocation;
 missing/revoked sessions cannot renew or join. `DELETE` with the same owner/lease
 closes it. Disconnect cleanup is best-effort; expiry and session checks remain
 authoritative when a browser crashes or a response arrives after logout.
+The database guard compares Prisma's UTC timestamps explicitly in UTC, independently
+of the connection time zone, and rejects missing or malformed credential expiry.
 
 The browser renews 30 seconds before expiry, also revalidates on focus, and keeps
 one channel on same-session refresh. A failed renewal disconnects cached native
