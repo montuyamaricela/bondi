@@ -27,7 +27,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Return the token for Socket.IO authentication
-    return NextResponse.json({ token: sessionToken });
+    return NextResponse.json({
+      token: sessionToken,
+      userId: session.user.id,
+      sessionId: session.session.id,
+    });
   } catch (error) {
     console.error('Error getting socket token:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,8 @@ type SocketContextType = {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   isConnected: boolean;
 };
+
+type OwnedConnection = SocketContextType & { userId: string; sessionId: string };
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
@@ -28,45 +30,61 @@ export function useSocket() {
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const { data: session, isPending } = useSession();
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
-    null,
-  );
-  const [isConnected, setIsConnected] = useState(false);
+  const { data: session } = useSession();
+  const userId = session?.user.id ?? null;
+  const sessionId = session?.session.id ?? null;
+  const [connection, setConnection] = useState<OwnedConnection | null>(null);
 
   useEffect(() => {
-    if (isPending) return;
+    if (!userId || !sessionId) return;
 
-    if (!session?.user) {
-      return;
-    }
-
+    let active = true;
+    const controller = new AbortController();
     let socketInstance: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+    const updateConnection = (isConnected: boolean) => {
+      if (active && socketInstance)
+        setConnection({ userId, sessionId, socket: socketInstance, isConnected });
+    };
 
     // Fetch socket token from API endpoint
     const initSocket = async () => {
       try {
         const response = await fetch('/api/socket/token', {
           credentials: 'include',
+          signal: controller.signal,
         });
+        if (!active) return;
 
         if (!response.ok) {
           console.error('Failed to get socket token');
           return;
         }
 
-        const { token } = await response.json();
-
-        if (!token) {
-          console.error('No token returned from API');
+        const payload: unknown = await response.json();
+        if (!active) return;
+        if (
+          !payload ||
+          typeof payload !== 'object' ||
+          !('token' in payload) ||
+          typeof payload.token !== 'string' ||
+          !payload.token
+        ) {
+          console.error('Invalid socket token response');
           return;
         }
+        if (
+          !('userId' in payload) ||
+          payload.userId !== userId ||
+          !('sessionId' in payload) ||
+          payload.sessionId !== sessionId
+        )
+          return;
 
         const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
         socketInstance = io(socketUrl, {
           auth: {
-            token,
+            token: payload.token,
           },
           autoConnect: true,
           reconnection: true,
@@ -75,27 +93,30 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         });
 
         socketInstance.on('connect', () => {
-          console.log('Socket connected:', socketInstance?.id);
-          setIsConnected(true);
+          updateConnection(true);
         });
 
         socketInstance.on('disconnect', () => {
-          console.log('Socket disconnected');
-          setIsConnected(false);
+          updateConnection(false);
         });
 
-        socketInstance.on('connect_error', (error) => {
-          console.error('Socket connection error:', error.message);
-          setIsConnected(false);
+        socketInstance.on('connect_error', () => {
+          if (!active) return;
+          console.error('Socket connection failed');
+          updateConnection(false);
         });
 
         socketInstance.on('auth:error', ({ message }) => {
+          if (!active) return;
           toast.error(message);
-          setIsConnected(false);
+          updateConnection(false);
         });
 
-        socketInstance.on('message:error', ({ message }) => toast.error(message));
+        socketInstance.on('message:error', ({ message }) => {
+          if (active) toast.error(message);
+        });
         socketInstance.on('match:updated', ({ matchId, status }) => {
+          if (!active) return;
           queryClient.setQueryData<MatchDetail>(['match', matchId], (previous) =>
             previous ? { ...previous, status } : undefined,
           );
@@ -104,23 +125,32 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           void queryClient.invalidateQueries({ queryKey: ['conversations'] });
         });
 
-        setSocket(socketInstance);
-      } catch (error) {
-        console.error('Error initializing socket:', error);
+        updateConnection(false);
+      } catch {
+        if (active) console.error('Socket initialization failed');
       }
     };
 
-    initSocket();
+    void initSocket();
 
     return () => {
+      active = false;
+      controller.abort();
       if (socketInstance) {
-        console.log('Cleaning up socket connection');
+        socketInstance.removeAllListeners();
         socketInstance.disconnect();
       }
     };
-  }, [session, isPending, queryClient]);
+  }, [userId, sessionId, queryClient]);
+
+  const current =
+    connection?.userId === userId && connection?.sessionId === sessionId ? connection : null;
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>{children}</SocketContext.Provider>
+    <SocketContext.Provider
+      value={{ socket: current?.socket ?? null, isConnected: current?.isConnected ?? false }}
+    >
+      {children}
+    </SocketContext.Provider>
   );
 }

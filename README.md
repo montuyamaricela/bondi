@@ -219,6 +219,13 @@ privacy hide/re-enable, outsider/former-match denial and expired-session filteri
 in all three owners. Real browser chat and inbox indicators exercise initial
 navigation, keyboard privacy controls, multiple tabs and unmatching.
 
+Socket setup belongs to a user and session ID. Cleanup aborts pending token requests
+and ignores late response/body continuations; token identity must match the current
+owner before connecting. The provider cases delay real signed responses across
+logout and account changes, verify cookie-owner mismatches are discarded, and keep
+one connection through actual SDK session refreshes. A replacement session gets a
+new owned connection even when the user is unchanged.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
