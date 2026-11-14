@@ -63,7 +63,7 @@ export async function registerMessageAttachment(userId: string, file: unknown) {
   return attachment;
 }
 
-export async function writeMessage(userId: string, payload: unknown) {
+export async function writeMessage(userId: string, payload: unknown, excludedSocketId?: string) {
   const parsed = messageInput.safeParse(payload);
   if (!parsed.success)
     throw new MessageWriteError(
@@ -72,18 +72,10 @@ export async function writeMessage(userId: string, payload: unknown) {
       'INVALID_MESSAGE',
     );
   const { matchId, content, file, clientRequestId } = parsed.data;
-  const match = await db.match.findUnique({
-    where: { id: matchId },
-    select: { user1Id: true, user2Id: true, status: true },
-  });
-  if (!match) throw new MessageWriteError('Match not found', 404, 'NOT_FOUND');
-  if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId)) {
-    throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
-  }
   const operation = clientRequestId ? { senderId: userId, matchId, clientRequestId } : null;
-  const replay = async () => {
+  const replay = async (query: Pick<Prisma.TransactionClient, 'message'>) => {
     if (!operation) return null;
-    const existing = await db.message.findUnique({
+    const existing = await query.message.findUnique({
       where: { senderId_matchId_clientRequestId: operation },
       select: messageSelection,
     });
@@ -96,53 +88,132 @@ export async function writeMessage(userId: string, payload: unknown) {
     }
     return existing;
   };
-  const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
-  const existing = await replay();
-  if (existing) return { message: existing, receiverId, replayed: true };
-  const attachment = file
-    ? await db.messageAttachment.findUnique({ where: { key: file.key } })
-    : null;
-  if (
-    file &&
-    (!attachment || attachment.userId !== userId || !attachmentInput.safeParse(attachment).success)
-  ) {
-    throw new MessageWriteError('Attachment is unavailable', 400, 'INVALID_MESSAGE');
-  }
   try {
-    const message = await db.message.create({
-      data: {
-        matchId,
-        senderId: userId,
-        content,
-        clientRequestId,
-        type: attachment ? (attachment.type.startsWith('image/') ? 'IMAGE' : 'FILE') : 'TEXT',
-        fileUrl: attachment?.url ?? null,
-        fileKey: attachment?.key ?? null,
-        fileName: attachment?.name ?? null,
-        fileSize: attachment?.size ?? null,
-        fileType: attachment?.type ?? null,
+    return await db.$transaction(
+      async (transaction) => {
+        // Unmatch waits for accepted sends to commit before it revokes live communication.
+        await transaction.$executeRaw`SELECT "id" FROM "Match" WHERE "id" = ${matchId} FOR UPDATE`;
+        const match = await transaction.match.findUnique({
+          where: { id: matchId },
+          select: { user1Id: true, user2Id: true, status: true },
+        });
+        if (!match) throw new MessageWriteError('Match not found', 404, 'NOT_FOUND');
+        if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId))
+          throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
+        const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
+        const existing = await replay(transaction);
+        if (existing) return { message: existing, receiverId, replayed: true };
+        const attachment = file
+          ? await transaction.messageAttachment.findUnique({ where: { key: file.key } })
+          : null;
+        if (
+          file &&
+          (!attachment ||
+            attachment.userId !== userId ||
+            !attachmentInput.safeParse(attachment).success)
+        )
+          throw new MessageWriteError('Attachment is unavailable', 400, 'INVALID_MESSAGE');
+        const message = await transaction.message.create({
+          data: {
+            matchId,
+            senderId: userId,
+            content,
+            clientRequestId,
+            type: attachment ? (attachment.type.startsWith('image/') ? 'IMAGE' : 'FILE') : 'TEXT',
+            fileUrl: attachment?.url ?? null,
+            fileKey: attachment?.key ?? null,
+            fileName: attachment?.name ?? null,
+            fileSize: attachment?.size ?? null,
+            fileType: attachment?.type ?? null,
+          },
+          select: messageSelection,
+        });
+        const profile = await transaction.profile.findUnique({
+          where: { userId },
+          select: { name: true },
+        });
+        const name = profile?.name || 'Someone';
+        const notification = await transaction.notification.create({
+          data: {
+            userId: receiverId,
+            title: 'New Message',
+            type: 'MESSAGE',
+            entityId: matchId,
+            actionUrl: `/messages/${matchId}`,
+            metadata: { messageId: message.id },
+            content:
+              message.type === 'IMAGE'
+                ? `${name} sent you an image`
+                : message.type === 'FILE'
+                  ? `${name} sent you a file`
+                  : `${name} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+          },
+        });
+        const recipients = new Map<
+          string,
+          { userId: string; excludedSocketId?: string; notificationId: string | null }
+        >([
+          [userId, { userId, excludedSocketId, notificationId: null }],
+          [
+            receiverId,
+            {
+              userId: receiverId,
+              excludedSocketId: receiverId === userId ? excludedSocketId : undefined,
+              notificationId: notification.id,
+            },
+          ],
+        ]);
+        await transaction.messageDelivery.createMany({
+          data: [...recipients.values()].map((recipient) => ({
+            ...recipient,
+            messageId: message.id,
+          })),
+        });
+        return { message, receiverId, replayed: false };
       },
-      select: messageSelection,
-    });
-    return { message, receiverId, replayed: false };
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
   } catch (error) {
     if (
       operation &&
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
-      const winner = await replay();
-      if (winner) return { message: winner, receiverId, replayed: true };
+      const winner = await replay(db);
+      if (winner) {
+        const match = await db.match.findUniqueOrThrow({
+          where: { id: matchId },
+          select: { user1Id: true, user2Id: true, status: true },
+        });
+        if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId))
+          throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
+        return {
+          message: winner,
+          receiverId: match.user1Id === userId ? match.user2Id : match.user1Id,
+          replayed: true,
+        };
+      }
     }
     throw error;
   }
 }
 
-const messageSelection = {
+export function serializeMessage(
+  message: Prisma.MessageGetPayload<{ select: typeof messageSelection }>,
+) {
+  return {
+    ...message,
+    createdAt: message.createdAt.toISOString(),
+    readAt: message.readAt?.toISOString() ?? null,
+  };
+}
+
+export const messageSelection = {
   id: true,
   matchId: true,
   senderId: true,
   content: true,
+  clientRequestId: true,
   type: true,
   fileUrl: true,
   fileKey: true,

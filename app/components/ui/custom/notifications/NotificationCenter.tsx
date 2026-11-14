@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
@@ -27,6 +27,10 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { socket } = useSocket();
+  const seen = useRef(new Set<string>());
+  useEffect(() => {
+    seen.current.clear();
+  }, [socket]);
   const { permission, showMatchNotification, showMessageNotification } = useNotifications();
 
   const {
@@ -54,14 +58,36 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewNotification = async (data: { type: string; matchId?: string }) => {
-      refetchNotifications();
-      refetchUnreadCount();
-
-      const notificationSettings = localStorage.getItem('notificationSettings');
-      const settings = notificationSettings
-        ? JSON.parse(notificationSettings)
-        : { matchNotifications: true, messageNotifications: true };
+    const handleNewNotification = (data: {
+      type: string;
+      matchId?: string;
+      notificationId?: string;
+    }) => {
+      if (data.notificationId) {
+        if (seen.current.has(data.notificationId)) return;
+        seen.current.add(data.notificationId);
+      }
+      let settings = { matchNotifications: true, messageNotifications: true };
+      try {
+        const saved = localStorage.getItem('notificationSettings');
+        if (saved) {
+          const parsed: unknown = JSON.parse(saved);
+          settings = {
+            matchNotifications:
+              !!parsed &&
+              typeof parsed === 'object' &&
+              'matchNotifications' in parsed &&
+              parsed.matchNotifications === true,
+            messageNotifications:
+              !!parsed &&
+              typeof parsed === 'object' &&
+              'messageNotifications' in parsed &&
+              parsed.messageNotifications === true,
+          };
+        }
+      } catch {
+        settings = { matchNotifications: false, messageNotifications: false };
+      }
 
       if (data.type === 'MESSAGE') {
         toast.info('New message received');
@@ -111,6 +137,7 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          aria-label="Notifications"
           variant="ghost"
           size="icon"
           className="relative h-8 w-8 cursor-pointer rounded-full transition-colors hover:bg-primary-main hover:text-white dark:hover:bg-secondary-main dark:hover:text-secondary-text hover:[&_svg]:text-white"

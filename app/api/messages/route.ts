@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
+import { wakeMessageDelivery } from '@/lib/server/message-delivery';
+import { getSocketInstance } from '@/lib/socket-instance';
 import { handleApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON', code: 'INVALID_MESSAGE' }, { status: 400 });
     }
     const { message } = await writeMessage(session.user.id, body);
+    wakeMessageDelivery(getSocketInstance());
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     const { status, ...body } = messageWriteError(error);

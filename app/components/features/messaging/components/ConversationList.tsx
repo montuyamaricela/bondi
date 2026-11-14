@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Loader2, MessageCircle, Search, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useSocket } from '@/app/components/providers/socket-provider';
 import { useConversations } from '@/app/components/features/messaging/hooks';
 import { ConversationCard } from '@/app/components/features/messaging/components/ConversationCard';
 import { Input } from '@/app/components/ui/input';
@@ -14,8 +12,6 @@ interface ConversationListProps {
 
 export function ConversationList({ currentUserId }: ConversationListProps) {
   const { data: conversations = [], isLoading, error } = useConversations();
-  const { socket, isConnected } = useSocket();
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredConversations = useMemo(() => {
@@ -34,34 +30,6 @@ export function ConversationList({ currentUserId }: ConversationListProps) {
     () => filteredConversations.filter((conv) => conv.unreadCount === 0),
     [filteredConversations],
   );
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleNewMessage = () => {
-      console.log('ConversationList: Received message:new, invalidating conversations query');
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    };
-
-    const handleMessageRead = () => {
-      console.log('ConversationList: Received message:read, invalidating conversations query');
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    };
-
-    // Remove all previous listeners to prevent duplicates
-    socket.off('message:new');
-    socket.off('message:read');
-
-    socket.on('message:new', handleNewMessage);
-    socket.on('message:read', handleMessageRead);
-
-    console.log('ConversationList: Socket listeners registered');
-
-    return () => {
-      socket.off('message:new', handleNewMessage);
-      socket.off('message:read', handleMessageRead);
-    };
-  }, [socket, isConnected, queryClient]);
 
   if (isLoading) {
     return (

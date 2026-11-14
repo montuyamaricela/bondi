@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current twenty-four-test browser
+While editing, run focused tests for fast feedback. The current twenty-eight-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -152,3 +152,11 @@ Official references:
 [Tailwind sorting](https://github.com/tailwindlabs/prettier-plugin-tailwindcss),
 [Lefthook configuration](https://github.com/evilmartians/lefthook/tree/v2.2.2/docs/configuration),
 and [next-themes](https://github.com/pacocoursey/next-themes/tree/v0.4.6).
+
+The delivery cases cover HTTP/socket sends in all three owners without joining a
+chat, both participants' inboxes and browser notification preferences, transactional
+notification failure rollback and retry, expired-session audiences and unmatch denial.
+A real browser selects a library socket owner while HTTP stays on the combined app.
+A PostgreSQL completion-failure trigger causes repeated hints; the same owned browser
+connection shows one notification and recovers its pending intent after owner restart.
+Only the OS notification adapter is replaced; auth, database and socket traffic are real.

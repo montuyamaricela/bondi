@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Socket } from 'socket.io';
 import { db } from '@/lib/db';
+import { getAuthorizedUserSockets } from './socket-session';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -39,21 +40,6 @@ async function activePeers(userId: string, requested?: string[]) {
   return matches.map((match) => (match.user1Id === userId ? match.user2Id : match.user1Id));
 }
 
-async function authorizedConnections(io: SocketServer | null, userIds: string[]) {
-  if (!io || !userIds.length) return [];
-  const sockets = await io.in(userIds.map((id) => `user:${id}`)).fetchSockets();
-  if (!sockets.length) return [];
-  const sessions = await db.session.findMany({
-    where: {
-      id: { in: sockets.map((socket) => socket.data.sessionId) },
-      expiresAt: { gt: new Date() },
-    },
-    select: { id: true, userId: true },
-  });
-  const valid = new Map(sessions.map((session) => [session.id, session.userId]));
-  return sockets.filter((socket) => valid.get(socket.data.sessionId) === socket.data.userId);
-}
-
 export async function getPresence(
   io: SocketServer | null,
   viewerId: string,
@@ -69,7 +55,7 @@ export async function getPresence(
       where: { userId: { in: peers }, showOnlineStatus: true },
       select: { userId: true },
     }),
-    authorizedConnections(io, peers),
+    getAuthorizedUserSockets(io, peers),
   ]);
   const online = new Set(connected.map((socket) => socket.data.userId));
   for (const profile of profiles)
@@ -89,10 +75,10 @@ export async function refreshPresence(io: SocketServer | null, userId: string) {
     .then(async () => {
       const [profile, connected, peers] = await Promise.all([
         db.profile.findUnique({ where: { userId }, select: { showOnlineStatus: true } }),
-        authorizedConnections(io, [userId]),
+        getAuthorizedUserSockets(io, [userId]),
         activePeers(userId),
       ]);
-      const recipients = await authorizedConnections(io, peers);
+      const recipients = await getAuthorizedUserSockets(io, peers);
       if (!recipients.length) return;
       const visible = profile?.showOnlineStatus === true;
       io.to(recipients.map((socket) => socket.id)).emit('presence:updated', {

@@ -7,6 +7,7 @@ import type {
   SocketServer,
 } from '@/lib/socket';
 import { db } from '@/lib/db';
+import { getAuthorizedUserSockets } from './socket-session';
 import { requireMatchMember } from './match-access';
 
 type LiveSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -84,7 +85,8 @@ export function attachLiveMatchHandlers(io: SocketServer, socket: LiveSocket) {
         where: { id: messageId },
         select: { id: true, matchId: true, senderId: true, readAt: true },
       });
-      if (!message || !(await activeMatch(message.matchId))) {
+      const match = message ? await activeMatch(message.matchId) : null;
+      if (!message || !match) {
         denied();
         return;
       }
@@ -99,11 +101,16 @@ export function attachLiveMatchHandlers(io: SocketServer, socket: LiveSocket) {
         },
         data: { readAt },
       });
-      if (updated.count)
-        io.to(`match:${message.matchId}`).emit('message:read', {
+      if (updated.count) {
+        const recipients = await getAuthorizedUserSockets(io, [match.user1Id, match.user2Id]);
+        if (!recipients.length) return;
+        const audience = io.to(recipients.map((recipient) => recipient.id));
+        audience.emit('message:read', {
           messageId: message.id,
           readAt: readAt.toISOString(),
         });
+        audience.emit('inbox:updated');
+      }
     } catch {
       denied();
     }

@@ -110,6 +110,9 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
         (await send({ ...payload, content: 'Different operation with reused identity' })).status,
       ).toBe(409);
       expect((await send(payload)).id).toBe(results[0].id);
+      expect(await db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } })).toBe(
+        index + 1,
+      );
     }
     const sharedId = randomUUID();
     const secondMatch = await db.match.create({
@@ -217,7 +220,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     expect(await db.message.count({ where: { matchId: match.id, content } })).toBe(1);
     await expect
       .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
-      .toBe(4);
+      .toBe(7);
 
     // Keep the match active: ending it now correctly removes the composer.
     // Restrict this real database failure to the generated synthetic match.
@@ -249,7 +252,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     expect(operationIds[3]).toBe(operationIds[2]);
     await expect
       .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
-      .toBe(5);
+      .toBe(8);
   } finally {
     await removeFailure();
     for (const client of clients) client.disconnect();

@@ -46,6 +46,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         setConnection({ userId, sessionId, socket: socketInstance, isConnected });
     };
 
+    const refresh = (queryKey: readonly string[]) => {
+      if (!active) return;
+      void queryClient.cancelQueries({ queryKey }).then(() => {
+        if (active) return queryClient.invalidateQueries({ queryKey });
+      });
+    };
+
     // Fetch socket token from API endpoint
     const initSocket = async () => {
       try {
@@ -94,6 +101,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
         socketInstance.on('connect', () => {
           updateConnection(true);
+          refresh(['conversations']);
+          refresh(['notifications']);
         });
 
         socketInstance.on('disconnect', () => {
@@ -115,6 +124,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketInstance.on('message:error', ({ message }) => {
           if (active) toast.error(message);
         });
+        socketInstance.on('inbox:updated', () => refresh(['conversations']));
+        socketInstance.on('notification:new', () => refresh(['notifications']));
         socketInstance.on('match:updated', ({ matchId, status }) => {
           if (!active) return;
           queryClient.setQueryData<MatchDetail>(['match', matchId], (previous) =>
@@ -122,7 +133,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           );
           void queryClient.invalidateQueries({ queryKey: ['match', matchId], exact: true });
           void queryClient.invalidateQueries({ queryKey: ['matches'] });
-          void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          refresh(['conversations']);
+          refresh(['notifications']);
+          refresh(['messages', matchId]);
         });
 
         updateConnection(false);

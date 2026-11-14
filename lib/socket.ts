@@ -2,8 +2,7 @@ import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
 import { getCookies } from 'better-auth/cookies';
-import { db } from '@/lib/db';
-import { writeMessage, messageWriteError } from '@/lib/server/messages';
+import { attachMessageHandlers, attachMessageDelivery } from '@/lib/server/message-delivery';
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
 import { attachPresenceHandlers } from '@/lib/server/presence';
@@ -21,6 +20,7 @@ export type ServerToClientEvents = {
     matchId: string;
     senderId: string;
     content: string;
+    clientRequestId?: string | null;
     type: 'TEXT' | 'IMAGE' | 'FILE';
     fileUrl?: string | null;
     fileKey?: string | null;
@@ -34,7 +34,8 @@ export type ServerToClientEvents = {
   'typing:start': (data: { userId: string; matchId: string }) => void;
   'typing:stop': (data: { userId: string; matchId: string }) => void;
   'presence:updated': (data: PresenceStatus & { userId: string }) => void;
-  'notification:new': (data: { type: string; matchId?: string }) => void;
+  'inbox:updated': () => void;
+  'notification:new': (data: { type: string; matchId?: string; notificationId?: string }) => void;
 };
 
 export type ClientToServerEvents = {
@@ -100,6 +101,8 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     pingInterval: 25000,
   });
 
+  attachMessageDelivery(io, httpServer);
+
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -142,65 +145,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
 
     attachLiveMatchHandlers(io, socket);
 
-    socket.on('message:send', async (payload, acknowledge) => {
-      let saved = false;
-      try {
-        const { message, receiverId, replayed } = await writeMessage(userId, payload);
-        saved = true;
-        const outgoing = {
-          ...message,
-          createdAt: message.createdAt.toISOString(),
-          readAt: message.readAt?.toISOString() ?? null,
-        };
-        if (typeof acknowledge === 'function') acknowledge({ ok: true, message: outgoing });
-        if (replayed) return;
-        const { matchId, content } = message;
-
-        io.to(`match:${matchId}`).emit('message:new', outgoing);
-
-        const senderProfile = await db.profile.findUnique({
-          where: { userId },
-          select: { name: true },
-        });
-
-        const notificationContent =
-          message.type === 'IMAGE'
-            ? `${senderProfile?.name || 'Someone'} sent you an image`
-            : message.type === 'FILE'
-              ? `${senderProfile?.name || 'Someone'} sent you a file`
-              : `${senderProfile?.name || 'Someone'} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`;
-
-        await db.notification.create({
-          data: {
-            userId: receiverId,
-            title: 'New Message',
-            content: notificationContent,
-            type: 'MESSAGE',
-            entityId: matchId,
-            actionUrl: `/messages/${matchId}`,
-            isRead: false,
-          },
-        });
-
-        io.to(`user:${receiverId}`).emit('notification:new', {
-          type: 'MESSAGE',
-          matchId,
-        });
-
-        console.log(`Message sent in match ${matchId} by user ${userId}`);
-      } catch (error) {
-        if (saved) {
-          console.error('Message follow-up failed after persistence');
-          return;
-        }
-        const { code, error: message } = messageWriteError(error);
-        if (typeof acknowledge === 'function') {
-          acknowledge({ ok: false, code, message });
-          return;
-        }
-        socket.emit('message:error', { code, message });
-      }
-    });
+    attachMessageHandlers(io, socket);
 
     attachPresenceHandlers(io, socket);
   });

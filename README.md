@@ -226,6 +226,15 @@ logout and account changes, verify cookie-owner mismatches are discarded, and ke
 one connection through actual SDK session refreshes. A replacement session gets a
 new owned connection even when the user is unchanged.
 
+Message delivery cases exercise HTTP and socket sends outside an open chat in all
+three owners, including another sender device and expired-session audience denial.
+Both browser inboxes and notification badges update while browser preferences still
+control OS notifications. A PostgreSQL notification-insert failure rolls back the
+entire send; retry preserves the operation ID. A completion failure repeats real
+hints without duplicate browser notifications, and a fresh socket owner recovers the
+pending intent from PostgreSQL. Socket traffic selects the library owner while HTTP
+stays on the combined app; only the OS notification adapter is replaced.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
