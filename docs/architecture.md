@@ -19,6 +19,12 @@ and Cloudflare Worker architecture without a separate runtime redesign.
   reusable calculations. Keep pure computations separate from network effects.
 - `prisma/schema/` is a multi-file schema selected by `prisma.config.ts`;
   `prisma/migrations/` is its migration history.
+- `lib/server/env.ts` owns validated server configuration; `lib/client/env.ts`
+  owns public socket URL reads, with pure validation in `lib/configuration.ts`.
+  Prisma CLI uses a direct/session `DIRECT_URL` (or a non-transaction
+  `DATABASE_URL` fallback). Prisma Client explicitly uses `DATABASE_URL` for
+  runtime pooling. Neither generation nor build applies migrations. Auth and public
+  origins are required in production; configuration failures omit supplied values.
 - `server.ts` hosts Next and Socket.IO together. `socket-server.ts` hosts sockets
   separately. `lib/socket.ts` also contains setup logic and shared event types.
 

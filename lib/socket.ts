@@ -6,6 +6,7 @@ import { attachMessageHandlers, attachMessageDelivery } from '@/lib/server/messa
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
 import { attachPresenceHandlers } from '@/lib/server/presence';
+import { socketEnvironment } from '@/lib/server/env';
 
 export type PresenceStatus = { visible: boolean; online: boolean };
 export type PresenceSnapshot = Record<string, PresenceStatus>;
@@ -86,6 +87,7 @@ export type SocketServer = SocketIOServer<
 >;
 
 export function initializeSocket(httpServer: NetServer): SocketServer {
+  const { clientOrigin } = socketEnvironment();
   const io = new SocketIOServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -93,7 +95,7 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
     SocketData
   >(httpServer, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      origin: clientOrigin,
       methods: ['GET', 'POST'],
       credentials: true,
     },

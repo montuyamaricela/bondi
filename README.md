@@ -72,6 +72,22 @@ Fill in `DATABASE_URL` and a random `BETTER_AUTH_SECRET` of at least 32 characte
 Set `UPLOADTHING_TOKEN` to enable uploads. The example uses the combined server
 for both the app and sockets at `http://localhost:3000`.
 
+Runtime settings are validated by `lib/server/env.ts`; invalid values name the
+setting without printing its contents. Production requires explicit
+`BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` origins and a strong auth secret.
+`PORT`/`SOCKET_PORT` must be integers from 1 to 65535. Browser authentication uses
+the app origin; the socket client uses its explicit public socket/app URL or the
+current origin. No server secret belongs in `NEXT_PUBLIC_` settings.
+
+For Supabase Postgres, `DATABASE_URL` is the runtime connection. Set `DIRECT_URL`
+to the **same database's direct or session-mode connection** for Prisma CLI when
+the runtime uses transaction pooling. The CLI refuses a transaction-pool migration
+connection; when `DIRECT_URL` is absent, an ordinary local/direct/session
+`DATABASE_URL` is used. Prisma Client explicitly uses `DATABASE_URL` even when the
+CLI has a different connection. See [Supabase's Prisma connection guide](https://supabase.com/docs/guides/database/prisma).
+These settings prepare the migration in [#74](https://github.com/montuyamaricela/bondi/issues/74);
+they do not change the live transport or provision/migrate a Supabase project.
+
 Export the environment before running the custom Node entry points. In macOS/Linux:
 
 ```bash

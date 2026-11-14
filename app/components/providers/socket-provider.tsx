@@ -7,6 +7,7 @@ import { useSession } from '@/lib/auth-client';
 import { useQueryClient } from '@tanstack/react-query';
 import type { MatchDetail } from '@/app/components/features/matching/hooks';
 import type { ClientToServerEvents, ServerToClientEvents } from '@/lib/socket';
+import { browserSocketUrl } from '@/lib/client/env';
 
 type SocketContextType = {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
@@ -87,7 +88,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         )
           return;
 
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        const socketUrl = browserSocketUrl();
 
         socketInstance = io(socketUrl, {
           auth: {

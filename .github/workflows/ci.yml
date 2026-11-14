@@ -29,6 +29,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://bondi:synthetic-test-password@localhost:5432/bondi_test
+      DIRECT_URL: postgresql://bondi:synthetic-test-password@localhost:5432/bondi_test
       BETTER_AUTH_SECRET: synthetic-ci-secret-at-least-32-characters
       BETTER_AUTH_URL: http://127.0.0.1:3100
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100

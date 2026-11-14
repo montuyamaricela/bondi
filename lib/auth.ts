@@ -1,6 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { db } from '@/lib/db';
+import { authEnvironment } from '@/lib/server/env';
+
+const configuration = authEnvironment();
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -23,8 +26,8 @@ export const auth = betterAuth({
       expiresIn: 60 * 60 * 24 * 30, // 30 days when remember me is checked
     },
   },
-  secret: process.env.BETTER_AUTH_SECRET!,
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  secret: configuration.secret,
+  baseURL: configuration.baseURL,
 });
 
 // Export types for client-side usage
