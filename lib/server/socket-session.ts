@@ -5,6 +5,7 @@ import type {
   ServerToClientEvents,
   InterServerEvents,
   SocketData,
+  SocketServer,
 } from '@/lib/socket';
 
 type SessionSocket = Socket<
@@ -41,4 +42,19 @@ export function attachSocketSessionGuard(socket: SessionSocket) {
       socket.disconnect(true);
     });
   });
+}
+
+export async function getAuthorizedUserSockets(io: SocketServer | null, userIds?: string[]) {
+  if (!io || (userIds && !userIds.length)) return [];
+  const sockets = await (userIds ? io.in(userIds.map((id) => `user:${id}`)) : io).fetchSockets();
+  if (!sockets.length) return [];
+  const sessions = await db.session.findMany({
+    where: {
+      id: { in: sockets.map((socket) => socket.data.sessionId) },
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true, userId: true },
+  });
+  const valid = new Map(sessions.map((session) => [session.id, session.userId]));
+  return sockets.filter((socket) => valid.get(socket.data.sessionId) === socket.data.userId);
 }

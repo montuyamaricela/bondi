@@ -75,23 +75,40 @@ only the current owner's connection; ordinary session-object refreshes keep it,
 while a replacement session ID creates a new one. Server handshake and packet
 authorization continue independently of this client ownership bookkeeping.
 
-`lib/server/messages.ts` is the shared HTTP/socket write boundary: parse untrusted
-payloads, check active membership, resolve an owned `MessageAttachment` key, and
-persist canonical content/metadata. UploadThing's trusted completion callback
-registers that ownership using authenticated middleware metadata. These records
-are separate from gallery `File` records. Existing messages need no backfill, while
-unregistered keys cannot be reused for new messages. Socket owners still deliver
-events and create notifications; transaction ordering and
-transport delivery consolidation remain separate slices.
+`lib/server/messages.ts` is the shared HTTP/socket write operation. It validates
+untrusted payloads and owned attachments, locks the active match, and commits the
+message, receiver notification and per-user `MessageDelivery` intents together.
+Unmatch waits for accepted sends to commit. Identified retries return the canonical
+message without duplicating effects; conflicting payloads remain rejected. The
+trusted upload callback still registers attachment ownership separately.
 
-Message operation IDs are nullable for legacy callers and unique within the sender
-and match. Identified retries return the canonical saved message; different content
-under an existing operation ID is a conflict. All socket owners acknowledge durable
-persistence and skip repeat broadcasts/notifications for replays. Follow-up delivery
-failures cannot change an already saved acknowledgement into a rejected write.
-The chat keeps a pending draft until acknowledgement and reuses its operation ID
-after failure/connection loss. Drafts live in the mounted chat; a crash-safe outbox
-and durable notification delivery are separate concerns.
+`lib/server/message-delivery.ts` owns the three runtimes' send handlers and delivery
+relay. Acknowledgements follow durable commit; legacy callers receive a direct
+saved-message response. Each relay claims at most 100 pending user intents using
+`FOR UPDATE SKIP LOCKED`, checks active membership and authoritative connected
+sessions, then enqueues private message, inbox and notification hints. Sender
+connections other than the initiating socket receive the saved message too.
+HTTP wakes the combined owner through a process-global registry; a one-second
+poll also recovers committed intents in the selected standalone/library owner.
+The timer starts with its HTTP listener and stops on close. No external bus is used.
+Choose one socket topology for an account's devices; simultaneous separate owners
+do not broadcast a single completed user intent to each other's connections.
+
+Completion records an enqueue attempt, not recipient delivery/read acknowledgement.
+Failure before completion leaves the intent retryable, including across owner
+restart; repeated frames reconcile by saved message ID and notification ID.
+Reconnect refreshes durable inbox/notification queries, and open chats reload
+history after joining. Ended matches suppress queued live communication while
+retaining authorized history. Historical messages are not backfilled with new
+notifications; delivery rows have no new automatic retention policy.
+
+The session-owned provider refreshes inbox/notification caches on private hints
+and connection recovery. Conversation lists no longer remove other consumers'
+message listeners. NotificationCenter owns toast/browser effects, deduplicates
+identified hints within its owned connection, and preserves stored permission and
+notification preferences. Durable inbox/notification state refreshes independently
+of those browser preferences. Mounted drafts still reuse their operation ID after
+failure; a crash-safe client draft outbox remains a separate feature.
 
 The React Query message cache owns saved chat state. HTTP history, live messages,
 saved acknowledgements and read receipts reconcile there by message ID, ordered by

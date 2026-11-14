@@ -28,6 +28,7 @@ model User {
   matchesAsUser2 Match[]   @relation("MatchUser2")
   messagesSent   Message[]
   messageAttachments MessageAttachment[]
+  messageDeliveries MessageDelivery[]
   sessions       Session[]
   accounts       Account[]
   notifications  Notification[]

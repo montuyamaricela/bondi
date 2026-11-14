@@ -117,7 +117,13 @@ test('HTTP and all socket owners validate text and resolve owned attachment meta
         send: (payload, person = alice) =>
           new Promise((resolve) => {
             const sender = person.userId === alice.userId ? actor : nonmember;
+            const operationId = randomUUID();
+            const identified =
+              payload && typeof payload === 'object' && !Array.isArray(payload)
+                ? { clientRequestId: operationId, ...payload }
+                : payload;
             const saved = (message: Record<string, unknown>) => {
+              if (message.clientRequestId !== operationId) return;
               cleanup();
               resolve({ status: 201, body: message });
             };
@@ -129,8 +135,8 @@ test('HTTP and all socket owners validate text and resolve owned attachment meta
               sender.off('message:new', saved);
               sender.off('message:error', rejected);
             };
-            sender.once('message:new', saved).once('message:error', rejected);
-            sender.emit('message:send', payload);
+            sender.on('message:new', saved).once('message:error', rejected);
+            sender.emit('message:send', identified);
           }),
       });
     }
@@ -280,7 +286,7 @@ test('HTTP and all socket owners validate text and resolve owned attachment meta
     }
     await expect
       .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
-      .toBe(15);
+      .toBe(20);
   } finally {
     for (const client of clients) client.disconnect();
     await new Promise<void>((resolve) => {
