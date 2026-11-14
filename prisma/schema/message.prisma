@@ -4,6 +4,7 @@ model Message {
   senderId  String
   content   String       @db.Text
   type      MessageType  @default(TEXT)
+  clientRequestId String?
 
   // File attachment fields (optional)
   fileUrl   String?
@@ -22,6 +23,7 @@ model Message {
   @@index([matchId])
   @@index([senderId])
   @@index([createdAt])
+  @@unique([senderId, matchId, clientRequestId])
 }
 
 enum MessageType {

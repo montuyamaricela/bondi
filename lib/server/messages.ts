@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 
 const messageInput = z
@@ -7,6 +8,7 @@ const messageInput = z
     content: z.string().max(5000).trim().default(''),
     // Legacy clients may send metadata, but only the key is used to resolve it.
     file: z.object({ key: z.string().min(1).max(512) }).optional(),
+    clientRequestId: z.uuid().optional(),
   })
   .refine(({ content, file }) => content.length > 0 || !!file);
 
@@ -69,7 +71,7 @@ export async function writeMessage(userId: string, payload: unknown) {
       400,
       'INVALID_MESSAGE',
     );
-  const { matchId, content, file } = parsed.data;
+  const { matchId, content, file, clientRequestId } = parsed.data;
   const match = await db.match.findUnique({
     where: { id: matchId },
     select: { user1Id: true, user2Id: true, status: true },
@@ -78,6 +80,25 @@ export async function writeMessage(userId: string, payload: unknown) {
   if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId)) {
     throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
   }
+  const operation = clientRequestId ? { senderId: userId, matchId, clientRequestId } : null;
+  const replay = async () => {
+    if (!operation) return null;
+    const existing = await db.message.findUnique({
+      where: { senderId_matchId_clientRequestId: operation },
+      select: messageSelection,
+    });
+    if (existing && (existing.content !== content || existing.fileKey !== (file?.key ?? null))) {
+      throw new MessageWriteError(
+        'This operation ID belongs to a different message',
+        409,
+        'CONFLICT',
+      );
+    }
+    return existing;
+  };
+  const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
+  const existing = await replay();
+  if (existing) return { message: existing, receiverId, replayed: true };
   const attachment = file
     ? await db.messageAttachment.findUnique({ where: { key: file.key } })
     : null;
@@ -87,33 +108,48 @@ export async function writeMessage(userId: string, payload: unknown) {
   ) {
     throw new MessageWriteError('Attachment is unavailable', 400, 'INVALID_MESSAGE');
   }
-  const message = await db.message.create({
-    data: {
-      matchId,
-      senderId: userId,
-      content,
-      type: attachment ? (attachment.type.startsWith('image/') ? 'IMAGE' : 'FILE') : 'TEXT',
-      fileUrl: attachment?.url ?? null,
-      fileKey: attachment?.key ?? null,
-      fileName: attachment?.name ?? null,
-      fileSize: attachment?.size ?? null,
-      fileType: attachment?.type ?? null,
-    },
-    select: {
-      id: true,
-      matchId: true,
-      senderId: true,
-      content: true,
-      type: true,
-      fileUrl: true,
-      fileKey: true,
-      fileName: true,
-      fileSize: true,
-      fileType: true,
-      createdAt: true,
-      readAt: true,
-      sender: { select: { id: true, name: true, image: true } },
-    },
-  });
-  return { message, receiverId: match.user1Id === userId ? match.user2Id : match.user1Id };
+  try {
+    const message = await db.message.create({
+      data: {
+        matchId,
+        senderId: userId,
+        content,
+        clientRequestId,
+        type: attachment ? (attachment.type.startsWith('image/') ? 'IMAGE' : 'FILE') : 'TEXT',
+        fileUrl: attachment?.url ?? null,
+        fileKey: attachment?.key ?? null,
+        fileName: attachment?.name ?? null,
+        fileSize: attachment?.size ?? null,
+        fileType: attachment?.type ?? null,
+      },
+      select: messageSelection,
+    });
+    return { message, receiverId, replayed: false };
+  } catch (error) {
+    if (
+      operation &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      const winner = await replay();
+      if (winner) return { message: winner, receiverId, replayed: true };
+    }
+    throw error;
+  }
 }
+
+const messageSelection = {
+  id: true,
+  matchId: true,
+  senderId: true,
+  content: true,
+  type: true,
+  fileUrl: true,
+  fileKey: true,
+  fileName: true,
+  fileSize: true,
+  fileType: true,
+  createdAt: true,
+  readAt: true,
+  sender: { select: { id: true, name: true, image: true } },
+} satisfies Prisma.MessageSelect;

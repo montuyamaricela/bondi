@@ -109,10 +109,14 @@ test('connected sockets in all three runtimes reject revoked and expired session
       });
       const allowed = await open(alice.cookie);
       await joinRooms(allowed, peer, match.id);
-      allowed.emit('message:send', {
-        matchId: match.id,
-        content: 'An authorized synthetic message',
-      });
+      allowed.emit(
+        'message:send',
+        {
+          matchId: match.id,
+          content: 'An authorized synthetic message',
+        },
+        () => {},
+      );
       await expect.poll(() => delivered).toBe(1);
       await expect
         .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
@@ -129,7 +133,11 @@ test('connected sockets in all three runtimes reject revoked and expired session
       const saved = await db.message.count({ where: { matchId: match.id } });
       const actions: Array<(client: Client) => void> = [
         (client) => {
-          client.emit('message:send', { matchId: match.id, content: 'This must not be saved' });
+          client.emit(
+            'message:send',
+            { matchId: match.id, content: 'This must not be saved' },
+            () => {},
+          );
         },
         (client) => {
           client.emit('message:read', { messageId: unread.id });

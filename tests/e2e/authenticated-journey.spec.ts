@@ -190,7 +190,7 @@ test('two users onboard, match and chat while an outsider cannot access private 
       outsiderSocket!.connect();
     });
     outsiderSocket.emit('match:join', { matchId });
-    outsiderSocket.emit('message:send', { matchId, content: 'Forged socket message' });
+    outsiderSocket.emit('message:send', { matchId, content: 'Forged socket message' }, () => {});
 
     await alice.getByPlaceholder('Type a message...').fill('Hello Bob, this is Alice.');
     await alice.getByPlaceholder('Type a message...').press('Enter');

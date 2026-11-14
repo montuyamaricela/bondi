@@ -156,6 +156,17 @@ Message uploads now register a `MessageAttachment` record separately from profil
 gallery files. Apply migrations explicitly before deploying these writers. Existing
 messages remain readable; unregistered old upload keys cannot be used for new sends.
 The storage network and UploadThing webhook signature path are outside this test.
+The retry case sends eight concurrent copies of one operation through each
+transport and checks a single PostgreSQL row/canonical ID. Operation IDs are scoped
+to sender and conversation; reusing one with different content fails. A real browser
+proxy drops a saved acknowledgement and cuts the connection: the draft remains,
+retry uses the same ID, and exactly one saved message appears. Explicit server
+rejection also retains a retryable draft.
+
+New chat sends keep their draft until a durable acknowledgement. Failed/uncertain
+sends can be retried in the open chat using the same operation ID. Legacy callers
+without an ID remain supported but cannot receive deduplication guarantees. This
+does not guarantee delivery across process crashes or persist drafts across page reloads.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
