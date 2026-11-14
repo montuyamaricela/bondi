@@ -301,3 +301,21 @@ the older snapshot cannot restore it, and a reload plus direct API read agree.
 The fixture uses normal mutation invalidation rather than changing the application's
 disabled window-focus refetch policy. No undo, interaction reset or schema change is
 introduced. Existing compound Like uniqueness supports the handled-direction lookup.
+
+### Login destination and recovery verification
+
+`tests/e2e/login-navigation.spec.ts` follows an anonymous protected message path and
+query through real sign-in to its authorized chat, and checks an already signed-in
+login redirect. A real null profile completes all onboarding steps before returning
+to the requested Settings query. A rejected credential attempt performs no profile
+read; after valid sign-in a controlled HTTP profile failure offers recovery, avoids
+onboarding and preserves the callback. Retry restores the real profile request and
+continues without another credential POST. Unsafe callbacks never contact the
+reserved external test origin and use the discovery fallback.
+
+Pure tests cover internal paths/queries/explicit fragments, malformed and unsafe
+values, auth loops and onboarding URL preservation. A middleware unit adapter injects
+a failed profile read after a synthetic session resolution and asserts safe recovery
+and redacted logging. That unit adapter and the browser's controlled profile HTTP
+failure are distinct from a real PostgreSQL outage; ordinary auth/profile/onboarding
+paths use the dedicated database. Runtime builds remain separate from migrations.

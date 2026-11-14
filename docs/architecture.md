@@ -44,6 +44,25 @@ session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out o
 browser bundles. Middleware performs server auth/profile lookups. Run browser checks against
 a disposable test PostgreSQL instance to keep any session-dependent queries isolated.
 
+`lib/auth-navigation.ts` owns root-relative callback validation and the onboarding
+return URL. It preserves safe internal paths/queries, rejects external/protocol-relative
+URLs, backslashes, controls, malformed encoding, nested separator/control escapes and auth/API/onboarding
+loops, and falls back to discovery. Middleware retains the requested path and query
+when sending anonymous users to login and honors the validated callback for an
+already authenticated user with a profile. A failed profile lookup passes through
+to login recovery rather than inferring a missing profile; signup failures return
+to that recovery page with the safe destination. Logs omit the exception.
+
+The login page passes the server-resolved identity into `LoginForm` for authenticated
+recovery. After a successful sign-in the form clears credentials and old profile
+caches, then reads a fresh profile independently of cached data. Only an explicit
+null profile starts onboarding; a failed/malformed/wrong-owner result offers Retry
+profile check and Reload sign-in without resubmitting credentials. Owned abort
+controllers suppress late routing/state effects after unmount. Onboarding carries
+the same safe destination through its existing success delay and existing-profile
+guard. Default flows keep the bare setup URL and return to discovery. These navigation
+checks do not replace authorization at protected pages or API operations.
+
 All three socket owners capture the database session ID during an authoritative
 handshake and share incoming-action validation in `lib/server/socket-session.ts`.
 An invalid/expired/revoked session receives `auth:error` and disconnects before the

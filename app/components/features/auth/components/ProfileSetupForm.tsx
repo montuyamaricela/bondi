@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { safeCallbackUrl } from '@/lib/auth-navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { profileSetupDraftKey, clearProfileSetupDrafts } from '@/lib/client/profile-drafts';
@@ -20,7 +21,7 @@ import { BasicInformationStep } from './BasicInformationStep';
 import { InterestsHobbiesStep } from './InterestsHobbiesStep';
 import { DatingPreferencesStep } from './DatingPreferencesStep';
 
-export function ProfileSetupForm() {
+export function ProfileSetupForm({ callbackUrl = '/discover' }: { callbackUrl?: string }) {
   const { data: session, isPending: isSessionLoading, error: sessionError } = useSession();
   const userId = session?.user.id;
   useEffect(() => {
@@ -55,6 +56,7 @@ export function ProfileSetupForm() {
       key={session.user.id}
       userId={session.user.id}
       userName={session.user.name}
+      callbackUrl={callbackUrl}
     />
   );
 }
@@ -62,9 +64,11 @@ export function ProfileSetupForm() {
 function AccountProfileSetupForm({
   userId,
   userName,
+  callbackUrl,
 }: {
   userId: string;
   userName?: string | null;
+  callbackUrl: string;
 }) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
@@ -185,7 +189,7 @@ function AccountProfileSetupForm({
         setShowSuccessModal(true);
 
         redirectTimerRef.current = setTimeout(() => {
-          if (activeRef.current) router.push('/discover');
+          if (activeRef.current) router.push(safeCallbackUrl(callbackUrl));
         }, 2500);
       } else {
         const errorMsg = result.error || 'Failed to create profile';

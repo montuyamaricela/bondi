@@ -272,6 +272,15 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Login preserves a safe internal return path and query through profile resolution
+and, when needed, onboarding. External/protocol-relative and auth-loop callbacks
+fall back to discovery. A failed profile request offers recovery instead of treating
+it as a missing profile; retry checks the profile without posting credentials again.
+Browser cases exercise real credential rejection/sign-in, protected message links,
+onboarding writes, authenticated redirects and controlled profile-response failures.
+Unit cases cover unsafe callback inputs and a middleware lookup-failure adapter;
+these controlled faults do not establish database-outage behavior end to end.
+
 Incoming-like cards exclude people the viewer has already liked or passed, before
 pagination. A confirmed action removes its card from cached pages while the list
 refreshes; failed writes retain the card. Regression cases hold actual old/fresh
