@@ -11,7 +11,6 @@ const fields = (name = 'Synthetic profile') => ({
   hobbies: ['Reading'],
   relationshipType: 'FRIENDSHIP',
   genderPreference: 'EVERYONE',
-  location: 'Synthetic city',
   lookingFor: 'Coffee',
 });
 const invalidFields = [

@@ -23,11 +23,12 @@ export function useDiscoverProfiles(filters: DiscoverFilters) {
 
   return useQuery({
     queryKey: ['discover-profiles', filters],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const url = `/api/discover${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      return await api.get<DiscoverableProfile[]>(url);
+      return await api.get<DiscoverableProfile[]>(url, { signal });
     },
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: 'always',
     retry: (failureCount, error) =>
       error instanceof FetchError && error.status >= 400 && error.status < 500
         ? false

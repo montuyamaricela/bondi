@@ -1,0 +1,33 @@
+// Generic reference data only. User-to-city associations belong to private profiles.
+model LocationCity {
+  id            String  @id
+  name          String
+  region        String?
+  country       String
+  countryCode   String
+  latitude      Float
+  longitude     Float
+  available     Boolean @default(true)
+  sourceVersion String
+  names         LocationCityName[]
+  profiles      Profile[]
+
+  @@index([countryCode])
+}
+
+model LocationCityName {
+  cityId         String
+  normalizedName String
+  city           LocationCity @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@id([cityId, normalizedName])
+  @@index([normalizedName(ops: raw("text_pattern_ops")), cityId], map: "LocationCityName_prefix_idx")
+}
+
+model LocationCatalog {
+  id          String   @id
+  version     String
+  checksums   Json
+  importedAt  DateTime @default(now())
+  cityCount   Int
+}

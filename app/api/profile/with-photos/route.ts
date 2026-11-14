@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { handleApiError } from '@/lib/errors';
+import { profileForOwner } from '@/lib/server/profile';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
 
     const profile = await db.profile.findUnique({
       where: { userId: session.user.id },
+      include: { locationCity: true },
     });
 
     if (!profile) {
@@ -33,12 +35,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      profile: {
-        ...profile,
-        photos,
+    return NextResponse.json(
+      {
+        profile: {
+          ...profileForOwner(profile),
+          photos,
+        },
       },
-    });
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    );
   } catch (error) {
     return handleApiError(error);
   }

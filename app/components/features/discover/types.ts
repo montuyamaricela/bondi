@@ -1,21 +1,19 @@
 import type { Gender, RelationshipType } from '@prisma/client';
+import type { PublicLocation } from '@/app/components/features/location/types';
 
-export interface DiscoverableProfile {
+export interface DiscoverableProfile extends PublicLocation {
   id: string;
   userId: string;
   name: string;
   age: number;
   bio: string;
   gender: Gender;
-  location: string | null;
   interests: string[];
   hobbies: string[];
   lookingFor: string | null;
   relationshipType: RelationshipType;
   showDistance: boolean;
-  distance: number | null;
   photos: ProfilePhoto[];
-  compatibilityScore: number;
 }
 
 export interface ProfilePhoto {

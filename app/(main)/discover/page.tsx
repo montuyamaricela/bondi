@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import { LOCATION_CLEARED_EVENT } from '@/lib/client/location-events';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SwipeCard } from '@/app/components/features/discover/components/SwipeCard';
@@ -20,6 +21,11 @@ export default function DiscoverPage() {
   });
   const [handledUserIds, setHandledUserIds] = useState<Set<string>>(() => new Set());
   const actionInFlight = useRef(false);
+  useEffect(() => {
+    const cleared = () => setFilters((previous) => ({ ...previous, distance: undefined }));
+    window.addEventListener(LOCATION_CLEARED_EVENT, cleared);
+    return () => window.removeEventListener(LOCATION_CLEARED_EVENT, cleared);
+  }, []);
   const keyboardAction = useRef<HTMLButtonElement | null>(null);
   const [matchNotification, setMatchNotification] = useState<MatchNotification | null>(null);
 
@@ -104,7 +110,8 @@ export default function DiscoverPage() {
             {locationRequired ? (
               <div role="alert" className="flex flex-col items-center gap-3 text-center">
                 <p className="text-text-muted">
-                  Enable or refresh your location in Settings to use a distance filter.
+                  Enable device location or select an available city in Settings to use a distance
+                  filter.
                 </p>
                 <Link href="/settings" className="text-primary-main underline">
                   Location settings

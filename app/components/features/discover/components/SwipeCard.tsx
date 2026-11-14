@@ -5,7 +5,6 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from 'framer-mo
 import Image from 'next/image';
 import { Heart, MapPin, Briefcase } from 'lucide-react';
 import type { DiscoverableProfile } from '../types';
-import { formatDistance } from '@/lib/geolocation';
 import { getInitials } from '@/lib/utils/initials';
 
 interface SwipeCardProps {
@@ -126,14 +125,14 @@ export function SwipeCard({ profile, onLike, onPass, isPending = false }: SwipeC
             </div>
 
             {/* Location, Distance and Relationship Type */}
-            <div className="flex items-center gap-4 text-sm text-white/90">
-              {profile.distance !== null && profile.showDistance && (
+            <div className="flex flex-wrap items-center gap-4 text-sm text-white/90">
+              {profile.distanceLabel && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  <span>{formatDistance(profile.distance)}</span>
+                  <span>{profile.distanceLabel}</span>
                 </div>
               )}
-              {!profile.showDistance && profile.location && (
+              {profile.location && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
                   <span>{profile.location}</span>

@@ -109,6 +109,9 @@ It includes a full dependency audit that blocks critical advisories. Remaining
 noncritical findings and the checked upgrade boundaries are recorded in the
 [dependency baseline review](docs/research/2026-11-14-dependency-baseline.md).
 
+City reference data has a separate, checksummed [GeoNames setup procedure](docs/reference-data/geonames.md).
+Migration, startup, build and test commands never download or import that catalog.
+
 Runtime/test/config commits automatically run `npm run check:feature` after staged
 lint/format fixes, blocking the commit if checks, build, or E2E fail. For the hook,
 copy `.env.test.example` to `.env.test.local` and configure its disposable test
@@ -306,15 +309,28 @@ refreshes; failed writes retain the card. Regression cases hold actual old/fresh
 responses to verify that a passed card cannot reappear, then confirm absence after
 reload. Stored interactions remain intact and passing has no undo.
 
-Location is requested only through Settings Enable/Refresh, with no background
-tracking. Saved coordinates remain last-known with an update timestamp; zero is a
-valid coordinate. Denial, unavailable position, timeout and unsupported/insecure
-contexts have recoverable feedback. Save failures offer Retry save without another
-device request. Successful saves invalidate the discovery cache before client navigation.
-Browser cases use controlled native geolocation callbacks with real authenticated
-HTTP/PostgreSQL writes: they cover cached-feed refresh, account switches, unmount,
-retry and rejected sessions/payloads. They do not measure real GPS hardware or the
-operating system permission dialog. City-only/clear controls remain #43.
+Settings provides one Location Control Center: explicit Device Enable/Refresh,
+City-only search and selection without GPS permission, independent city/distance
+visibility, owner preview, and Off/Clear. Dates describe last-known positions or city
+selection, including Unknown for legacy missing timestamps. City switches remove
+saved device coordinates immediately; Clear removes current location data and
+visibility while general discovery remains available. City distances explicitly use
+an approximate selected-city center. Hidden values and private ranking scores stay
+out of serialized responses. The pinned GeoNames catalog requires an explicit
+[setup/import](docs/reference-data/geonames.md); builds and tests do not import it.
+
+`location-modes`, `location-projections`, and `location-lifecycle` browser/API cases
+exercise real authenticated PostgreSQL writes, queued compare-and-update races,
+all four Device/City distance pairs, exact radius/unrounded filtering, visibility,
+preview, clear rollback/retry, catalog failures, cross-tab invalidation, stale saves,
+logout and account switches. Native GPS uses controlled callbacks: permission
+hardware and operating-system dialogs are not measured. An explicit local PG14
+backfill probe covered eight synthetic legacy states and related-data preservation;
+CI's fresh PG16 migration is separate evidence. A guarded explicit full catalog
+reimport verified reference retention, revision advancement and stale-write rejection.
+Clear cannot promise removal from old database backups, browser/OS storage or
+already-delivered offline copies. Location history and account deletion are outside
+this feature.
 
 Profile-photo cases race twelve completions across both profile uploaders and verify
 six saved rows, unique append order, owned replay, foreign rejection, account-local

@@ -123,13 +123,21 @@ test('malformed application JSON returns 400 after auth without writes and valid
     expect(await db.profile.findUniqueOrThrow({ where: { userId } })).toEqual(before);
     expect(
       (
-        await context.request.patch('/api/profile/privacy', { data: { showDistance: false } })
+        await context.request.patch('/api/profile/privacy', {
+          data: { showDistance: false, expectedUserId: userId, expectedRevision: 0 },
+        })
       ).status(),
     ).toBe(200);
     expect(
       (
         await context.request.patch('/api/profile/location', {
-          data: { latitude: 0, longitude: 0 },
+          data: {
+            action: 'DEVICE',
+            expectedUserId: userId,
+            expectedRevision: 1,
+            latitude: 0,
+            longitude: 0,
+          },
         })
       ).status(),
     ).toBe(200);
@@ -144,10 +152,19 @@ test('malformed application JSON returns 400 after auth without writes and valid
     expect(presence.status()).toBe(200);
     expect(await presence.json()).toEqual({});
     const invalid = await context.request.patch('/api/profile/location', {
-      data: { latitude: 91, longitude: 0 },
+      data: {
+        action: 'DEVICE',
+        expectedUserId: userId,
+        expectedRevision: 2,
+        latitude: 91,
+        longitude: 0,
+      },
     });
     expect(invalid.status()).toBe(400);
-    expect((await invalid.json()).error).toBe('Invalid location data');
+    expect(await invalid.json()).toMatchObject({
+      error: 'Validation failed',
+      details: expect.arrayContaining([expect.objectContaining({ path: 'latitude' })]),
+    });
   } finally {
     await owned.close();
   }

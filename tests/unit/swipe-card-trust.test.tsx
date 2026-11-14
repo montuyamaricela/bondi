@@ -13,15 +13,12 @@ test('ordinary profiles show their information without a verification signal, wi
     age: 28,
     bio: 'A synthetic ordinary profile.',
     gender: 'OTHER',
-    location: null,
     interests: ['Music'],
     hobbies: ['Reading'],
     lookingFor: null,
     relationshipType: 'CASUAL',
     showDistance: false,
-    distance: null,
     photos: [],
-    compatibilityScore: 0,
   };
   const photo = {
     id: 'synthetic-photo',

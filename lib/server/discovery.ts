@@ -1,12 +1,18 @@
-import type { Profile } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { calculateDistance } from '@/lib/geolocation';
 import { calculateCompatibilityScore } from '@/lib/matching-utils';
 import type { DiscoverFiltersFormData } from '@/app/components/features/discover/validation';
 import type { DiscoverableProfile } from '@/app/components/features/discover/types';
+import { effectiveLocation, publicLocation } from '@/lib/location';
+import { locationSelect } from '@/lib/server/location';
 
-export async function discoverProfiles(current: Profile, filters: DiscoverFiltersFormData) {
-  const ranked: DiscoverableProfile[] = [];
+export async function discoverProfiles(
+  current: Prisma.ProfileGetPayload<{ include: { locationCity: true } }>,
+  filters: DiscoverFiltersFormData,
+) {
+  const ranked: Array<{ profile: DiscoverableProfile; score: number }> = [];
+  const viewerPoint = effectiveLocation(current);
   let cursor: string | undefined;
   let more = true;
   while (more) {
@@ -35,14 +41,11 @@ export async function discoverProfiles(current: Profile, filters: DiscoverFilter
         age: true,
         bio: true,
         gender: true,
-        location: true,
+        ...locationSelect,
         interests: true,
         hobbies: true,
         lookingFor: true,
         relationshipType: true,
-        showDistance: true,
-        latitude: true,
-        longitude: true,
         user: {
           select: {
             files: {
@@ -56,46 +59,40 @@ export async function discoverProfiles(current: Profile, filters: DiscoverFilter
       take: 100,
     });
     for (const profile of profiles) {
+      const candidatePoint = effectiveLocation(profile);
       const distance =
-        current.latitude !== null &&
-        current.longitude !== null &&
-        profile.latitude !== null &&
-        profile.longitude !== null
-          ? calculateDistance(
-              { latitude: current.latitude, longitude: current.longitude },
-              { latitude: profile.latitude, longitude: profile.longitude },
-            )
-          : null;
+        viewerPoint && candidatePoint ? calculateDistance(viewerPoint, candidatePoint) : null;
       if (filters.distance !== undefined && (distance === null || distance > filters.distance))
         continue;
       const distanceScore = distance !== null ? Math.max(0, 100 - distance / 5) : 0;
       ranked.push({
-        id: profile.id,
-        userId: profile.userId,
-        name: profile.name,
-        age: profile.age,
-        bio: profile.bio,
-        gender: profile.gender,
-        location: profile.location,
-        interests: profile.interests,
-        hobbies: profile.hobbies,
-        lookingFor: profile.lookingFor,
-        relationshipType: profile.relationshipType,
-        showDistance: profile.showDistance,
-        distance: profile.showDistance ? distance : null,
-        photos: profile.user.files,
-        compatibilityScore:
-          calculateCompatibilityScore(current, profile) * 0.7 + distanceScore * 0.3,
+        profile: {
+          id: profile.id,
+          userId: profile.userId,
+          name: profile.name,
+          age: profile.age,
+          bio: profile.bio,
+          gender: profile.gender,
+          ...publicLocation(profile, viewerPoint),
+          interests: profile.interests,
+          hobbies: profile.hobbies,
+          lookingFor: profile.lookingFor,
+          relationshipType: profile.relationshipType,
+          showDistance: profile.showDistance,
+          photos: profile.user.files,
+        },
+        score: calculateCompatibilityScore(current, profile) * 0.7 + distanceScore * 0.3,
       });
     }
     // Rank all eligible candidates while keeping memory bounded to a batch and ten winners.
     ranked.sort(
       (a, b) =>
-        b.compatibilityScore - a.compatibilityScore || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+        b.score - a.score ||
+        (a.profile.id < b.profile.id ? -1 : a.profile.id > b.profile.id ? 1 : 0),
     );
     ranked.length = Math.min(ranked.length, 10);
     cursor = profiles.at(-1)?.id;
     more = profiles.length === 100;
   }
-  return ranked;
+  return ranked.map(({ profile }) => profile);
 }

@@ -159,13 +159,23 @@ test('two users onboard, match and chat while an outsider cannot access private 
     expect(
       (
         await alice.request.patch('/api/profile/location', {
-          data: { latitude: 51.5, longitude: -0.1 },
+          data: {
+            action: 'DEVICE',
+            expectedUserId: userIds[0],
+            expectedRevision: 0,
+            latitude: 51.5,
+            longitude: -0.1,
+          },
         })
       ).status(),
     ).toBe(200);
     const storedLocation = await alice.request.get('/api/profile');
     expect(storedLocation.status()).toBe(200);
-    expect((await storedLocation.json()).profile).toMatchObject({
+    const safeOwner = (await storedLocation.json()).profile;
+    expect(safeOwner).not.toHaveProperty('latitude');
+    expect(safeOwner).not.toHaveProperty('longitude');
+    expect(await db.profile.findUniqueOrThrow({ where: { userId: userIds[0] } })).toMatchObject({
+      locationMode: 'DEVICE',
       latitude: 51.5,
       longitude: -0.1,
     });

@@ -1,6 +1,31 @@
 import { db } from '@/lib/db';
 import { createAppError } from '@/lib/app-error';
 import type { ProfileFields } from '@/lib/profile-validation';
+import type { Prisma } from '@prisma/client';
+import { publicLocation } from '@/lib/location';
+
+export function profileForOwner(
+  profile: Prisma.ProfileGetPayload<{ include: { locationCity: true } }>,
+) {
+  return {
+    id: profile.id,
+    userId: profile.userId,
+    name: profile.name,
+    age: profile.age,
+    bio: profile.bio,
+    gender: profile.gender,
+    interests: profile.interests,
+    hobbies: profile.hobbies,
+    lookingFor: profile.lookingFor,
+    relationshipType: profile.relationshipType,
+    genderPreference: profile.genderPreference,
+    showOnlineStatus: profile.showOnlineStatus,
+    showDistance: profile.showDistance,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+    ...publicLocation(profile),
+  };
+}
 
 function profileData(input: ProfileFields) {
   const {
@@ -8,7 +33,6 @@ function profileData(input: ProfileFields) {
     age,
     bio,
     gender,
-    location,
     interests,
     hobbies,
     lookingFor,
@@ -20,7 +44,6 @@ function profileData(input: ProfileFields) {
     age,
     bio,
     gender,
-    location,
     interests,
     hobbies,
     lookingFor,
@@ -30,9 +53,11 @@ function profileData(input: ProfileFields) {
 }
 
 export async function getProfileByUserId(userId: string) {
-  return await db.profile.findUnique({
+  const profile = await db.profile.findUnique({
     where: { userId },
+    include: { locationCity: true },
   });
+  return profile ? profileForOwner(profile) : null;
 }
 
 export async function createProfile(userId: string, input: ProfileFields) {
@@ -71,7 +96,11 @@ export async function updateProfile(
         );
     }
     await transaction.user.update({ where: { id: userId }, data: { name: data.name } });
-    const profile = await transaction.profile.update({ where: { userId }, data });
+    const profile = await transaction.profile.update({
+      where: { userId },
+      data,
+      include: { locationCity: true },
+    });
     for (const [order, key] of (input.photoKeys ?? []).entries()) {
       const updated = await transaction.file.updateMany({
         where: { userId, key },
@@ -88,6 +117,6 @@ export async function updateProfile(
       where: { userId },
       orderBy: [{ order: 'asc' }, { id: 'asc' }],
     });
-    return { ...profile, photos };
+    return { ...profileForOwner(profile), photos };
   });
 }

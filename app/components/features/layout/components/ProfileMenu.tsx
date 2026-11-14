@@ -38,7 +38,7 @@ export function ProfileMenu() {
   }
 
   const user = session.user;
-  const profile = profileData?.profile;
+  const profile = profileData?.profile?.userId === user.id ? profileData.profile : null;
   const profilePicture = profile?.photos?.[0]?.url;
 
   const userInitials = getInitials(user.name || user.email || 'User');

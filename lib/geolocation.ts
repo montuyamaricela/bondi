@@ -16,11 +16,12 @@ export function calculateDistance(coords1: Coordinates, coords2: Coordinates): n
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const bounded = Math.min(1, Math.max(0, a));
+  const c = 2 * Math.atan2(Math.sqrt(bounded), Math.sqrt(1 - bounded));
 
   const distance = R * c;
 
-  return Math.round(distance);
+  return distance;
 }
 
 function toRadians(degrees: number): number {
@@ -30,11 +31,6 @@ function toRadians(degrees: number): number {
 export function formatDistance(distanceInKm: number): string {
   if (distanceInKm < 1) {
     return 'Less than 1 km away';
-  } else if (distanceInKm < 5) {
-    return `${distanceInKm} km away`;
-  } else if (distanceInKm < 50) {
-    return `${distanceInKm} km away`;
-  } else {
-    return `${distanceInKm}+ km away`;
   }
+  return `${Math.round(distanceInKm)} km away`;
 }

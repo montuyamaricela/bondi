@@ -55,3 +55,21 @@ test('signup rejects mismatched confirmation and weak passwords', () => {
     false,
   );
 });
+
+test('general setup and edit cannot restore legacy location or accept a device origin', () => {
+  for (const schema of [profileSetupSchema, profileEditSchema]) {
+    assert.equal(
+      schema.safeParse({ ...profile, location: 'Synthetic legacy location' }).success,
+      false,
+    );
+    const parsed = schema.parse({
+      ...profile,
+      latitude: 0,
+      longitude: 0,
+      locationMode: 'DEVICE',
+      showDistance: true,
+    });
+    for (const field of ['latitude', 'longitude', 'locationMode', 'showDistance'])
+      assert.equal(Object.hasOwn(parsed, field), false);
+  }
+});
