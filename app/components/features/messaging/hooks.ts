@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/fetch-wrapper';
 import type { Message, Conversation, SendMessageData } from './types';
+import { mergeSavedMessages } from './message-state';
 
 export function useConversations() {
   return useQuery({
@@ -15,11 +16,18 @@ export function useConversations() {
 }
 
 export function useMessages(matchId: string | null) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ['messages', matchId],
     queryFn: async () => {
       if (!matchId) return [];
-      return await api.get<Message[]>(`/api/messages?matchId=${matchId}`);
+      const history = await api.get<Message[]>(`/api/messages?matchId=${matchId}`);
+      // Live events received during this request must survive its older snapshot.
+      return mergeSavedMessages(
+        matchId,
+        queryClient.getQueryData<Message[]>(['messages', matchId]) ?? [],
+        history,
+      );
     },
     enabled: !!matchId,
     staleTime: 30 * 1000,

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { mergeSavedMessages } from '../message-state';
 import { Send, Loader2 } from 'lucide-react';
 import { useSocket } from '@/app/components/providers/socket-provider';
 import { useMessages } from '../hooks';
@@ -9,6 +12,8 @@ import { Button } from '@/app/components/ui/button';
 import type { Message } from '../types';
 import { cn } from '@/lib/utils';
 import type { ServerToClientEvents } from '@/lib/socket';
+
+const EMPTY_MESSAGES: Message[] = [];
 
 interface ChatInterfaceProps {
   matchId: string;
@@ -32,8 +37,8 @@ export function ChatInterface({
   currentUserName,
 }: ChatInterfaceProps) {
   const { socket, isConnected } = useSocket();
-  const { data: initialMessages = [], isLoading } = useMessages(matchId);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const queryClient = useQueryClient();
+  const { data: messages = EMPTY_MESSAGES, isLoading } = useMessages(matchId);
   const [currentMatchId, setCurrentMatchId] = useState(matchId);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -44,9 +49,8 @@ export function ChatInterface({
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const markedAsReadRef = useRef<Set<string>>(new Set<string>());
 
-  // Reset messages when matchId changes
+  // Draft state belongs to the current conversation.
   if (matchId !== currentMatchId) {
-    setMessages(initialMessages);
     setCurrentMatchId(matchId);
     setNewMessage('');
     setIsSending(false);
@@ -59,16 +63,6 @@ export function ChatInterface({
     },
     [matchId],
   );
-
-  // Update messages when initial messages load
-  if (
-    matchId === currentMatchId &&
-    !isLoading &&
-    messages.length === 0 &&
-    initialMessages.length > 0
-  ) {
-    setMessages(initialMessages);
-  }
 
   // Clear marked messages when matchId changes
   useEffect(() => {
@@ -91,33 +85,29 @@ export function ChatInterface({
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    socket.emit('match:join', { matchId });
-
-    // Mark initial unread messages as read
-    initialMessages.forEach((msg) => {
-      if (!msg.readAt && msg.senderId !== currentUserId) {
-        markMessageAsRead(msg.id);
-      }
-    });
+    let active = true;
 
     const handleNewMessage = (message: Parameters<ServerToClientEvents['message:new']>[0]) => {
       if (message.matchId === matchId) {
-        setMessages((prev) => {
-          const exists = prev.some((m) => m.id === message.id);
-          if (exists) return prev;
-          return [...prev, { ...message, readAt: message.readAt ?? null }];
-        });
-
-        // Mark new message as read if it's from other user
-        if (message.senderId !== currentUserId) {
-          markMessageAsRead(message.id);
-        }
+        queryClient.setQueryData<Message[]>(['messages', matchId], (previous) =>
+          mergeSavedMessages(matchId, previous ?? [], [
+            { ...message, readAt: message.readAt ?? null },
+          ]),
+        );
       }
     };
 
     const handleMessageRead = (data: { messageId: string; readAt: string }) => {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === data.messageId ? { ...msg, readAt: data.readAt } : msg)),
+      queryClient.setQueryData<Message[]>(['messages', matchId], (previous) =>
+        previous
+          ? mergeSavedMessages(
+              matchId,
+              previous,
+              previous.map((message) =>
+                message.id === data.messageId ? { ...message, readAt: data.readAt } : message,
+              ),
+            )
+          : undefined,
       );
     };
 
@@ -138,22 +128,34 @@ export function ChatInterface({
     socket.on('typing:start', handleTypingStart);
     socket.on('typing:stop', handleTypingStop);
 
+    void socket
+      .timeout(5000)
+      .emitWithAck('match:join', { matchId })
+      .then((result) => {
+        if (!active) return;
+        if (result.ok || isUnmatched)
+          return queryClient.invalidateQueries({ queryKey: ['messages', matchId], exact: true });
+        toast.error('Unable to join live chat. Reconnect to try again.');
+      })
+      .catch(() => {
+        if (active) toast.error('Unable to reconnect to live chat.');
+      });
+
     return () => {
+      active = false;
       socket.off('message:new', handleNewMessage);
       socket.off('message:read', handleMessageRead);
       socket.off('typing:start', handleTypingStart);
       socket.off('typing:stop', handleTypingStop);
-      socket.emit('match:leave', { matchId });
+      if (socket.connected) socket.emit('match:leave', { matchId });
     };
-  }, [
-    socket,
-    isConnected,
-    matchId,
-    currentUserId,
-    otherUserId,
-    markMessageAsRead,
-    initialMessages,
-  ]);
+  }, [socket, isConnected, matchId, otherUserId, isUnmatched, queryClient]);
+
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (!message.readAt && message.senderId !== currentUserId) markMessageAsRead(message.id);
+    });
+  }, [messages, currentUserId, markMessageAsRead]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -217,10 +219,10 @@ export function ChatInterface({
         setSendError(result.message);
         return;
       }
-      setMessages((previousMessages) =>
-        previousMessages.some((message) => message.id === result.message.id)
-          ? previousMessages
-          : [...previousMessages, { ...result.message, readAt: result.message.readAt ?? null }],
+      queryClient.setQueryData<Message[]>(['messages', matchId], (previousMessages) =>
+        mergeSavedMessages(matchId, previousMessages ?? [], [
+          { ...result.message, readAt: result.message.readAt ?? null },
+        ]),
       );
       setNewMessage('');
       sendOperationRef.current = null;

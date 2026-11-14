@@ -50,7 +50,7 @@ export type ClientToServerEvents = {
   'message:read': (data: { messageId: string }) => void;
   'typing:start': (data: { matchId: string }) => void;
   'typing:stop': (data: { matchId: string }) => void;
-  'match:join': (data: { matchId: string }) => void;
+  'match:join': (data: { matchId: string }, acknowledge: (result: { ok: boolean }) => void) => void;
   'match:leave': (data: { matchId: string }) => void;
 };
 
@@ -126,42 +126,41 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
 
     console.log(`User connected: ${userId}`);
 
-    const profile = await db.profile.findUnique({
-      where: { userId },
-      select: { showOnlineStatus: true },
-    });
-
-    if (!socket.connected) return;
-
-    if (profile?.showOnlineStatus) {
-      socket.broadcast.emit('user:online', { userId });
-    }
-
     socket.join(`user:${userId}`);
 
-    socket.on('match:join', async ({ matchId }) => {
+    socket.on('match:join', async (payload, acknowledge) => {
       try {
+        const matchId = payload?.matchId;
+        if (typeof matchId !== 'string' || !matchId || matchId.length > 128) {
+          if (typeof acknowledge === 'function') acknowledge({ ok: false });
+          return;
+        }
         const match = await db.match.findUnique({
           where: { id: matchId },
           select: { user1Id: true, user2Id: true, status: true },
         });
 
         if (!match) {
+          if (typeof acknowledge === 'function') acknowledge({ ok: false });
           return;
         }
 
         if (match.status !== 'ACTIVE') {
+          if (typeof acknowledge === 'function') acknowledge({ ok: false });
           return;
         }
 
         if (match.user1Id !== userId && match.user2Id !== userId) {
+          if (typeof acknowledge === 'function') acknowledge({ ok: false });
           return;
         }
 
-        socket.join(`match:${matchId}`);
+        await socket.join(`match:${matchId}`);
+        if (typeof acknowledge === 'function') acknowledge({ ok: true });
         console.log(`User ${userId} joined match room: ${matchId}`);
-      } catch (error) {
-        console.error('Error joining match room:', error);
+      } catch {
+        console.error('Error joining match room');
+        if (typeof acknowledge === 'function') acknowledge({ ok: false });
       }
     });
 
@@ -298,6 +297,18 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
         socket.broadcast.emit('user:offline', { userId });
       }
     });
+
+    // Attach protected listeners before the first asynchronous profile lookup.
+    try {
+      const profile = await db.profile.findUnique({
+        where: { userId },
+        select: { showOnlineStatus: true },
+      });
+      if (!socket.connected) return;
+      if (profile?.showOnlineStatus) socket.broadcast.emit('user:online', { userId });
+    } catch {
+      console.error('Socket profile initialization failed');
+    }
   });
 
   return io;

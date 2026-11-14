@@ -95,7 +95,17 @@ test('connected sockets in all three runtimes reject revoked and expired session
         await connect(client);
         return client;
       }
-      const peer = await open(bob.cookie);
+      // Hold the real profile lookup: protected listeners must already accept joins.
+      const { peer, allowed } = await db.$transaction(
+        async (transaction) => {
+          await transaction.$executeRawUnsafe('LOCK TABLE "Profile" IN ACCESS EXCLUSIVE MODE');
+          const peer = await open(bob.cookie);
+          const allowed = await open(alice.cookie);
+          await joinRooms(allowed, peer, match.id);
+          return { peer, allowed };
+        },
+        { timeout: 15_000 },
+      );
       let forwardedTyping = 0;
       let delivered = 0;
       peer.on('typing:start', ({ userId }) => {
@@ -107,8 +117,6 @@ test('connected sockets in all three runtimes reject revoked and expired session
       peer.on('message:new', ({ matchId }) => {
         if (matchId === match.id) delivered++;
       });
-      const allowed = await open(alice.cookie);
-      await joinRooms(allowed, peer, match.id);
       allowed.emit(
         'message:send',
         {
@@ -143,7 +151,7 @@ test('connected sockets in all three runtimes reject revoked and expired session
           client.emit('message:read', { messageId: unread.id });
         },
         (client) => {
-          client.emit('match:join', { matchId: match.id });
+          client.emit('match:join', { matchId: match.id }, () => {});
         },
         (client) => {
           client.emit('match:leave', { matchId: match.id });
