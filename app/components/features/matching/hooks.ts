@@ -16,7 +16,7 @@ interface Match {
   };
 }
 
-interface MatchDetail {
+export interface MatchDetail {
   matchId: string;
   matchedAt: Date;
   status: 'ACTIVE' | 'UNMATCHED';

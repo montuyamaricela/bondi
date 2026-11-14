@@ -5,6 +5,7 @@ import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
+import { attachLiveMatchHandlers } from '@/lib/server/socket-live-match';
 import { setSocketInstance } from '@/lib/socket-instance';
 import type {
   ClientToServerEvents,
@@ -75,46 +76,7 @@ io.on('connection', async (socket) => {
 
   socket.join(`user:${userId}`);
 
-  socket.on('match:join', async (payload, acknowledge) => {
-    try {
-      const matchId = payload?.matchId;
-      if (typeof matchId !== 'string' || !matchId || matchId.length > 128) {
-        if (typeof acknowledge === 'function') acknowledge({ ok: false });
-        return;
-      }
-      const match = await db.match.findUnique({
-        where: { id: matchId },
-        select: { user1Id: true, user2Id: true, status: true },
-      });
-
-      if (!match) {
-        if (typeof acknowledge === 'function') acknowledge({ ok: false });
-        return;
-      }
-
-      if (match.status !== 'ACTIVE') {
-        if (typeof acknowledge === 'function') acknowledge({ ok: false });
-        return;
-      }
-
-      if (match.user1Id !== userId && match.user2Id !== userId) {
-        if (typeof acknowledge === 'function') acknowledge({ ok: false });
-        return;
-      }
-
-      await socket.join(`match:${matchId}`);
-      if (typeof acknowledge === 'function') acknowledge({ ok: true });
-      console.log(`User ${userId} joined match room: ${matchId}`);
-    } catch {
-      console.error('Error joining match room');
-      if (typeof acknowledge === 'function') acknowledge({ ok: false });
-    }
-  });
-
-  socket.on('match:leave', ({ matchId }) => {
-    socket.leave(`match:${matchId}`);
-    console.log(`User ${userId} left match room: ${matchId}`);
-  });
+  attachLiveMatchHandlers(io, socket);
 
   socket.on('message:send', async (payload, acknowledge) => {
     let saved = false;
@@ -174,62 +136,6 @@ io.on('connection', async (socket) => {
       }
       socket.emit('message:error', { code, message });
     }
-  });
-
-  socket.on('message:read', async ({ messageId }) => {
-    try {
-      const message = await db.message.findUnique({
-        where: { id: messageId },
-        select: {
-          id: true,
-          matchId: true,
-          senderId: true,
-          readAt: true,
-          match: {
-            select: { user1Id: true, user2Id: true },
-          },
-        },
-      });
-
-      if (!message) {
-        return;
-      }
-
-      if (message.match.user1Id !== userId && message.match.user2Id !== userId) {
-        return;
-      }
-
-      if (message.senderId === userId) {
-        return;
-      }
-
-      if (message.readAt) {
-        return;
-      }
-
-      const updatedMessage = await db.message.update({
-        where: { id: messageId },
-        data: { readAt: new Date() },
-        select: { id: true, readAt: true },
-      });
-
-      io.to(`match:${message.matchId}`).emit('message:read', {
-        messageId: updatedMessage.id,
-        readAt: updatedMessage.readAt!.toISOString(),
-      });
-
-      console.log(`Message ${messageId} marked as read by user ${userId}`);
-    } catch (error) {
-      console.error('Error marking message as read:', error);
-    }
-  });
-
-  socket.on('typing:start', ({ matchId }) => {
-    socket.to(`match:${matchId}`).emit('typing:start', { userId, matchId });
-  });
-
-  socket.on('typing:stop', ({ matchId }) => {
-    socket.to(`match:${matchId}`).emit('typing:stop', { userId, matchId });
   });
 
   socket.on('disconnect', async () => {

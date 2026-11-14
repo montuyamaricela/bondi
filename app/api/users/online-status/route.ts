@@ -15,13 +15,34 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userIds } = body;
 
-    if (!Array.isArray(userIds)) {
-      return NextResponse.json({ error: 'userIds must be an array' }, { status: 400 });
+    if (
+      !Array.isArray(userIds) ||
+      userIds.length > 100 ||
+      userIds.some((id) => typeof id !== 'string' || !id || id.length > 128)
+    ) {
+      return NextResponse.json(
+        { error: 'userIds must contain at most 100 valid IDs' },
+        { status: 400 },
+      );
     }
+
+    const matches = await db.match.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { user1Id: session.user.id, user2Id: { in: userIds } },
+          { user2Id: session.user.id, user1Id: { in: userIds } },
+        ],
+      },
+      select: { user1Id: true, user2Id: true },
+    });
+    const allowedIds = matches.map((match) =>
+      match.user1Id === session.user.id ? match.user2Id : match.user1Id,
+    );
 
     const profiles = await db.profile.findMany({
       where: {
-        userId: { in: userIds },
+        userId: { in: allowedIds },
       },
       select: {
         userId: true,

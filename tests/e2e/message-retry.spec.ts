@@ -24,6 +24,11 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     ),
   );
   const emails: string[] = [];
+  const trigger = `bondi_e2e_retry_${randomUUID().replaceAll('-', '')}`;
+  async function removeFailure() {
+    await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${trigger}" ON "Message"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
+  }
   try {
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);
@@ -214,12 +219,20 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
       .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
       .toBe(4);
 
-    await db.match.update({ where: { id: match.id }, data: { status: 'UNMATCHED' } });
+    // Keep the match active: ending it now correctly removes the composer.
+    // Restrict this real database failure to the generated synthetic match.
+    expect(match.id).toMatch(/^[A-Za-z0-9_-]+$/);
+    await db.$executeRawUnsafe(
+      `CREATE FUNCTION "${trigger}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."matchId" = '${match.id}' THEN RAISE EXCEPTION 'synthetic message write failure'; END IF; RETURN NEW; END; $$`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE TRIGGER "${trigger}" BEFORE INSERT ON "Message" FOR EACH ROW EXECUTE FUNCTION "${trigger}"()`,
+    );
     const rejectedDraft = 'Keep this draft after a rejected write';
     await page.getByRole('textbox', { name: 'Message', exact: true }).fill(rejectedDraft);
     await page.getByRole('button', { name: 'Send message', exact: true }).click();
     await expect(page.getByRole('alert', { name: 'Message send error' })).toContainText(
-      'active match',
+      'could not be sent',
     );
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue(
       rejectedDraft,
@@ -227,7 +240,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     expect(await db.message.count({ where: { matchId: match.id, content: rejectedDraft } })).toBe(
       0,
     );
-    await db.match.update({ where: { id: match.id }, data: { status: 'ACTIVE' } });
+    await removeFailure();
     await page.getByRole('button', { name: 'Retry send', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Message', exact: true })).toHaveValue('');
     expect(await db.message.count({ where: { matchId: match.id, content: rejectedDraft } })).toBe(
@@ -238,6 +251,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
       .poll(() => db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }))
       .toBe(5);
   } finally {
+    await removeFailure();
     for (const client of clients) client.disconnect();
     await Promise.all(contexts.map((context) => context.close()));
     await new Promise<void>((resolve) => {

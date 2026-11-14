@@ -29,9 +29,15 @@ The sample environment points sockets at the combined app server on port 3000.
 port 3001; point clients at it only when intentionally choosing that topology.
 Choose one topology explicitly before diagnosing real-time delivery.
 
-`lib/socket-instance.ts` stores an in-process singleton. Separate processes do not
+`lib/socket-instance.ts` stores a process-global singleton so Next route bundles
+and the combined custom server share the same instance. Separate processes do not
 share it. An HTTP handler emitting through that singleton does not establish
-delivery to clients connected to the other process.
+delivery to clients connected to the other process. Unmatch also reconciles the
+selected owner through the existing authenticated room-leave action after HTTP
+success; there is no cross-process event bus.
+HTTP online-status queries restrict results to active matches with visibility
+enabled before using that instance. Cross-tab aggregation and presence event
+audiences still need their own lifecycle repair.
 
 `lib/session.ts` owns the server session helper; browser components import the
 session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out of
@@ -74,6 +80,17 @@ receipts. Draft/attempt state stays local and separate. Each socket owner acknow
 an authorized room join after it completes; the chat refreshes history after that
 acknowledgement on initial subscription and reconnection, without listener churn
 on every history update.
+
+`lib/server/match-access.ts` owns member authorization and idempotent unmatching.
+`lib/server/socket-live-match.ts` shares the room/read/typing handlers across the
+three owners: only active members can communicate, while former participants
+retain authorized HTTP history. Unmatch publishes a participant-private status
+update and evicts the live room. The UI also leaves that room after HTTP success;
+the selected socket owner checks the stored status before reconciling its clients.
+The provider updates match state and both open chats become read-only. Session
+validation and listener registration ordering still apply before these handlers.
+`lib/app-error.ts` keeps domain error construction independent of Next HTTP imports
+so the same checks work in standalone socket processes.
 
 `lib/server/matching.ts` owns the mutual-like transition. A bounded retry around a
 Serializable transaction commits the like, canonical match and intended durable
