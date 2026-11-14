@@ -263,6 +263,15 @@ controls, search an unloaded conversation, and retain a live arrival during a he
 older-history response. Query-plan and payload-budget attachments are available in
 the Playwright report. See [tooling](docs/tooling.md) for the measured fixture budgets.
 
+Profile setup/edit cases exercise the same integer age, name/bio and tag collection
+rules through real authenticated writes. Tags accept 1–10 nonblank labels of at most
+100 characters, including custom values. Account name, profile and complete owned
+photo ordering commit together; a missing/foreign/duplicate/incomplete order is
+rejected. PostgreSQL profile/photo-update failures prove rollback and retry, and
+parallel edits retain a complete committed result. Browser age inputs keep decimals
+and blank values for validation. Existing stored values remain readable; profiles
+outside the shared write bounds require correction when edited.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,

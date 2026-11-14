@@ -179,6 +179,22 @@ response permits retry after an earlier remote deletion. The photo manager keeps
 the visible photo on failure and offers retry feedback. There is no background queue;
 the owned File is the durable cleanup reference until completion.
 
+`lib/profile-validation.ts` owns the shared setup/edit fields: integer age 18–100,
+name 2–50 and bio 10–500 characters, existing enums, and 1–10 interest/hobby labels.
+Each label is nonblank and at most 100 characters; custom values retain their exact
+content. Setup extends those fields with its existing optional image, and edit adds
+unique photo-order identifiers. Both numeric inputs keep decimals and cleared values
+for validation instead of truncating or substituting an age.
+
+`lib/server/profile.ts` owns profile creation and editing. A per-user row lock
+serializes related writes; account name and profile fields commit in one transaction.
+When photo order is supplied, it must contain the complete current owned key set,
+including an empty set only for an empty gallery. Ownership/set validation, account
+name, profile and every order update share the transaction. Missing concurrent file
+updates abort it. Returned photos reflect the same transaction. Failed writes leave
+prior state intact; explicit conflicts ask the editor to refresh saved photos.
+The six-photo upload quota and callback ordering remain the separate #34 slice.
+
 Onboarding waits for a resolved session before mounting its account-keyed form.
 `lib/client/profile-drafts.ts` owns draft key names and cleanup: retain only the
 current account's namespace, discard unowned legacy data, and clear all onboarding

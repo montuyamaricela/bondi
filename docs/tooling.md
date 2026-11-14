@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current thirty-seven-test browser
+While editing, run focused tests for fast feedback. The current forty-two-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -222,3 +222,16 @@ Prisma Date parameter is a different timestamp type on this PostgreSQL adapter.
 The test checks exact tied-ID boundaries under UTC, Asia/Manila and America/New_York.
 See [PostgreSQL timestamp input and conversion](https://www.postgresql.org/docs/16/datatype-datetime.html#DATATYPE-DATETIME-INPUT-TIMESTAMPS)
 and [Prisma v6 parameterized raw queries](https://www.prisma.io/docs/orm/v6/prisma-client/using-raw-sql/raw-queries).
+
+### Profile-write verification
+
+Five authenticated profile-write cases cover shared setup/edit limits, malformed
+JSON, strict integer age, 1–10 nonblank labels of at most 100 characters, custom
+label preservation, anonymous/expired sessions and forged owner IDs. Scoped
+PostgreSQL Profile-insert and File-update triggers prove that failed operations
+retain the prior account/profile/gallery state and that retry succeeds. Complete
+owned photo orders reject duplicates, omissions, stale/foreign keys and an empty
+order for a nonempty gallery. Parallel successful writes return each request's
+complete profile/order and leave one coherent final result. No storage provider is
+called. A browser verifies decimals and cleared ages in both forms and saves a valid
+edit through the normal interface. Pure schema tests keep both client forms aligned.

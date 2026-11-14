@@ -117,7 +117,9 @@ export function BasicInformationStep({
                     max="100"
                     className="bg-bg-input text-text-heading"
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 18)}
+                    value={Number.isFinite(field.value) ? field.value : ''}
+                    step={1}
+                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
                   />
                 </FormControl>
                 <FormMessage />
