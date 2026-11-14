@@ -30,6 +30,7 @@ model User {
   messageAttachments MessageAttachment[]
   messageDeliveries MessageDelivery[]
   sessions       Session[]
+  realtimeLeases RealtimeLease[]
   accounts       Account[]
   notifications  Notification[]
 
@@ -48,6 +49,8 @@ model Session {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  realtimeLeases RealtimeLease[]
 
   @@index([userId])
 }

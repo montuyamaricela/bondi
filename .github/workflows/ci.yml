@@ -77,7 +77,7 @@ jobs:
       - run: npm ci
       - run: npm run db:generate
       - name: Start owned disposable native Supabase stack
-        run: npm run supabase:start
+        run: npm run supabase:keys:prepare && npm run supabase:start
       - name: Prepare native target identity and private synthetic environment
         run: npm run supabase:test:prepare
       - name: Apply application migrations explicitly to disposable Supabase Postgres

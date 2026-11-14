@@ -89,7 +89,10 @@ These settings prepare the migration in [#74](https://github.com/montuyamaricela
 they do not change the live transport or provision/migrate a Supabase project.
 
 Native Supabase verification uses an explicitly prepared disposable local stack and
-an independent CI check. See [Supabase test setup](docs/supabase-testing.md) for pinned
+an independent CI check. The [private subscription contract](docs/realtime.md)
+documents explicit activation, session ownership and signing-key rotation while
+the remaining chat migration slices retain Socket.IO commands.
+See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
 
 Export the environment before running the custom Node entry points. In macOS/Linux:

@@ -1,0 +1,12 @@
+model RealtimeLease {
+  id        String   @id @default(cuid())
+  topic     String   @unique
+  userId    String
+  sessionId String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([sessionId])
+}
