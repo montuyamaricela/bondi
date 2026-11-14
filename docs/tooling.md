@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current eighteen-test browser
+While editing, run focused tests for fast feedback. The current twenty-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -76,7 +76,7 @@ case verifies account/profile preservation and rejected access after upgrades.
 The session lifecycle case verifies immediate HTTP rejection after revocation or
 expiry with retained signed cache cookies, plus valid session renewal.
 The socket lifecycle case exercises the combined, standalone, and library
-initializer owners: valid room/message/read behavior and all six incoming actions
+initializer owners: valid room/message/read behavior and all seven incoming actions
 after expiry/revocation. It verifies an auth error, disconnect, and no unauthorized
 message/read/typing side effects using real sessions and sockets.
 The message-write case verifies runtime payload parsing, the text limit and trimming,
@@ -109,6 +109,11 @@ The unmatch cases exercise actual sessions, PostgreSQL and all three socket owne
 allowed communication, foreign typing rejection, ended-match updates restricted to
 participants, live-action denial, and retained read-only history. Two open browser
 chats must both become read-only after one participant unmatches.
+The presence cases cover authorized initial snapshots and live audiences in all
+three owners, multi-tab aggregation, last disconnect, privacy retraction/re-enable,
+unmatch and expired-session filtering. The new presence request also participates
+in the session lifecycle matrix (42 rejected actions). Real chat/inbox indicators
+exercise navigation and privacy changes through the keyboard-accessible settings.
 The journeys use unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
 security audit or coverage of external storage uploads, swipe gestures, idle socket termination, or every

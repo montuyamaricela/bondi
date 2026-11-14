@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { getSocketInstance } from '@/lib/socket-instance';
+import { refreshPresence } from '@/lib/server/presence';
 
 const privacyUpdateSchema = z.object({
   showOnlineStatus: z.boolean().optional(),
@@ -28,6 +30,11 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    if (validated.showOnlineStatus !== undefined) {
+      await refreshPresence(getSocketInstance(), session.user.id).catch(() => {
+        console.error('Could not refresh privacy visibility');
+      });
+    }
     return NextResponse.json(profile);
   } catch (error) {
     console.error('Privacy update error:', error);

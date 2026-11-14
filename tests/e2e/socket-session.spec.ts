@@ -162,6 +162,9 @@ test('connected sockets in all three runtimes reject revoked and expired session
         (client) => {
           client.emit('typing:stop', { matchId: match.id });
         },
+        (client) => {
+          client.emit('presence:sync', { userIds: [bob.userId], refreshOwn: true }, () => {});
+        },
       ];
       for (const [actionIndex, action] of actions.entries()) {
         for (const [modeIndex, mode] of ['revoked', 'expired'].entries()) {

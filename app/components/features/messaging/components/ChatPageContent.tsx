@@ -55,7 +55,6 @@ export function ChatPageContent({ matchId, currentUserId }: ChatPageContentProps
           image={match.otherUser.image}
           userId={match.otherUser.id}
           matchId={matchId}
-          showOnlineStatus={match.status === 'ACTIVE' && match.otherUser.showOnlineStatus}
           isUnmatched={match.status === 'UNMATCHED'}
         />
         <ChatInterface

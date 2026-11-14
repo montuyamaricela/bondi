@@ -20,6 +20,16 @@ export function notifyMatchEnded(io: SocketServer | null, match: Match) {
       status: 'UNMATCHED',
     });
     io.in(`match:${match.id}`).socketsLeave(`match:${match.id}`);
+    io.to(`user:${match.user1Id}`).emit('presence:updated', {
+      userId: match.user2Id,
+      visible: false,
+      online: false,
+    });
+    io.to(`user:${match.user2Id}`).emit('presence:updated', {
+      userId: match.user1Id,
+      visible: false,
+      online: false,
+    });
   } catch {
     console.error('Could not refresh ended match connections');
   }

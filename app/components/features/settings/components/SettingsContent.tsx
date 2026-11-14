@@ -8,6 +8,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { useGeolocation } from '@/app/components/hooks/useGeolocation';
 import { Button } from '@/app/components/ui/button';
 import { api } from '@/lib/fetch-wrapper';
+import { useSocket } from '@/app/components/providers/socket-provider';
 
 interface SettingsContentProps {
   user: {
@@ -25,6 +26,7 @@ interface SettingsContentProps {
 }
 
 export function SettingsContent({ user, profile }: SettingsContentProps) {
+  const { socket, isConnected } = useSocket();
   const router = useRouter();
   const { requestLocation, isLoading: isLoadingLocation } = useGeolocation();
 
@@ -41,6 +43,12 @@ export function SettingsContent({ user, profile }: SettingsContentProps) {
       setPrivacySettings(newSettings);
 
       await api.patch('/api/profile/privacy', { [key]: value });
+      if (key === 'showOnlineStatus' && socket && isConnected) {
+        void socket
+          .timeout(5000)
+          .emitWithAck('presence:sync', { userIds: [], refreshOwn: true })
+          .catch(() => {});
+      }
       toast.success('Privacy setting updated');
     } catch {
       setPrivacySettings(privacySettings);
