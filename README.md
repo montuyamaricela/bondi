@@ -167,6 +167,10 @@ New chat sends keep their draft until a durable acknowledgement. Failed/uncertai
 sends can be retried in the open chat using the same operation ID. Legacy callers
 without an ID remain supported but cannot receive deduplication guarantees. This
 does not guarantee delivery across process crashes or persist drafts across page reloads.
+The recovery case disconnects a browser with populated history and a draft, sends
+missed messages from its peer, and reconnects without reloading. Room joins are
+acknowledged before history refresh. A delayed older HTTP snapshot cannot erase a
+newer live message; both views converge in order without duplicates and keep the draft.
 
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts

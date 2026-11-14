@@ -128,8 +128,16 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
     const page = await contexts[0].newPage();
     let websocketReady = false;
     let dropped = false;
+    let allowReconnect = false;
     const operationIds: string[] = [];
+    await page.route('**/socket.io/**', (route) =>
+      dropped && !allowReconnect ? route.abort() : route.continue(),
+    );
     await page.routeWebSocket('**/socket.io/**', (route) => {
+      if (dropped && !allowReconnect) {
+        void route.close();
+        return;
+      }
       const upstream = route.connectToServer();
       route.onMessage((data) => {
         const frame = data.toString();
@@ -170,6 +178,7 @@ test('concurrent retries persist once and a lost acknowledgement leaves a recove
       page.getByRole('log', { name: 'Conversation messages' }).getByText(content, { exact: true }),
     ).toHaveCount(0);
     await expect.poll(() => db.message.count({ where: { matchId: match.id, content } })).toBe(1);
+    allowReconnect = true;
     const retry = page.getByRole('button', { name: 'Retry send', exact: true });
     await expect(retry).toBeEnabled();
     await expect.poll(() => websocketReady).toBe(true);

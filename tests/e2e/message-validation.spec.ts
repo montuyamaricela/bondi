@@ -107,6 +107,10 @@ test('HTTP and all socket owners validate text and resolve owned attachment meta
       const actor = await socket(url, alice.token);
       const peer = await socket(url, bob.token);
       const nonmember = await socket(url, outsider.token);
+      expect(await actor.timeout(5000).emitWithAck('match:join', null)).toEqual({ ok: false });
+      expect(
+        await actor.timeout(5000).emitWithAck('match:join', { matchId: 'missing-match' }),
+      ).toEqual({ ok: false });
       await joinRooms(actor, peer, match.id);
       transports.push({
         name: url,

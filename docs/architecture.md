@@ -64,6 +64,14 @@ The chat keeps a pending draft until acknowledgement and reuses its operation ID
 after failure/connection loss. Drafts live in the mounted chat; a crash-safe outbox
 and durable notification delivery are separate concerns.
 
+The React Query message cache owns saved chat state. HTTP history, live messages,
+saved acknowledgements and read receipts reconcile there by message ID, ordered by
+creation time then ID. Late history responses retain newer live messages/read
+receipts. Draft/attempt state stays local and separate. Each socket owner acknowledges
+an authorized room join after it completes; the chat refreshes history after that
+acknowledgement on initial subscription and reconnection, without listener churn
+on every history update.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

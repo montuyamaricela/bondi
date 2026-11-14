@@ -143,7 +143,7 @@ test('connected sockets in all three runtimes reject revoked and expired session
           client.emit('message:read', { messageId: unread.id });
         },
         (client) => {
-          client.emit('match:join', { matchId: match.id });
+          client.emit('match:join', { matchId: match.id }, () => {});
         },
         (client) => {
           client.emit('match:leave', { matchId: match.id });
