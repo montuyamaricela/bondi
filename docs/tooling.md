@@ -66,7 +66,7 @@ The hook never migrates or seeds a database. Missing setup blocks runtime commit
 with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
 and standalone servers. The initializer test owns and closes an ephemeral listener.
 
-While editing, run focused tests for fast feedback. The current twenty-eight-test browser
+While editing, run focused tests for fast feedback. The current thirty-one-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
@@ -160,3 +160,11 @@ A real browser selects a library socket owner while HTTP stays on the combined a
 A PostgreSQL completion-failure trigger causes repeated hints; the same owned browser
 connection shows one notification and recovers its pending intent after owner restart.
 Only the OS notification adapter is replaced; auth, database and socket traffic are real.
+
+The discovery selection cases use actual sessions and PostgreSQL candidates to
+exercise eligible candidate 51 and a second 100-row batch, zero coordinates,
+mutual preferences across all gender values, private/unknown distance, and handled
+or active-match exclusions. Invalid/partial filters and missing-location responses
+use the public API. A browser applies a distance filter, follows actionable error
+controls and removes the filter without reloading. The old automatic permission
+request is suppressed only in this fixture; its lifecycle remains tracked in #35.

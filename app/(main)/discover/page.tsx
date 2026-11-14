@@ -9,7 +9,9 @@ import { FilterPanel } from '@/app/components/features/discover/components/Filte
 import { useDiscoverProfiles, useLikeActionMutation } from '@/lib/client/discover';
 import { useNotifications } from '@/app/components/hooks/useNotifications';
 import { useGeolocation } from '@/app/components/hooks/useGeolocation';
-import { api } from '@/lib/fetch-wrapper';
+import Link from 'next/link';
+import { Button } from '@/app/components/ui/button';
+import { api, FetchError } from '@/lib/fetch-wrapper';
 import type { DiscoverFilters, MatchNotification } from '@/app/components/features/discover/types';
 
 export default function DiscoverPage() {
@@ -54,6 +56,12 @@ export default function DiscoverPage() {
   }, [requestLocation, hasRequestedLocation]);
 
   const currentProfile = profiles?.[currentProfileIndex];
+  const locationRequired =
+    error instanceof FetchError &&
+    !!error.data &&
+    typeof error.data === 'object' &&
+    'code' in error.data &&
+    error.data.code === 'LOCATION_REQUIRED';
 
   const handleLike = async () => {
     if (!currentProfile) return;
@@ -139,7 +147,27 @@ export default function DiscoverPage() {
 
         {error && (
           <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4">
-            <p className="text-error">Failed to load profiles</p>
+            {locationRequired ? (
+              <div role="alert" className="flex flex-col items-center gap-3 text-center">
+                <p className="text-text-muted">
+                  Enable or refresh your location in Settings to use a distance filter.
+                </p>
+                <Link href="/settings" className="text-primary-main underline">
+                  Location settings
+                </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFilters((previous) => ({ ...previous, distance: undefined }))}
+                >
+                  Remove distance filter
+                </Button>
+              </div>
+            ) : (
+              <p role="alert" className="text-error">
+                Failed to load profiles
+              </p>
+            )}
           </div>
         )}
 
