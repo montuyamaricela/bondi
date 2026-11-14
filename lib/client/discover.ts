@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/fetch-wrapper';
+import { api, FetchError } from '@/lib/fetch-wrapper';
 import type {
   DiscoverableProfile,
   LikeActionRequest,
@@ -27,6 +27,10 @@ export function useDiscoverProfiles(filters: DiscoverFilters) {
       return await api.get<DiscoverableProfile[]>(url);
     },
     staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) =>
+      error instanceof FetchError && error.status >= 400 && error.status < 500
+        ? false
+        : failureCount < 3,
   });
 }
 

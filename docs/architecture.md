@@ -162,6 +162,21 @@ submission continuations and redirect timers stop when the account form unmounts
 Private values and storage keys are omitted from error logs. Auth identity refresh
 on returning to a tab remounts the form when the account changes.
 
+`lib/server/discovery.ts` selects and ranks the feed. The HTTP route validates
+integer age/radius filters through the shared schema and requires saved viewer
+coordinates for a radius. Database predicates apply both stored gender preferences,
+handled-user and active-match exclusions. A deterministic ID cursor scans 100-row
+batches, applies distance eligibility and retains only the ten highest scores with
+an ID tie-breaker. Eligibility precedes the final limit; memory remains bounded,
+although broad discovery still scans all eligible candidates. Consider spatial
+indexes/database ranking when measured traffic warrants that optimization.
+Zero coordinates are valid; missing distance is excluded only under a radius.
+Explicit serialization omits coordinates/auth data and suppresses numeric distance
+when hidden. This display setting still allows location to influence ranking.
+The browser exposes a settings link or filter removal for LOCATION_REQUIRED and
+does not retry deterministic client errors. Location acquisition and feed transition
+ownership remain separate slices (#35 and #30).
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,

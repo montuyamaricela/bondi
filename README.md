@@ -235,6 +235,13 @@ hints without duplicate browser notifications, and a fresh socket owner recovers
 pending intent from PostgreSQL. Socket traffic selects the library owner while HTTP
 stays on the combined app; only the OS notification adapter is replaced.
 
+Discovery selection cases cover candidates beyond the original 50-row cutoff and
+across deterministic batches, mutual preferences for all gender values, zero and
+unknown coordinates, hidden distance, handled/active-match exclusions, invalid and
+partial age/radius filters, and missing-location feedback. The browser applies and
+removes a distance filter through the live interface. Exact coordinates remain
+absent from public results; missing location can still participate without a radius.
+
 Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,

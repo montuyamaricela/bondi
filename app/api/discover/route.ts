@@ -3,10 +3,12 @@ import { getServerSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { handleApiError } from '@/lib/errors';
 import { recordDiscoveryAction } from '@/lib/server/matching';
-import { likeActionSchema } from '@/app/components/features/discover/validation';
-import { calculateDistance } from '@/lib/geolocation';
+import {
+  likeActionSchema,
+  discoverFiltersSchema,
+} from '@/app/components/features/discover/validation';
+import { discoverProfiles } from '@/lib/server/discovery';
 import { getSocketInstance } from '@/lib/socket-instance';
-import { calculateCompatibilityScore } from '@/lib/matching-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,10 +18,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const minAge = searchParams.get('minAge');
-    const maxAge = searchParams.get('maxAge');
-    const maxDistance = searchParams.get('distance');
+    const params = request.nextUrl.searchParams;
+    const fields = ['minAge', 'maxAge', 'distance'] as const;
+    const validation = discoverFiltersSchema.safeParse(
+      Object.fromEntries(
+        fields.map((key) => {
+          const value = params.get(key);
+          return [key, value === null ? undefined : /^\d+$/.test(value) ? Number(value) : NaN];
+        }),
+      ),
+    );
+    if (!validation.success || fields.some((key) => params.getAll(key).length > 1))
+      return NextResponse.json(
+        {
+          error:
+            'Use integer age bounds from 18–100 and a distance from 1–500 km; minimum age must not exceed maximum age.',
+          code: 'INVALID_FILTERS',
+        },
+        { status: 400 },
+      );
 
     const currentUserId = session.user.id;
 
@@ -34,116 +51,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const alreadyInteractedWith: { targetUserId: string }[] = await db.like.findMany({
-      where: { userId: currentUserId },
-      select: { targetUserId: true },
-    });
-
-    const interactedUserIds = alreadyInteractedWith.map((like) => like.targetUserId);
-
-    const matchedUserIds: { user1Id: string; user2Id: string }[] = await db.match.findMany({
-      where: {
-        OR: [{ user1Id: currentUserId }, { user2Id: currentUserId }],
-        status: 'ACTIVE',
-      },
-      select: { user1Id: true, user2Id: true },
-    });
-
-    const matchedIds = matchedUserIds.flatMap((match) => [match.user1Id, match.user2Id]);
-
-    const excludedIds = [...new Set([...interactedUserIds, ...matchedIds, currentUserId])];
-
-    const ageFilter =
-      minAge && maxAge
-        ? {
-            age: {
-              gte: parseInt(minAge),
-              lte: parseInt(maxAge),
-            },
-          }
-        : {};
-
-    const genderFilter =
-      currentUserProfile.genderPreference && currentUserProfile.genderPreference !== 'EVERYONE'
-        ? { gender: currentUserProfile.genderPreference as 'MALE' | 'FEMALE' }
-        : {};
-
-    const profiles = await db.profile.findMany({
-      where: {
-        userId: {
-          notIn: excludedIds,
+    if (
+      validation.data.distance !== undefined &&
+      (currentUserProfile.latitude === null || currentUserProfile.longitude === null)
+    )
+      return NextResponse.json(
+        {
+          error: 'Enable or refresh your location in Settings to use a distance filter.',
+          code: 'LOCATION_REQUIRED',
         },
-        ...ageFilter,
-        ...genderFilter,
-      },
-      include: {
-        user: {
-          include: {
-            files: {
-              orderBy: {
-                createdAt: 'asc',
-              },
-            },
-          },
-        },
-      },
-      take: 50,
-    });
-
-    const profilesWithScores = profiles
-      .map((profile) => {
-        let distance: number | null = null;
-
-        if (
-          profile.latitude &&
-          profile.longitude &&
-          currentUserProfile.latitude &&
-          currentUserProfile.longitude
-        ) {
-          distance = calculateDistance(
-            { latitude: currentUserProfile.latitude, longitude: currentUserProfile.longitude },
-            { latitude: profile.latitude, longitude: profile.longitude },
-          );
-        }
-
-        if (maxDistance && distance !== null && distance > parseInt(maxDistance)) {
-          return null;
-        }
-
-        const compatibilityScore = calculateCompatibilityScore(currentUserProfile, profile);
-
-        const distanceScore = distance !== null ? Math.max(0, 100 - distance / 5) : 0;
-        const finalScore = compatibilityScore * 0.7 + distanceScore * 0.3;
-
-        return {
-          id: profile.id,
-          userId: profile.userId,
-          name: profile.name,
-          age: profile.age,
-          bio: profile.bio,
-          gender: profile.gender,
-          location: profile.location,
-          interests: profile.interests,
-          hobbies: profile.hobbies,
-          lookingFor: profile.lookingFor,
-          relationshipType: profile.relationshipType,
-          showDistance: profile.showDistance,
-          distance: profile.showDistance ? distance : null,
-          photos: profile.user.files.map((file) => ({
-            id: file.id,
-            url: file.url,
-            key: file.key,
-          })),
-          compatibilityScore: finalScore,
-        };
-      })
-      .filter((profile): profile is NonNullable<typeof profile> => profile !== null);
-
-    const rankedProfiles = profilesWithScores
-      .sort((a, b) => b.compatibilityScore - a.compatibilityScore)
-      .slice(0, 10);
-
-    return NextResponse.json(rankedProfiles);
+        { status: 422 },
+      );
+    return NextResponse.json(await discoverProfiles(currentUserProfile, validation.data));
   } catch (error) {
     return handleApiError(error);
   }
