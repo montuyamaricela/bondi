@@ -33,9 +33,9 @@ Choose one topology explicitly before diagnosing real-time delivery.
 share it. An HTTP handler emitting through that singleton does not establish
 delivery to clients connected to the other process.
 
-`lib/session.ts` currently exports both a server session helper and a client hook.
-Preserve the caller behavior while establishing separate browser/server imports in
-a future slice. Middleware performs server auth/profile lookups. Run browser checks against
+`lib/session.ts` owns the server session helper; browser components import the
+session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out of
+browser bundles. Middleware performs server auth/profile lookups. Run browser checks against
 a disposable test PostgreSQL instance to keep any session-dependent queries isolated.
 
 ## Structural work after the harness

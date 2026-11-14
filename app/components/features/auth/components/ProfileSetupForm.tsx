@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useSession } from '@/lib/session';
+import { useSession } from '@/lib/auth-client';
 import { profileSetupSchema } from '../validation';
 import type { ProfileSetupFormData, ProfileStep } from '../types';
 import { getFieldsToValidate } from '../types';
@@ -83,9 +83,9 @@ export function ProfileSetupForm() {
     try {
       const fieldsToValidate = getFieldsToValidate(step as ProfileStep);
 
-      const stepSchema = profileSetupSchema.pick(
-        Object.fromEntries(fieldsToValidate.map((field) => [field, true as const])),
-      );
+      const fieldMask: Partial<Record<keyof ProfileSetupFormData, true>> = {};
+      for (const field of fieldsToValidate) fieldMask[field] = true;
+      const stepSchema = profileSetupSchema.pick(fieldMask);
 
       stepSchema.parse(dataToValidate);
       return true;

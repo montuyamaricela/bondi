@@ -65,13 +65,14 @@ run, and install Chromium with `npx --no-install playwright install chromium`.
 The hook never migrates or seeds a database. Missing setup blocks runtime commits
 with a setup message. Keep port 3100 free for the hook's owned server.
 
-While editing, run focused tests for fast feedback. The current seven-test browser
+While editing, run focused tests for fast feedback. The current eight-test browser
 suite is small enough for the commit gate; revisit a smaller commit smoke suite
 plus fuller CI coverage if the suite grows substantially. CI still runs its own
 checks and E2E independently. Add journeys for changed acceptance behavior; the
 authenticated journey covers onboarding, mutual likes through the API, live two-user
-chat and history, and outsider HTTP/socket denial. It runs against the combined
-server with unique synthetic accounts and targeted cleanup. Use a local database
+chat and history, and outsider HTTP/socket denial. A separate legacy-credential
+case verifies account/profile preservation and rejected access after upgrades.
+They run against the combined server with unique synthetic accounts and targeted cleanup. Use a local database
 with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
 security audit or coverage of uploads, swipe gestures, session expiry, or every
 socket lifecycle event. See README for the exercised boundaries.
@@ -79,7 +80,11 @@ socket lifecycle event. See README for the exercised boundaries.
 Pre-push runs type checking, strict lint, and formatting checks. It does not apply
 migrations, push on its own, or replace the full verification command. CI runs
 `npm run check`, which now includes `format:check` alongside harness integrity,
-tests, schema validation, types, lint, and production build. Browser tests remain
+tests, schema validation, types, lint, and production build. It also runs
+`npm run audit:critical`; a critical audit result or registry failure blocks the
+gate for review. Audit severities are not claims of exploitability. Lower-severity
+findings remain visible and need triage rather than forced major-version fixes.
+Browser tests remain
 a separate built-app gate.
 
 ## Baseline cleanup

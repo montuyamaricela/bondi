@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const checks = [
   'check:harness',
+  'audit:critical',
   'format:check',
   'test',
   'db:validate',
