@@ -12,6 +12,7 @@ import {
 } from '../../lib/socket';
 
 import { connect, joinRooms } from './socket-helpers';
+import { privateHintObserver } from '../helpers/realtime-observer';
 
 type Client = Socket<ServerToClientEvents, ClientToServerEvents>;
 test.use({ extraHTTPHeaders: { 'x-forwarded-for': '192.0.2.18' } });
@@ -26,6 +27,7 @@ test('connected sockets in all three runtimes reject revoked and expired session
   const httpServer = createServer();
   const initializer = initializeSocket(httpServer);
   const clients: Client[] = [];
+  const observers: Array<Awaited<ReturnType<typeof privateHintObserver>>> = [];
   const emails: string[] = [];
   const password = 'SyntheticSocketPassword42!';
   try {
@@ -107,15 +109,23 @@ test('connected sockets in all three runtimes reject revoked and expired session
       );
       let forwardedTyping = 0;
       let delivered = 0;
+      if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
+        const observer = await privateHintObserver(request, { Cookie: bob.cookie });
+        observers.push(observer);
+        observer.onHint(() => {
+          delivered++;
+        });
+      }
       peer.on('typing:start', ({ userId }) => {
         if (userId === alice.userId) forwardedTyping++;
       });
       peer.on('typing:stop', ({ userId }) => {
         if (userId === alice.userId) forwardedTyping++;
       });
-      peer.on('message:new', ({ matchId }) => {
-        if (matchId === match.id) delivered++;
-      });
+      if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME !== 'true')
+        peer.on('message:new', ({ matchId }) => {
+          if (matchId === match.id) delivered++;
+        });
       allowed.emit(
         'message:send',
         {
@@ -224,6 +234,7 @@ test('connected sockets in all three runtimes reject revoked and expired session
       peer.disconnect();
     }
   } finally {
+    await Promise.allSettled(observers.map((observer) => observer.close()));
     for (const client of clients) client.disconnect();
     await new Promise<void>((resolve) => {
       initializer.close(() => resolve());

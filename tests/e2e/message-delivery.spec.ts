@@ -6,6 +6,8 @@ import { expect, test, type Browser, type BrowserContext } from '@playwright/tes
 import { io, type Socket } from 'socket.io-client';
 import { initializeSocket } from '../../lib/socket';
 import { connect } from './socket-helpers';
+import { privateHintObserver } from '../helpers/realtime-observer';
+import { publishRealtimeHint } from '../../lib/server/realtime';
 
 async function participants(browser: Browser, baseURL: string, offset: number) {
   assertTestDatabase();
@@ -83,6 +85,7 @@ test('HTTP and socket sends update both private inbox streams in every owner wit
   const initializer = initializeSocket(server);
   const clients: Socket[] = [];
   const fixtures: Array<Awaited<ReturnType<typeof participants>>> = [];
+  const observers: Array<Awaited<ReturnType<typeof privateHintObserver>>> = [];
   try {
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);
@@ -112,6 +115,119 @@ test('HTTP and socket sends update both private inbox streams in every owner wit
       );
       peer.on('notification:new', (notification) => notifications.push(notification));
       outsider.on('notification:new', () => foreignNotifications++);
+      if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
+        const native = await Promise.all(
+          [contexts[0], contexts[1], contexts[0], contexts[2]].map((context) =>
+            privateHintObserver(context.request),
+          ),
+        );
+        observers.push(...native);
+        for (const transport of ['HTTP', 'socket']) {
+          const before = native.map((observer) => observer.hints);
+          const payload = {
+            matchId: match.id,
+            content: `Native off-room ${transport} runtime ${runtime}`,
+            clientRequestId: randomUUID(),
+          };
+          let id: string;
+          if (transport === 'HTTP') {
+            const response = await contexts[0].request.post('/api/messages', { data: payload });
+            expect(response.status()).toBe(201);
+            id = (await response.json()).id;
+          } else {
+            const result = await actor.timeout(5000).emitWithAck('message:send', payload);
+            expect(result.ok).toBe(true);
+            id = result.message.id;
+          }
+          for (const index of [0, 1, 2])
+            await expect.poll(() => native[index].hints).toBeGreaterThan(before[index]);
+          for (const context of contexts.slice(0, 2)) {
+            const history = await context.request.get(`/api/messages?matchId=${match.id}`);
+            expect(history.status()).toBe(200);
+            expect(
+              (await history.json()).items.some((message: { id: string }) => message.id === id),
+            ).toBe(true);
+            const inbox = await context.request.get('/api/matches/conversations');
+            expect(inbox.status()).toBe(200);
+            expect(JSON.stringify((await inbox.json()).items)).toContain(id);
+          }
+          const stored = await db.notification.findMany({
+            where: { userId: people[1].id, type: 'MESSAGE', entityId: match.id },
+          });
+          expect(stored).toHaveLength(transport === 'HTTP' ? 1 : 2);
+          const replay = await contexts[0].request.post('/api/messages', { data: payload });
+          expect(replay.status()).toBe(201);
+          expect((await replay.json()).id).toBe(id);
+          expect(
+            await db.message.count({
+              where: { matchId: match.id, clientRequestId: payload.clientRequestId },
+            }),
+          ).toBe(1);
+          expect(
+            await db.notification.count({ where: { entityId: match.id, type: 'MESSAGE' } }),
+          ).toBe(stored.length);
+          expect(
+            await db.messageDelivery.count({
+              where: { messageId: id, excludedSocketId: { not: null } },
+            }),
+          ).toBe(0);
+        }
+        expect(
+          (
+            await contexts[2].request.post('/api/messages', {
+              data: { matchId: match.id, content: 'Foreign send' },
+            })
+          ).status(),
+        ).toBe(403);
+        expect(
+          (
+            await request.post('/api/messages', {
+              data: { matchId: match.id, content: 'Missing session' },
+            })
+          ).status(),
+        ).toBe(401);
+        const receiverHints = native[1].hints;
+        await db.session.updateMany({
+          where: { userId: people[1].id },
+          data: { expiresAt: new Date(0) },
+        });
+        const senderHints = native[2].hints;
+        expect(
+          (
+            await contexts[0].request.post('/api/messages', {
+              data: {
+                matchId: match.id,
+                content: 'Only valid native sessions receive hints',
+                clientRequestId: randomUUID(),
+              },
+            })
+          ).status(),
+        ).toBe(201);
+        await expect.poll(() => native[2].hints).toBeGreaterThan(senderHints);
+        expect(native[1].hints).toBe(receiverHints);
+        expect(native[3].hints).toBe(0);
+        expect(messages.map((set) => set.size)).toEqual([0, 0, 0]);
+        expect(otherDeviceMessages.size).toBe(0);
+        expect(notifications).toHaveLength(0);
+        expect(foreignNotifications).toBe(0);
+        expect(
+          await db.notification.count({ where: { userId: people[0].id, type: 'MESSAGE' } }),
+        ).toBe(0);
+        expect((await contexts[0].request.patch(`/api/matches/${match.id}/unmatch`)).status()).toBe(
+          200,
+        );
+        expect(
+          (
+            await contexts[0].request.post('/api/messages', {
+              data: { matchId: match.id, content: 'No communication after unmatch' },
+            })
+          ).status(),
+        ).toBe(403);
+        expect(await db.message.count({ where: { matchId: match.id } })).toBe(3);
+        for (const client of [actor, peer, otherDevice, outsider]) client.disconnect();
+        for (const observer of native) await observer.close();
+        continue;
+      }
       for (const transport of ['HTTP', 'socket']) {
         const payload = {
           matchId: match.id,
@@ -202,6 +318,7 @@ test('HTTP and socket sends update both private inbox streams in every owner wit
       for (const client of [actor, peer, otherDevice, outsider]) client.disconnect();
     }
   } finally {
+    await Promise.allSettled(observers.map((observer) => observer.close()));
     for (const client of clients) client.disconnect();
     await new Promise<void>((resolve) => {
       initializer.close(() => resolve());
@@ -211,6 +328,127 @@ test('HTTP and socket sends update both private inbox streams in every owner wit
 });
 
 type NotificationWindow = typeof window & { deliveryNotificationsShown: number };
+
+async function nativeRecovery(fixture: Awaited<ReturnType<typeof participants>>) {
+  const { db, contexts, people, match } = fixture;
+  const trigger = `bondi_e2e_native_${randomUUID().replaceAll('-', '')}`;
+  const removeFailure = async () => {
+    await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${trigger}" ON "MessageDelivery"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
+  };
+  let observer: Awaited<ReturnType<typeof privateHintObserver>> | undefined;
+  let paused = false;
+  try {
+    const historical = await contexts[0].request.post('/api/messages', {
+      data: {
+        matchId: match.id,
+        content: 'Stored while both native browsers were offline',
+        clientRequestId: randomUUID(),
+      },
+    });
+    expect(historical.status()).toBe(201);
+    await contexts[1].addInitScript(() => {
+      localStorage.setItem('notificationSettings', JSON.stringify({ messageNotifications: true }));
+      (window as NotificationWindow).deliveryNotificationsShown = 0;
+      Object.defineProperty(window, 'Notification', {
+        configurable: true,
+        value: class {
+          static permission = 'granted';
+          constructor() {
+            (window as NotificationWindow).deliveryNotificationsShown++;
+          }
+        },
+      });
+    });
+    const page = await contexts[1].newPage();
+    let subscribed = false;
+    page.on('websocket', (socket) => {
+      if (new URL(socket.url()).pathname !== '/realtime/v1/websocket') return;
+      socket.on('framereceived', ({ payload }) => {
+        const frame = String(payload);
+        if (frame.includes('"phx_reply"') && frame.includes('"status":"ok"')) subscribed = true;
+      });
+    });
+    await page.goto('/messages');
+    await expect(page.locator(`a[href="/messages/${match.id}"]`)).toBeVisible();
+    await expect.poll(() => subscribed).toBe(true);
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator(`a[href="/messages/${match.id}"]`)).toContainText(
+      'Stored while both native browsers were offline',
+    );
+    expect(
+      await page.evaluate(() => (window as NotificationWindow).deliveryNotificationsShown),
+    ).toBe(0);
+    observer = await privateHintObserver(contexts[1].request);
+    await db.$queryRaw`SELECT cron.unschedule('bondi-message-delivery')`;
+    paused = true;
+    expect(people[1].id).toMatch(/^[A-Za-z0-9_-]+$/);
+    await db.$executeRawUnsafe(
+      `CREATE FUNCTION "${trigger}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."userId" = '${people[1].id}' AND NEW."completedAt" IS NOT NULL THEN RAISE EXCEPTION 'synthetic native completion failure'; END IF; RETURN NEW; END; $$`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE TRIGGER "${trigger}" BEFORE UPDATE ON "MessageDelivery" FOR EACH ROW EXECUTE FUNCTION "${trigger}"()`,
+    );
+    const content = 'Recover committed native delivery after managed relay restart';
+    const payload = { matchId: match.id, content, clientRequestId: randomUUID() };
+    const response = await contexts[0].request.post('/api/messages', { data: payload });
+    expect(response.status()).toBe(201);
+    const message = await response.json();
+    const key = { messageId_userId: { messageId: message.id, userId: people[1].id } };
+    expect(await db.messageDelivery.findUniqueOrThrow({ where: key })).toMatchObject({
+      completedAt: null,
+      attempts: 1,
+    });
+    expect(observer.hints).toBe(0);
+    await db.messageDelivery.update({ where: key, data: { nextAttemptAt: new Date(0) } });
+    const claims = await Promise.all(
+      [0, 1].map(
+        () =>
+          db.$queryRaw<
+            Array<{ processed: number }>
+          >`SELECT bondi_private.dispatch_message_hints(${message.id}) AS processed`,
+      ),
+    );
+    expect(claims.reduce((count, rows) => count + rows[0].processed, 0)).toBe(1);
+    expect(await db.messageDelivery.findUniqueOrThrow({ where: key })).toMatchObject({
+      completedAt: null,
+      attempts: 2,
+    });
+    expect(observer.hints).toBe(0);
+    await removeFailure();
+    await db.messageDelivery.update({ where: key, data: { nextAttemptAt: new Date(0) } });
+    await db.$queryRaw`SELECT cron.schedule('bondi-message-delivery', '1 second', 'SELECT bondi_private.dispatch_message_hints()')`;
+    paused = false;
+    await expect
+      .poll(
+        async () =>
+          (await db.messageDelivery.findUniqueOrThrow({ where: key })).completedAt instanceof Date,
+      )
+      .toBe(true);
+    await expect.poll(() => observer!.hints).toBeGreaterThan(0);
+    await expect(page.locator(`a[href="/messages/${match.id}"]`)).toContainText(content);
+    await expect
+      .poll(() => page.evaluate(() => (window as NotificationWindow).deliveryNotificationsShown))
+      .toBe(1);
+    await Promise.all([publishRealtimeHint(people[1].id), publishRealtimeHint(people[1].id)]);
+    await expect.poll(() => observer!.hints).toBeGreaterThanOrEqual(3);
+    expect(
+      await page.evaluate(() => (window as NotificationWindow).deliveryNotificationsShown),
+    ).toBe(1);
+    const replay = await contexts[0].request.post('/api/messages', { data: payload });
+    expect(replay.status()).toBe(201);
+    expect((await replay.json()).id).toBe(message.id);
+    expect(await db.message.count({ where: { matchId: match.id } })).toBe(2);
+    expect(await db.notification.count({ where: { userId: people[1].id, type: 'MESSAGE' } })).toBe(
+      2,
+    );
+  } finally {
+    await removeFailure();
+    if (paused)
+      await db.$queryRaw`SELECT cron.schedule('bondi-message-delivery', '1 second', 'SELECT bondi_private.dispatch_message_hints()')`;
+    await observer?.close();
+  }
+}
 
 test('both off-room browser inboxes and notifications update while browser preferences remain effective', async ({
   browser,
@@ -343,7 +581,7 @@ test('a notification write failure rolls back the send and its same-ID retry rec
   }
 });
 
-test('pending delivery survives a socket owner restart and repeated hints show one browser notification', async ({
+test('pending delivery survives relay restart and repeated hints show one browser notification', async ({
   browser,
   baseURL,
 }) => {
@@ -365,6 +603,10 @@ test('pending delivery survives a socket owner restart and repeated hints show o
     await fixture.db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${trigger}"()`);
   };
   try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
+      await nativeRecovery(fixture);
+      return;
+    }
     const port = await listen(0);
     const { db, contexts, people, match } = fixture;
     await contexts[1].addInitScript(

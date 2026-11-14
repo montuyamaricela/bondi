@@ -18,16 +18,50 @@ import {
 import { useSocket } from '@/app/components/providers/socket-provider';
 import { useNotifications } from '@/app/components/hooks/useNotifications';
 import { toast } from 'sonner';
+import { useSession } from '@/lib/auth-client';
+import { browserRealtimeConfiguration } from '@/lib/client/env';
 
 interface NotificationCenterProps {
   maxNotifications?: number;
+}
+
+function notificationSettings() {
+  try {
+    const saved = localStorage.getItem('notificationSettings');
+    if (!saved) return { matchNotifications: true, messageNotifications: true };
+    const parsed: unknown = JSON.parse(saved);
+    return {
+      matchNotifications:
+        !!parsed &&
+        typeof parsed === 'object' &&
+        'matchNotifications' in parsed &&
+        parsed.matchNotifications === true,
+      messageNotifications:
+        !!parsed &&
+        typeof parsed === 'object' &&
+        'messageNotifications' in parsed &&
+        parsed.messageNotifications === true,
+    };
+  } catch {
+    return { matchNotifications: false, messageNotifications: false };
+  }
 }
 
 export function NotificationCenter({ maxNotifications = 20 }: NotificationCenterProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { socket } = useSocket();
+  const native = browserRealtimeConfiguration() !== null;
+  const { data: session } = useSession();
+  const userId = session?.user.id;
+  const sessionId = session?.session.id;
   const seen = useRef(new Set<string>());
+  const nativeSeen = useRef<{
+    userId?: string;
+    sessionId?: string;
+    initialized: boolean;
+    ids: Set<string>;
+  }>({ initialized: false, ids: new Set() });
   useEffect(() => {
     seen.current.clear();
   }, [socket]);
@@ -49,6 +83,28 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
   const { mutate: markAllAsRead } = useMarkAllNotificationsReadMutation();
 
   useEffect(() => {
+    if (!native || !userId || !sessionId || !notificationsData) return;
+    if (nativeSeen.current.userId !== userId || nativeSeen.current.sessionId !== sessionId)
+      nativeSeen.current = { userId, sessionId, initialized: false, ids: new Set() };
+    const messages = notificationsData.notifications.filter(
+      (notification) => notification.userId === userId && notification.type === 'MESSAGE',
+    );
+    if (!nativeSeen.current.initialized) {
+      for (const notification of messages) nativeSeen.current.ids.add(notification.id);
+      nativeSeen.current.initialized = true;
+      return;
+    }
+    for (const notification of messages) {
+      if (nativeSeen.current.ids.has(notification.id)) continue;
+      nativeSeen.current.ids.add(notification.id);
+      if (notification.isRead || !notification.canNotify) continue;
+      toast.info('New message received');
+      if (permission === 'granted' && notificationSettings().messageNotifications)
+        showMessageNotification('New Message', 'You have a new message');
+    }
+  }, [native, userId, sessionId, notificationsData, permission, showMessageNotification]);
+
+  useEffect(() => {
     if (open) {
       refetchNotifications();
       refetchUnreadCount();
@@ -63,31 +119,12 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
       matchId?: string;
       notificationId?: string;
     }) => {
+      if (native && data.type === 'MESSAGE') return;
       if (data.notificationId) {
         if (seen.current.has(data.notificationId)) return;
         seen.current.add(data.notificationId);
       }
-      let settings = { matchNotifications: true, messageNotifications: true };
-      try {
-        const saved = localStorage.getItem('notificationSettings');
-        if (saved) {
-          const parsed: unknown = JSON.parse(saved);
-          settings = {
-            matchNotifications:
-              !!parsed &&
-              typeof parsed === 'object' &&
-              'matchNotifications' in parsed &&
-              parsed.matchNotifications === true,
-            messageNotifications:
-              !!parsed &&
-              typeof parsed === 'object' &&
-              'messageNotifications' in parsed &&
-              parsed.messageNotifications === true,
-          };
-        }
-      } catch {
-        settings = { matchNotifications: false, messageNotifications: false };
-      }
+      const settings = notificationSettings();
 
       if (data.type === 'MESSAGE') {
         toast.info('New message received');
@@ -111,6 +148,7 @@ export function NotificationCenter({ maxNotifications = 20 }: NotificationCenter
     };
   }, [
     socket,
+    native,
     refetchNotifications,
     refetchUnreadCount,
     permission,

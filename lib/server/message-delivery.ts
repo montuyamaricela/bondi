@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import type { Socket } from 'socket.io';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { nativeRealtimeEnabled } from '@/lib/server/env';
 import type {
   SocketServer,
   ClientToServerEvents,
@@ -23,6 +24,7 @@ export function wakeMessageDelivery(io: SocketServer | null) {
 }
 
 export function attachMessageDelivery(io: SocketServer, server: Server) {
+  if (nativeRealtimeEnabled()) return;
   if (relays.has(io)) return;
   let stopped = false;
   let running = false;

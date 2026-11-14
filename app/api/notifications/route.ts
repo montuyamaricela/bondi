@@ -43,8 +43,29 @@ export async function GET(request: NextRequest) {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
     });
-
-    return NextResponse.json({ notifications });
+    const matchIds = notifications.flatMap((notification) =>
+      notification.type === 'MESSAGE' && notification.entityId ? [notification.entityId] : [],
+    );
+    const liveMatches = matchIds.length
+      ? await db.match.findMany({
+          where: {
+            id: { in: matchIds },
+            status: 'ACTIVE',
+            OR: [{ user1Id: session.user.id }, { user2Id: session.user.id }],
+          },
+          select: { id: true },
+        })
+      : [];
+    const active = new Set(liveMatches.map(({ id }) => id));
+    return NextResponse.json({
+      notifications: notifications.map((notification) => ({
+        ...notification,
+        canNotify:
+          notification.type === 'MESSAGE' &&
+          !!notification.entityId &&
+          active.has(notification.entityId),
+      })),
+    });
   } catch (error) {
     return handleApiError(error);
   }
