@@ -70,7 +70,8 @@ export function MultiSelect({
               <button
                 type="button"
                 onClick={() => removeOption(item)}
-                className="transition-colors hover:text-primary-main"
+                aria-label={`Remove ${item}`}
+                className="inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm transition-colors hover:text-primary-main focus-visible:ring-2 focus-visible:ring-primary-main focus-visible:outline-none"
               >
                 <X className="h-3 w-3" />
               </button>

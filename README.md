@@ -272,6 +272,15 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Keyboard/touch controls supplement discovery gestures with Like/Pass buttons using
+the same guarded actions. Password visibility and selected-option removal have
+accessible names. The photo viewer uses the shared dialog primitive for initial
+focus, trapping, Escape and opener restoration, while arrow keys and navigation
+buttons cycle photos. Five browser cases use native Tab/Enter/Space, verify actual
+profile/action writes and failure recovery, exercise repeat dialog lifecycle/scroll
+cleanup, and tap the controls in an emulated mobile viewport. This targeted evidence
+does not certify screen readers or physical mobile devices.
+
 Notification lists preserve their 20-item default and accept only limits from 1–100.
 Bulk read-state changes accept up to 100 nonblank IDs of at most 128 characters;
 empty-array updates remain no-ops. Authenticated API cases cover invalid/duplicate
@@ -325,7 +334,7 @@ Use a local disposable database whose name contains a `test`, `e2e`, or `harness
 segment. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
 distance, form validation, and upload-handler access with mocked adapters. External
-storage uploads, idle socket termination, mobile layouts, and other browsers remain
+storage uploads, idle socket termination, broader device/layout coverage, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and

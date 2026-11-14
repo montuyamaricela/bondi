@@ -124,18 +124,45 @@ export default function DiscoverPage() {
         )}
 
         {!waitingForProfiles && !error && currentProfile && (
-          <div className="relative h-[calc(100vh-200px)] w-full max-w-md">
-            <SwipeCard
-              key={currentProfile.id}
-              profile={currentProfile}
-              isPending={likeActionMutation.isPending}
-              onLike={() => {
-                void handleAction('LIKE');
-              }}
-              onPass={() => {
-                void handleAction('PASS');
-              }}
-            />
+          <div className="flex w-full max-w-md flex-col gap-4">
+            <div className="relative h-[calc(100dvh-280px)] min-h-80">
+              <SwipeCard
+                key={currentProfile.id}
+                profile={currentProfile}
+                isPending={likeActionMutation.isPending}
+                onLike={() => {
+                  void handleAction('LIKE');
+                }}
+                onPass={() => {
+                  void handleAction('PASS');
+                }}
+              />
+            </div>
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 flex-1"
+                aria-label="Pass profile"
+                disabled={likeActionMutation.isPending}
+                onClick={() => {
+                  void handleAction('PASS');
+                }}
+              >
+                Pass
+              </Button>
+              <Button
+                type="button"
+                className="h-12 flex-1"
+                aria-label="Like profile"
+                disabled={likeActionMutation.isPending}
+                onClick={() => {
+                  void handleAction('LIKE');
+                }}
+              >
+                Like
+              </Button>
+            </div>
           </div>
         )}
       </div>
