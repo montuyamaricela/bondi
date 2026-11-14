@@ -12,6 +12,7 @@ model Match {
   messages Message[]
 
   @@unique([user1Id, user2Id])
+  // SQL migration also enforces unordered pair uniqueness, including legacy orientation.
   @@index([user1Id])
   @@index([user2Id])
   @@index([status])

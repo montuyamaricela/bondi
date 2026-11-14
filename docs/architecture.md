@@ -75,6 +75,19 @@ an authorized room join after it completes; the chat refreshes history after tha
 acknowledgement on initial subscription and reconnection, without listener churn
 on every history update.
 
+`lib/server/matching.ts` owns the mutual-like transition. A bounded retry around a
+Serializable transaction commits the like, canonical match and intended durable
+notifications together. Same-action retries return committed state; conflicting
+actions remain rejected and unmatched pairs are not recreated. Missing legacy
+notifications can be filled without replacing existing IDs/read state. Socket
+refresh hints happen after commit and their failure cannot falsely reject the write.
+
+SQL migrations enforce unordered match-pair uniqueness (including legacy reversed
+orientation) and one MATCH notification per non-null entity/recipient. Schema comments point
+to these expression/partial index definitions in migration SQL; tests exercise them
+against PostgreSQL. Duplicate preflight checks stop migration
+for a separately reviewed repair plan; they do not delete/reassign history.
+
 ## Structural work after the harness
 
 1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,
