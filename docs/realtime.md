@@ -186,6 +186,8 @@ lease. Replays after deletion are idempotent and publish no additional peer hint
 This lets an account/session switch promptly retract the retired owner's liveness
 without treating a stale cookie as authorization. Auth-secret rotation invalidates
 old cleanup capabilities; the bounded liveness deadline still applies.
+Rejected credential renewals close the previous lease before discarding its cleanup
+capability, even while the next account's session snapshot is still pending.
 Network/server failures visibly degrade and can recover; rejected identity, session,
 lease or payload stops automatic heartbeat attempts. `Retry online status` rebuilds
 the owned subscription. Subscription readiness and heartbeat success are distinct.

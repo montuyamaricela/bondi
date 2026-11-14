@@ -823,3 +823,77 @@ test('a signed cleanup capability closes only its issued lease after the cookie 
     await fixture.close();
   }
 });
+
+test('a rejected renewal closes the retired liveness before the new account snapshot can complete', async ({
+  browser,
+  baseURL,
+}) => {
+  const fixture = await participants(browser, baseURL!, 122);
+  let release = () => {};
+  try {
+    const page = await fixture.contexts[0].newPage();
+    await page.goto('/settings');
+    await expect
+      .poll(() =>
+        fixture.db.realtimeLease.count({
+          where: { userId: fixture.observers[0].userId, presenceExpiresAt: { gt: new Date() } },
+        }),
+      )
+      .toBe(1);
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let heldSession = false;
+    await page.route('**/api/auth/get-session', async (route) => {
+      const response = await route.fetch();
+      heldSession = true;
+      await gate;
+      await route.fulfill({ response });
+    });
+    await fixture.contexts[0].clearCookies();
+    expect(
+      (
+        await fixture.contexts[0].request.post('/api/auth/sign-in/email', {
+          headers: { Origin: baseURL! },
+          data: { email: `${fixture.prefix}-1@example.test`, password: 'SyntheticPresence80!' },
+        })
+      ).status(),
+    ).toBe(200);
+    const denied = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/realtime/credential' &&
+        response.request().method() === 'POST' &&
+        response.status() === 409,
+    );
+    await page.clock.setFixedTime(await page.evaluate(() => Date.now() + 6000));
+    await page.bringToFront();
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await denied;
+    await expect.poll(() => heldSession).toBe(true);
+    await expect(page.getByRole('button', { name: /Presence 0/ })).toBeVisible();
+    await expect
+      .poll(() =>
+        fixture.db.realtimeLease.count({
+          where: { userId: fixture.observers[0].userId, presenceExpiresAt: { gt: new Date() } },
+        }),
+      )
+      .toBe(0);
+    expect(
+      await fixture.db.session.count({
+        where: { id: fixture.observers[0].sessionId, expiresAt: { gt: new Date() } },
+      }),
+    ).toBe(1);
+    release();
+    await expect(page.getByRole('button', { name: /Presence 1/ })).toBeVisible();
+    await expect
+      .poll(() =>
+        fixture.db.realtimeLease.count({
+          where: { userId: fixture.observers[1].userId, presenceExpiresAt: { gt: new Date() } },
+        }),
+      )
+      .toBe(1);
+  } finally {
+    release();
+    await fixture.close();
+  }
+});
