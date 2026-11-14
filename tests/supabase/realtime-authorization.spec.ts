@@ -40,8 +40,9 @@ test('native private subscriptions enforce session capabilities, signing keys an
     clients.push(client);
     return client;
   };
-  const join = (client: SupabaseClient, topic: string, receive?: () => void) =>
-    new Promise<{ channel: RealtimeChannel; status: string }>((resolve) => {
+  const join = async (client: SupabaseClient, topic: string, receive?: () => void) => {
+    await client.realtime.setAuth();
+    return new Promise<{ channel: RealtimeChannel; status: string }>((resolve) => {
       const channel = client.channel(topic, {
         config: { private: true, broadcast: { ack: true, self: true } },
       });
@@ -54,6 +55,7 @@ test('native private subscriptions enforce session capabilities, signing keys an
           resolve({ channel, status });
       });
     });
+  };
   try {
     for (const [index, context] of contexts.entries()) {
       const email = `bondi-e2e-${randomUUID()}-realtime@example.test`;
