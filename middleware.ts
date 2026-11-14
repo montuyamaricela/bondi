@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/session';
 import { getProfileByUserId } from '@/lib/server/profile';
+import { safeCallbackUrl, profileSetupDestination } from '@/lib/auth-navigation';
 
 // Force middleware to use Node.js runtime to support Prisma
 export const runtime = 'nodejs';
@@ -42,12 +43,22 @@ export async function middleware(request: NextRequest) {
 
   // If user is authenticated but trying to access auth pages, redirect based on profile status
   if (session && (pathname === '/login' || pathname === '/signup')) {
-    const profile = await getProfileByUserId(session.user.id);
-
-    if (profile) {
-      return NextResponse.redirect(new URL('/discover', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/profile/setup', request.url));
+    const values = request.nextUrl.searchParams.getAll('callbackUrl');
+    const callbackUrl = safeCallbackUrl(values.length === 1 ? values[0] : undefined);
+    try {
+      const profile = await getProfileByUserId(session.user.id);
+      return NextResponse.redirect(
+        new URL(profile ? callbackUrl : profileSetupDestination(callbackUrl), request.url),
+      );
+    } catch {
+      // A failed lookup is not evidence that onboarding is missing.
+      console.error('Profile lookup unavailable during authentication redirect');
+      if (pathname === '/signup') {
+        const login = new URL('/login', request.url);
+        login.searchParams.set('callbackUrl', callbackUrl);
+        return NextResponse.redirect(login);
+      }
+      return NextResponse.next();
     }
   }
 
@@ -60,7 +71,7 @@ export async function middleware(request: NextRequest) {
 
     // For non-API routes, redirect to login
     const url = new URL('/login', request.url);
-    url.searchParams.set('callbackUrl', pathname);
+    url.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
