@@ -31,10 +31,7 @@ export default defineConfig([
     rules: {
       'default-param-last': 'error',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
-      'no-param-reassign': [
-        'error',
-        { props: true, ignorePropertyModificationsFor: ['socket', 'res'] },
-      ],
+      'no-param-reassign': ['error', { props: true, ignorePropertyModificationsFor: ['res'] }],
       'no-promise-executor-return': 'error',
       'no-return-assign': ['error', 'always'],
       'no-unmodified-loop-condition': 'error',

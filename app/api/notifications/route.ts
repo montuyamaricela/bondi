@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
     const matchIds = notifications.flatMap((notification) =>
-      notification.type === 'MESSAGE' && notification.entityId ? [notification.entityId] : [],
+      ['MESSAGE', 'MATCH'].includes(notification.type) && notification.entityId
+        ? [notification.entityId]
+        : [],
     );
     const liveMatches = matchIds.length
       ? await db.match.findMany({
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
       notifications: notifications.map((notification) => ({
         ...notification,
         canNotify:
-          notification.type === 'MESSAGE' &&
+          ['MESSAGE', 'MATCH'].includes(notification.type) &&
           !!notification.entityId &&
           active.has(notification.entityId),
       })),

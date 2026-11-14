@@ -151,6 +151,10 @@ test('native presence validates ownership, orders liveness and counts only visib
     expect(lease.presenceExpiresAt!.getTime()).toBeLessThanOrEqual(Date.now() + 60_001);
     expect(await snapshot()).toEqual({ [target.userId]: { visible: true, online: true } });
     expect(await snapshot(2)).toEqual({ [target.userId]: invisible });
+    await db.match.create({
+      data: { user1Id: observers[2].userId, user2Id: target.userId, status: 'UNMATCHED' },
+    });
+    expect(await snapshot(2)).toEqual({ [target.userId]: invisible });
     await expect.poll(() => observers[0].hints).toBeGreaterThan(0);
     expect(observers[2].hints).toBe(0);
     const secondTab = await privateHintObserver(contexts[1].request);
@@ -362,12 +366,6 @@ test('real native tabs aggregate liveness and retract held privacy snapshots and
   const { contexts, observers, match } = fixture;
   let release: (() => void) | undefined;
   try {
-    for (const context of contexts.slice(0, 2)) {
-      await context.routeWebSocket('**/socket.io/**', (socket) => {
-        void socket.close();
-      });
-      await context.route('**/socket.io/**', (route) => route.abort());
-    }
     const target = await contexts[1].newPage();
     await target.goto('/settings');
     const viewer = await contexts[0].newPage();
@@ -560,7 +558,7 @@ test('abrupt native connection loss expires server liveness and the observer pol
     await viewer.goto(`/messages/${fixture.match.id}`);
     await expect(viewer.getByText('Active now', { exact: true })).toBeVisible();
     await expect.poll(() => joins).toBeGreaterThan(0);
-    await expect.poll(() => legacyConnections).toBeGreaterThan(0);
+    expect(legacyConnections).toBe(0);
     blocked = true;
     await Promise.all(
       connections.flatMap(({ client, upstream }) => [client.close(), upstream.close()]),
@@ -583,7 +581,7 @@ test('abrupt native connection loss expires server liveness and the observer pol
         return (await response.json())[fixture.observers[1].userId].online;
       })
       .toBe(false);
-    expect(legacyConnections).toBeGreaterThan(0);
+    expect(legacyConnections).toBe(0);
     await viewer.clock.runFor(15_001);
     await expect(viewer.getByText('Offline', { exact: true })).toBeVisible();
     await expect(viewer.getByTitle('Online', { exact: true })).toHaveCount(0);

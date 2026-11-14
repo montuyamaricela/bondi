@@ -1,7 +1,6 @@
+import { privateHintObserver } from '../helpers/realtime-observer';
 import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
-import { io, type Socket } from 'socket.io-client';
-import type { ClientToServerEvents, ServerToClientEvents } from '@/lib/socket';
 import { PrismaClient } from '@prisma/client';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -67,8 +66,7 @@ test('two users onboard, match and chat while an outsider cannot access private 
   ]);
   const pages: Page[] = [];
   const userIds: string[] = [];
-  let outsiderSocket: Socket<ServerToClientEvents, ClientToServerEvents> | undefined;
-  const outsiderMessages: string[] = [];
+  let outsiderObserver: Awaited<ReturnType<typeof privateHintObserver>> | undefined;
   try {
     for (const [index, context] of contexts.slice(0, 2).entries()) {
       const name = index === 0 ? 'E2E Alice' : 'E2E Bob';
@@ -193,24 +191,23 @@ test('two users onboard, match and chat while an outsider cannot access private 
     ]) {
       expect(publicProfile).not.toHaveProperty(key);
     }
-    const tokenResponse = await outsider.request.get('/api/socket/token');
-    expect(tokenResponse.status()).toBe(200);
-    outsiderSocket = io(baseURL!, {
-      auth: { token: (await tokenResponse.json()).token },
-      autoConnect: false,
-      reconnection: false,
-      timeout: 5000,
-    });
-    outsiderSocket.on('message:new', (message) => outsiderMessages.push(message.content));
-    await new Promise<void>((resolve, reject) => {
-      outsiderSocket!.once('connect', () => resolve());
-      outsiderSocket!.once('connect_error', reject);
-      outsiderSocket!.connect();
-    });
-    expect(await outsiderSocket.timeout(5000).emitWithAck('match:join', { matchId })).toEqual({
-      ok: false,
-    });
-    outsiderSocket.emit('message:send', { matchId, content: 'Forged socket message' }, () => {});
+    outsiderObserver = await privateHintObserver(outsider.request);
+    const sessionResponse = await outsider.request.get('/api/auth/get-session');
+    const outsiderSession = await sessionResponse.json();
+    expect(
+      (
+        await outsider.request.post(`/api/matches/${matchId}/typing`, {
+          data: {
+            expectedUserId: outsiderSession.user.id,
+            expectedSessionId: outsiderSession.session.id,
+            leaseId: outsiderObserver.leaseId,
+            viewId: randomUUID(),
+            sequence: 1,
+            typing: true,
+          },
+        })
+      ).status(),
+    ).toBe(403);
 
     await alice.getByPlaceholder('Type a message...').fill('Hello Bob, this is Alice.');
     await alice.getByPlaceholder('Type a message...').press('Enter');
@@ -253,12 +250,12 @@ test('two users onboard, match and chat while an outsider cannot access private 
     const notifications = await outsider.request.get(`/api/notifications?userId=${userIds[0]}`);
     expect(notifications.status()).toBe(200);
     expect(await notifications.json()).toEqual({ notifications: [] });
-    expect(outsiderMessages).toEqual([]);
+    expect(outsiderObserver.hints).toBe(0);
     const forbiddenAfterChat = await outsider.request.get(`/api/messages?matchId=${matchId}`);
     expect(forbiddenAfterChat.status()).toBe(403);
     expect(await forbiddenAfterChat.json()).toEqual({ error: expect.any(String) });
   } finally {
-    outsiderSocket?.disconnect();
+    await outsiderObserver?.close();
     try {
       await Promise.all(contexts.map((context) => context.close()));
     } finally {

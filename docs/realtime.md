@@ -1,7 +1,10 @@
 # Supabase private subscription contract
 
-Enable the staged subscription owner with `NEXT_PUBLIC_SUPABASE_REALTIME=true`,
-`NEXT_PUBLIC_SUPABASE_URL` and a public `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+Configure the sole live transport with `NEXT_PUBLIC_SUPABASE_URL` and a public
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Standard Next owns the application HTTP
+listener. If both public settings are absent, the UI reports disconnected live
+updates; partial or invalid configuration fails validation. There is no alternate
+transport. Durable message writes require the native database dispatcher.
 Keep `SUPABASE_SECRET_KEY` and `SUPABASE_SIGNING_KEYS_PATH` server-only. The latter
 points to a JSON array of private ES256/P-256 JWKs containing `kid`, `alg`, `d`,
 `x`, `y` and `crv`. The first key signs new credentials. Keys and credentials must
@@ -9,7 +12,7 @@ never be logged, committed, copied into NEXT_PUBLIC settings or persisted in
 browser storage. The public URL/key are the only public configuration.
 
 Import the corresponding signing key into the explicitly selected Supabase
-project before enabling the owner. A Supabase-generated private key cannot be
+project before running the application. A Supabase-generated private key cannot be
 exported for the application; use the supported imported-signing-key workflow.
 Provisioning a hosted target is separate from this code change. Better Auth,
 Prisma and UploadThing continue to own authentication, application data and media.
@@ -34,11 +37,12 @@ for cached authorization limits and the no-private-payload rule.
 
 ## Durable message hints
 
-With native mode enabled, HTTP and retained socket send commands share one database
+Validated HTTP sends use one database
 transaction for the message, trusted attachment reference, receiver notification and
 per-user `MessageDelivery` intents. An identified retry returns the canonical message.
 Native delivery includes every currently valid session of both participants, including
-the sender; query reconciliation uses saved IDs rather than excluding a socket ID.
+the sender; query reconciliation uses saved IDs. Migration 23 removes only the
+obsolete delivery-exclusion metadata, retaining pending and completed intents.
 
 The app-owned `bondi_private.dispatch_message_hints(text)` function checks active
 membership and live sessions/leases before calling supported `realtime.send` inside
@@ -61,7 +65,7 @@ complete without publishing: bounded HTTP refetch repairs missed hints on reconn
 
 Notification queries are scoped to the current account/session. The initial snapshot
 establishes a baseline without replaying historical browser notifications; subsequent
-new unread message rows notify once per mounted owner, respecting browser permission
+new unread MATCH and MESSAGE rows notify once per mounted owner, respecting browser permission
 and saved preferences. The API marks notification effects eligible only for active
 owned matches. Repeated hints still refresh durable state without repeating effects.
 This is not a guarantee of exactly-once operating-system notifications across tabs,
@@ -73,13 +77,11 @@ latest window has no overlap, it replaces the obsolete window with its own curso
 so intervening history remains reachable rather than appearing as a false gap.
 The subscription owner aborts these reads on cleanup and ignores late responses.
 
-Apply Prisma migrations explicitly to the known target before enabling native mode
-and building the app. Writes reject a mismatch between the selected mode and the
-installed dispatcher. On ordinary PostgreSQL the additive migration installs only
-the retry columns/index; the existing relay remains until its retirement ticket.
-On native Supabase it also installs the private function and managed cron job. The
-three legacy socket owners disable their message relay in native mode; commands and
-other socket features remain temporarily for the dependent migration tickets.
+Apply Prisma migrations explicitly to the known Supabase target before building
+and running the app. Writes reject a missing native dispatcher. Ordinary PostgreSQL
+still supports schema/build/unit checks but cannot serve the live application
+without the supported native functions and managed delivery job. Supabase owns its
+native schemas; Prisma owns the application schema and additive migration history.
 
 Retention is operator-managed in this slice. After seven days, completed intents may
 be removed in bounded batches using the server connection; pending work must remain:
@@ -105,7 +107,7 @@ References: [database Broadcast](https://supabase.com/docs/guides/realtime/broad
 
 ## HTTP chat commands and typing
 
-In native mode, chat sends, read receipts and typing use HTTP. A subscription outage
+Chat sends, read receipts and typing use HTTP. A subscription outage
 does not disable durable sending: the accepted HTTP response supplies the canonical
 saved row, while private hints and authorized history repair missed updates.
 `Retry live updates` replaces the owned subscription; an expired/replaced session
@@ -114,8 +116,8 @@ or denied match stops restricted actions and offers `Refresh chat`.
 Native message POSTs include `expectedUserId` and `expectedSessionId` with the
 existing content, optional owned file key and stable `clientRequestId`. GET history
 binds the same expected owner. A stale cookie/owner combination returns 409 without
-writing or returning another owner's result. Legacy requests without these fields
-remain supported for the outgoing transport. A failed/unconfirmed attempt keeps
+writing or returning another owner's result. Compatibility HTTP requests without these fields remain supported and still
+resolve the acting session on the server. A failed/unconfirmed attempt keeps
 the draft and operation ID for manual retry; no invalid mutation retries
 automatically. Only the accepted current account/session/conversation/draft
 generation clears. Native message cache keys also include the account/session.
@@ -151,10 +153,6 @@ renewal cannot lose ordering state. Typing writes hold the owned lease while
 checking/updating state. All HTTP writes serialize with unmatch; network publishing
 runs after the transaction. Lost receipt/typing hints repair through authorized
 current-state reads; they do not change already-persisted read receipts.
-
-The explicit ordinary-PostgreSQL UI still uses its legacy commands until retirement.
-This is a staged transition, with no automatic transport fallback or replacement
-event framework.
 
 ## Native presence, privacy and unmatch
 
@@ -223,8 +221,8 @@ gives an 80-second active-observer bound under a functioning server; background
 browser suspension has no timer guarantee, and resuming must revalidate. Graceful
 leave normally refreshes promptly. Native transport loss and controlled expiry/
 polling are tested separately from a full wall-clock-duration outage rehearsal.
-Legacy Socket.IO handlers remain only for the explicit outgoing transport until
-their removal ticket; native UI does not use their presence/leave commands.
+The [retirement evidence map](realtime-retirement.md) records the HTTP/native
+coverage replacing the former transport-specific assertions.
 
 ## Signing-key rotation
 

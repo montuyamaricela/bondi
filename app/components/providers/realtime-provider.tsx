@@ -9,11 +9,8 @@ import { refreshRealtimeMessages } from '@/lib/client/realtime-queries';
 import { maintainPresence } from '@/lib/client/presence';
 import { Button } from '@/app/components/ui/button';
 
-const RealtimeContext = createContext<
-  RealtimeConnectionState & { enabled: boolean; retry: () => void }
->({
-  enabled: false,
-  status: 'connecting',
+const RealtimeContext = createContext<RealtimeConnectionState & { retry: () => void }>({
+  status: 'disconnected',
   leaseId: null,
   retry: () => {},
 });
@@ -26,7 +23,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const userId = session?.user.id;
   const sessionId = session?.session.id;
   const queryClient = useQueryClient();
-  const enabled = browserRealtimeConfiguration() !== null;
   const [revision, setRevision] = useState(0);
   const retry = useCallback(() => setRevision((value) => value + 1), []);
   const [connection, setConnection] = useState<
@@ -88,8 +84,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   return (
     <RealtimeContext.Provider
       value={{
-        enabled,
-        status: owned?.status ?? 'connecting',
+        status: owned?.status ?? (browserRealtimeConfiguration() ? 'connecting' : 'disconnected'),
         leaseId: owned?.leaseId ?? null,
         retry,
       }}

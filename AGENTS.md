@@ -25,18 +25,20 @@ and untested limits accurately.
   server data operations in `lib/server/`, and shared pure logic in `lib/`.
   Improve these boundaries as touched; a directory migration needs its own scope.
 - Resolve sessions on the server. Check resource ownership and active match
-  membership at each HTTP and Socket.IO entry point. Middleware redirects do not
-  authorize API operations. Treat client IDs, room IDs, uploads, and payloads as
+  membership at each protected HTTP operation and native hint dispatch. Middleware redirects do not
+  authorize API operations. Treat client IDs, lease IDs, uploads, and payloads as
   untrusted input.
 - Keep Prisma and server auth code out of browser bundles. Preserve cookie,
   session expiry, profile privacy, and location visibility behavior when refactoring.
 - Keep credentials, cookies, tokens, private messages, exact locations, and real
   profile data out of logs, fixtures, and committed artifacts. Use synthetic users.
 - Reuse local shadcn/ui, Radix, React Hook Form, and Zod patterns; validate writes
-  at the server boundary. Give retained sockets/listeners/object URLs cleanup owners.
-- `server.ts`, `socket-server.ts`, and `lib/socket.ts` currently duplicate socket
-  setup. Inspect all three before changing event behavior; consolidate only with
-  equivalent authorization, room, delivery, and disconnect coverage.
+  at the server boundary. Give channels/listeners/timers/object URLs cleanup owners.
+- Supabase is the sole live transport; standard Next owns HTTP. Trace private
+  subscriptions through `lib/client/realtime.ts` and `lib/server/realtime.ts`.
+  Preserve session-owned cleanup and minimal hints followed by authorized reads;
+  cached channel permissions never authorize application operations.
+
 - Run database migrations explicitly against a known development/test database.
   Builds and verification must not apply migrations or seed data. Existing
   migrations remain immutable; add a new migration for schema changes.
@@ -48,7 +50,7 @@ and untested limits accurately.
 - Use [bondi-change-verification](.agents/skills/bondi-change-verification/SKILL.md)
   for runtime, test, build, and harness changes.
 - Use [bondi-data-boundaries](.agents/skills/bondi-data-boundaries/SKILL.md) when
-  changing auth, profiles, discovery, uploads, matching, messaging, or sockets.
+  changing auth, profiles, discovery, uploads, matching, messaging, or Realtime.
 - `codebase-design` supports structural changes; `diagnosing-bugs` supports bug
   investigation; `domain-modeling` supports resolved terminology and decisions.
   Select review and test-first workflows when relevant;

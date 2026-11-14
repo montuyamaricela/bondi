@@ -3,8 +3,6 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { handleApiError, readJson } from '@/lib/errors';
-import { getSocketInstance } from '@/lib/socket-instance';
-import { refreshPresence } from '@/lib/server/presence';
 import { updateLocation } from '@/lib/server/location';
 import { notifyPresenceChange } from '@/lib/server/native-presence';
 import { createAppError } from '@/lib/app-error';
@@ -70,9 +68,6 @@ export async function PATCH(request: NextRequest) {
 
     if (validated.showOnlineStatus !== undefined) {
       await notifyPresenceChange(session.user.id);
-      await refreshPresence(getSocketInstance(), session.user.id).catch(() => {
-        console.error('Could not refresh privacy visibility');
-      });
     }
     return NextResponse.json(profile);
   } catch (error) {

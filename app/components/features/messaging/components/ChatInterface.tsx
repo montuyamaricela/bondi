@@ -1,17 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { addSavedMessages, readSavedMessage, type MessagePages } from '../message-pages';
+import { addSavedMessages, type MessagePages } from '../message-pages';
 import { Send, Loader2 } from 'lucide-react';
-import { useSocket } from '@/app/components/providers/socket-provider';
 import { useMessages, useSendMessage, messageQueryKey } from '../hooks';
 import { MessageBubble } from './MessageBubble';
 import { Button } from '@/app/components/ui/button';
 import type { Message } from '../types';
 import { cn } from '@/lib/utils';
-import type { ServerToClientEvents } from '@/lib/socket';
 import { useSession } from '@/lib/auth-client';
 import { useRealtime } from '@/app/components/providers/realtime-provider';
 import { useChatActivity } from '../useChatActivity';
@@ -34,13 +31,12 @@ interface ChatInterfaceProps {
 
 export function ChatInterface(props: ChatInterfaceProps) {
   const { data: session, isPending } = useSession();
-  const { enabled: native } = useRealtime();
   const sessionId = session?.session.id ?? '';
   const owner = useMemo(
     () => ({ userId: props.currentUserId, sessionId }),
     [props.currentUserId, sessionId],
   );
-  if (native && (!sessionId || session?.user.id !== props.currentUserId))
+  if (!sessionId || session?.user.id !== props.currentUserId)
     return (
       <div className="flex flex-1 items-center justify-center">
         {isPending ? (
@@ -60,7 +56,6 @@ export function ChatInterface(props: ChatInterfaceProps) {
       key={`${props.currentUserId}:${sessionId}:${props.matchId}`}
       {...props}
       owner={owner}
-      native={native}
     />
   );
 }
@@ -68,23 +63,16 @@ export function ChatInterface(props: ChatInterfaceProps) {
 function ChatView({
   matchId,
   currentUserId,
-  otherUserId,
   isUnmatched = false,
   otherUserImage,
   otherUserName,
   currentUserImage,
   currentUserName,
   owner,
-  native,
-}: ChatInterfaceProps & { owner: ChatOwner; native: boolean }) {
-  const { socket, isConnected } = useSocket();
+}: ChatInterfaceProps & { owner: ChatOwner }) {
   const realtime = useRealtime();
-  const legacySocket = native ? null : socket;
   const sendMessage = useSendMessage();
-  const cacheKey = useMemo(
-    () => messageQueryKey(matchId, native ? owner : undefined),
-    [matchId, native, owner],
-  );
+  const cacheKey = useMemo(() => messageQueryKey(matchId, owner), [matchId, owner]);
   const queryClient = useQueryClient();
   const {
     data: messages = EMPTY_MESSAGES,
@@ -93,12 +81,12 @@ function ChatView({
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useMessages(matchId, native ? owner : undefined);
+  } = useMessages(matchId, owner);
   const activity = useChatActivity(
     matchId,
-    native ? owner : undefined,
+    owner,
     realtime.leaseId,
-    native && realtime.status === 'connected',
+    realtime.status === 'connected',
     isUnmatched,
     messages,
   );
@@ -115,11 +103,8 @@ function ChatView({
   const attemptRef = useRef<Operation | null>(null);
   const generation = useRef(0);
   const sendController = useRef<AbortController | null>(null);
-  const canSend = native ? !activity.blocked && !sendDenied : isConnected;
-  const [isTyping, setIsTyping] = useState(false);
+  const canSend = !activity.blocked && !sendDenied;
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const markedAsReadRef = useRef<Set<string>>(new Set<string>());
 
   // Draft state belongs to the current conversation.
   if (matchId !== currentMatchId) {
@@ -134,9 +119,8 @@ function ChatView({
       sendOperationRef.current = null;
       attemptRef.current = null;
       sendController.current?.abort();
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     },
-    [matchId, legacySocket, isUnmatched],
+    [matchId, isUnmatched],
   );
   useLayoutEffect(
     () => () => {
@@ -146,97 +130,6 @@ function ChatView({
     },
     [],
   );
-
-  // Clear marked messages when matchId changes
-  useEffect(() => {
-    const markedAsRead = markedAsReadRef.current;
-    markedAsRead.clear();
-  }, [matchId]);
-
-  // Mark a message as read (helper function)
-  const markMessageAsRead = useCallback(
-    (messageId: string) => {
-      if (
-        native ||
-        !socket ||
-        !isConnected ||
-        isUnmatched ||
-        markedAsReadRef.current.has(messageId)
-      )
-        return;
-
-      markedAsReadRef.current.add(messageId);
-      socket.emit('message:read', { messageId });
-    },
-    [socket, isConnected, isUnmatched, native],
-  );
-
-  // Socket connection and event handlers
-  useEffect(() => {
-    if (native || !socket || !isConnected || isUnmatched) return;
-
-    let active = true;
-
-    const handleNewMessage = (message: Parameters<ServerToClientEvents['message:new']>[0]) => {
-      if (message.matchId === matchId) {
-        queryClient.setQueryData<MessagePages>(['messages', matchId], (previous) =>
-          addSavedMessages(matchId, previous, [{ ...message, readAt: message.readAt ?? null }]),
-        );
-      }
-    };
-
-    const handleMessageRead = (data: { messageId: string; readAt: string }) => {
-      queryClient.setQueryData<MessagePages>(['messages', matchId], (previous) =>
-        readSavedMessage(matchId, previous, data.messageId, data.readAt),
-      );
-    };
-
-    const handleTypingStart = (data: { userId: string; matchId: string }) => {
-      if (data.matchId === matchId && data.userId === otherUserId) {
-        setIsTyping(true);
-      }
-    };
-
-    const handleTypingStop = (data: { userId: string; matchId: string }) => {
-      if (data.matchId === matchId && data.userId === otherUserId) {
-        setIsTyping(false);
-      }
-    };
-
-    socket.on('message:new', handleNewMessage);
-    socket.on('message:read', handleMessageRead);
-    socket.on('typing:start', handleTypingStart);
-    socket.on('typing:stop', handleTypingStop);
-
-    void socket
-      .timeout(5000)
-      .emitWithAck('match:join', { matchId })
-      .then((result) => {
-        if (!active) return;
-        if (result.ok)
-          return queryClient.invalidateQueries({ queryKey: ['messages', matchId], exact: true });
-        void queryClient.invalidateQueries({ queryKey: ['match', matchId], exact: true });
-        toast.error('Unable to join live chat. Reconnect to try again.');
-      })
-      .catch(() => {
-        if (active) toast.error('Unable to reconnect to live chat.');
-      });
-
-    return () => {
-      active = false;
-      socket.off('message:new', handleNewMessage);
-      socket.off('message:read', handleMessageRead);
-      socket.off('typing:start', handleTypingStart);
-      socket.off('typing:stop', handleTypingStop);
-      if (socket.connected) socket.emit('match:leave', { matchId });
-    };
-  }, [socket, isConnected, matchId, otherUserId, isUnmatched, queryClient, native]);
-
-  useEffect(() => {
-    messages.forEach((message) => {
-      if (!message.readAt && message.senderId !== currentUserId) markMessageAsRead(message.id);
-    });
-  }, [messages, currentUserId, markMessageAsRead]);
 
   const newestMessageId = messages.at(-1)?.id;
   useEffect(() => {
@@ -288,35 +181,13 @@ function ChatView({
     if (sendOperationRef.current?.content !== value.trim()) sendOperationRef.current = null;
     setSendError(null);
 
-    if (native) {
-      activity.updateTyping(!!value.trim());
-      return;
-    }
-
-    if (!socket || !isConnected || isUnmatched) return;
-
-    if (value.trim()) {
-      socket.emit('typing:start', { matchId });
-
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      typingTimeoutRef.current = setTimeout(() => {
-        socket.emit('typing:stop', { matchId });
-      }, 2000);
-    } else {
-      socket.emit('typing:stop', { matchId });
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    }
+    activity.updateTyping(!!value.trim());
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newMessage.trim() || isSending || !canSend || isUnmatched || (!native && !socket)) return;
+    if (!newMessage.trim() || isSending || !canSend || isUnmatched) return;
 
     const messageContent = newMessage.trim();
     const previous = sendOperationRef.current;
@@ -334,36 +205,20 @@ function ChatView({
     setIsSending(true);
     setSendError(null);
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    if (native) activity.updateTyping(false);
-    else socket?.emit('typing:stop', { matchId });
+    activity.updateTyping(false);
 
     let deadline: ReturnType<typeof setTimeout> | undefined;
     try {
       const payload = { matchId, content: messageContent, clientRequestId: operation.id };
-      let saved: Message;
-      if (native) {
-        const controller = new AbortController();
-        sendController.current = controller;
-        deadline = setTimeout(() => controller.abort(), 8000);
-        saved = await sendMessage.mutateAsync({
-          ...payload,
-          ...expectedChatOwner(owner),
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted) throw new Error('Message response abandoned');
-      } else {
-        if (!socket) return;
-        const result = await socket.timeout(8000).emitWithAck('message:send', payload);
-        if (attemptRef.current !== operation) return;
-        if (!result.ok) {
-          setSendError(result.message);
-          return;
-        }
-        saved = result.message;
-      }
+      const controller = new AbortController();
+      sendController.current = controller;
+      deadline = setTimeout(() => controller.abort(), 8000);
+      const saved = await sendMessage.mutateAsync({
+        ...payload,
+        ...expectedChatOwner(owner),
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) throw new Error('Message response abandoned');
       if (attemptRef.current !== operation) return;
       queryClient.setQueryData<MessagePages>(cacheKey, (previousMessages) =>
         addSavedMessages(matchId, previousMessages, [{ ...saved, readAt: saved.readAt ?? null }]),
@@ -380,12 +235,7 @@ function ChatView({
         setSendError('Chat access changed. Refresh the page to continue.');
       } else if (error instanceof FetchError && [400, 409].includes(error.status)) {
         setSendError('Message rejected. Review or edit your draft before trying again.');
-      } else
-        setSendError(
-          native
-            ? 'Send not confirmed. Your draft is kept. Retry to check.'
-            : 'Send not confirmed. Your draft is kept. Retry when connected.',
-        );
+      } else setSendError('Send not confirmed. Your draft is kept. Retry to check.');
     } finally {
       if (deadline) clearTimeout(deadline);
       if (attemptRef.current === operation) {
@@ -445,7 +295,7 @@ function ChatView({
             />
           ))
         )}
-        {(native ? activity.typing : isTyping) && !isUnmatched && (
+        {activity.typing && !isUnmatched && (
           <div role="status" aria-label="Typing indicator" className="mb-4 flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-border-main bg-bg-card px-4 py-2 text-text-muted">
               <div className="flex gap-1">
@@ -474,7 +324,7 @@ function ChatView({
           </div>
         ) : (
           <>
-            {native && realtime.status !== 'connected' && (
+            {realtime.status !== 'connected' && (
               <div role="status" className="mb-2 text-center text-sm text-warning">
                 Live updates unavailable. You can still send messages.
                 <Button type="button" variant="ghost" onClick={realtime.retry}>
@@ -482,7 +332,7 @@ function ChatView({
                 </Button>
               </div>
             )}
-            {native && (activity.blocked || sendDenied) && (
+            {(activity.blocked || sendDenied) && (
               <div role="alert">
                 Chat access changed. Refresh the page to continue.
                 <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
@@ -490,16 +340,13 @@ function ChatView({
                 </Button>
               </div>
             )}
-            {native && activity.readError && !activity.blocked && (
+            {activity.readError && !activity.blocked && (
               <Button type="button" variant="ghost" onClick={activity.retryRead}>
                 Retry read receipts
               </Button>
             )}
-            {native && activity.typingError && !activity.blocked && (
+            {activity.typingError && !activity.blocked && (
               <p role="status">Typing updates are unavailable.</p>
-            )}
-            {!native && !isConnected && (
-              <div className="mb-2 text-center text-sm text-warning">Connecting to server...</div>
             )}
             {isSending && (
               <p role="status" className="mb-2 text-sm text-text-muted">

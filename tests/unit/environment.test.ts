@@ -1,14 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { configuredPort, configuredUrl } from '../../lib/configuration';
-import {
-  applicationEnvironment,
-  authEnvironment,
-  migrationDatabaseUrl,
-  runtimeDatabaseUrl,
-  socketEnvironment,
-} from '../../lib/server/env';
-import { publicSocketUrl } from '../../lib/client/env';
+import { configuredUrl } from '../../lib/configuration';
+import { publicRealtimeConfiguration } from '../../lib/client/env';
+import { authEnvironment, migrationDatabaseUrl, runtimeDatabaseUrl } from '../../lib/server/env';
 
 const local = 'postgresql://synthetic:synthetic@127.0.0.1:5432/bondi_test?schema=public';
 const pooled =
@@ -105,41 +99,7 @@ test('auth requires a strong secret and explicit production origin without unrel
   );
 });
 
-test('application and standalone ports stay distinct across all socket owners', () => {
-  const environment = {
-    PORT: '3100',
-    SOCKET_PORT: '3101',
-    HOSTNAME: '127.0.0.1',
-    NEXT_PUBLIC_APP_URL: 'http://127.0.0.1:3100',
-    NEXT_PUBLIC_SOCKET_URL: 'http://127.0.0.1:3101',
-  };
-  assert.deepEqual(applicationEnvironment(environment), {
-    hostname: '127.0.0.1',
-    port: 3100,
-    dev: true,
-    clientOrigin: 'http://127.0.0.1:3100',
-  });
-  assert.deepEqual(socketEnvironment(environment), {
-    port: 3101,
-    clientOrigin: 'http://127.0.0.1:3100',
-  });
-  assert.equal(applicationEnvironment({}).port, 3000);
-  assert.equal(socketEnvironment({}).port, 3001);
-  assert.throws(() => socketEnvironment({ NODE_ENV: 'production' }), /NEXT_PUBLIC_APP_URL/);
-  assert.throws(() => applicationEnvironment({ HOSTNAME: 'https://bad.example/path' }), /HOSTNAME/);
-  assert.throws(() => applicationEnvironment({ HOSTNAME: 'localhost:3100' }), /HOSTNAME/);
-  assert.equal(applicationEnvironment({ HOSTNAME: '::1' }).hostname, '::1');
-  assert.throws(
-    () => socketEnvironment({ NEXT_PUBLIC_SOCKET_URL: 'javascript:invalid' }),
-    /NEXT_PUBLIC_SOCKET_URL/,
-  );
-});
-
-test('ports and public origins reject malformed or ambiguous configuration', () => {
-  for (const value of ['', '0', '65536', '-1', '1.5', '3100x', ' 3100', 'Infinity'])
-    assert.throws(() => configuredPort(value, 'PORT', 3000), /PORT must/);
-  assert.equal(configuredPort('65535', 'PORT', 3000), 65535);
-  assert.equal(configuredPort(undefined, 'PORT', 3000), 3000);
+test('public origins reject malformed or ambiguous configuration', () => {
   for (const value of [
     'ftp://example.test',
     'https://user:private-canary@example.test',
@@ -157,19 +117,30 @@ test('ports and public origins reject malformed or ambiguous configuration', () 
     );
 });
 
-test('browser socket selection uses public settings or its current origin, never a localhost production fallback', () => {
-  const currentOrigin = 'https://bondi.example';
-  assert.equal(publicSocketUrl({}, currentOrigin), currentOrigin);
-  assert.equal(
-    publicSocketUrl({ appUrl: 'https://application.example/' }, currentOrigin),
-    'https://application.example',
+test('the browser has one validated Realtime configuration and degrades when it is absent', () => {
+  assert.equal(publicRealtimeConfiguration({}), null);
+  assert.deepEqual(
+    publicRealtimeConfiguration({
+      url: 'https://realtime.example/',
+      key: 'sb_publishable_synthetic',
+    }),
+    {
+      url: 'https://realtime.example',
+      key: 'sb_publishable_synthetic',
+    },
   );
-  assert.equal(
-    publicSocketUrl(
-      { socketUrl: 'https://realtime.example', appUrl: 'https://application.example' },
-      currentOrigin,
-    ),
-    'https://realtime.example',
-  );
-  assert.throws(() => publicSocketUrl({ socketUrl: '' }, currentOrigin), /NEXT_PUBLIC_SOCKET_URL/);
+  for (const settings of [
+    { url: 'https://realtime.example' },
+    { key: 'sb_publishable_synthetic' },
+    { url: 'https://realtime.example', key: 'sb_secret_private-canary' },
+    { url: 'javascript:private-canary', key: 'sb_publishable_synthetic' },
+  ])
+    assert.throws(
+      () => publicRealtimeConfiguration(settings),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.ok(!error.message.includes('private-canary'));
+        return true;
+      },
+    );
 });

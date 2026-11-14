@@ -8,7 +8,7 @@ import {
   discoverFiltersSchema,
 } from '@/app/components/features/discover/validation';
 import { discoverProfiles } from '@/lib/server/discovery';
-import { getSocketInstance } from '@/lib/socket-instance';
+import { publishRealtimeHint } from '@/lib/server/realtime';
 import { effectiveLocation } from '@/lib/location';
 
 export async function GET(request: NextRequest) {
@@ -98,13 +98,7 @@ export async function POST(request: NextRequest) {
     const outcome = await recordDiscoveryAction(session.user.id, targetUserId, action);
     // Notifications are durable before these best-effort refresh hints leave the process.
     try {
-      const io = getSocketInstance();
-      for (const notification of outcome.notify) {
-        io?.to(`user:${notification.userId}`).emit('notification:new', {
-          type: 'MATCH',
-          matchId: notification.matchId,
-        });
-      }
+      await Promise.all(outcome.notify.map(({ userId }) => publishRealtimeHint(userId)));
     } catch {
       console.error('Match notification refresh failed after commit');
     }

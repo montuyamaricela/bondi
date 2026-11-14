@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { endMatch } from '@/lib/server/match-access';
-import { notifyMatchEnded } from '@/lib/server/socket-live-match';
-import { getSocketInstance } from '@/lib/socket-instance';
 import { Errors, handleApiError } from '@/lib/errors';
-import { nativeRealtimeEnabled } from '@/lib/server/env';
 import { publishRealtimeHint } from '@/lib/server/realtime';
 import { assertOptionalChatOwner } from '@/lib/server/chat-activity';
 
@@ -31,15 +28,13 @@ export async function PATCH(
       assertOptionalChatOwner({ userId: session.user.id, sessionId: session.session.id }, input);
     }
     const updatedMatch = await endMatch(session.user.id, matchId);
-    notifyMatchEnded(getSocketInstance(), updatedMatch);
-    if (nativeRealtimeEnabled())
-      await Promise.all(
-        [updatedMatch.user1Id, updatedMatch.user2Id].map((userId) =>
-          publishRealtimeHint(userId).catch(() => {
-            console.error('Ended match refresh unavailable');
-          }),
-        ),
-      );
+    await Promise.all(
+      [updatedMatch.user1Id, updatedMatch.user2Id].map((userId) =>
+        publishRealtimeHint(userId).catch(() => {
+          console.error('Ended match refresh unavailable');
+        }),
+      ),
+    );
 
     return NextResponse.json({
       success: true,

@@ -44,23 +44,17 @@ try {
   testEnvironment = parseEnv(readFileSync('.env.test.local', 'utf8'));
 } catch {
   console.error(
-    'Pre-commit E2E needs .env.test.local. Copy .env.test.example and configure a disposable test database.',
+    'Pre-commit E2E needs .env.test.local from the prepared native environment. See docs/supabase-testing.md.',
   );
   process.exit(1);
 }
-const required = [
-  'DATABASE_URL',
-  'BETTER_AUTH_SECRET',
-  'BETTER_AUTH_URL',
-  'NEXT_PUBLIC_APP_URL',
-  'NEXT_PUBLIC_SOCKET_URL',
-];
+const required = ['DATABASE_URL', 'BETTER_AUTH_SECRET', 'BETTER_AUTH_URL', 'NEXT_PUBLIC_APP_URL'];
 if (
   required.some((name) => !testEnvironment[name]) ||
   testEnvironment.BETTER_AUTH_SECRET.length < 32
 ) {
   console.error(
-    'Pre-commit E2E test configuration is incomplete. Check .env.test.example; use a test auth secret of at least 32 characters.',
+    'Pre-commit E2E test configuration is incomplete. See docs/supabase-testing.md; use a test auth secret of at least 32 characters.',
   );
   process.exit(1);
 }

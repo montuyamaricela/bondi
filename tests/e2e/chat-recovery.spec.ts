@@ -56,7 +56,6 @@ test('populated chats reconcile missed history and preserve live messages during
     let blocked = false;
     let websocketReady = false;
     const connections: Array<{ client: WebSocketRoute; upstream: WebSocketRoute }> = [];
-    await alice.route('**/socket.io/**', (route) => (blocked ? route.abort() : route.continue()));
     const routeSocket = (client: WebSocketRoute) => {
       if (blocked) {
         void client.close();
@@ -65,13 +64,11 @@ test('populated chats reconcile missed history and preserve live messages during
       const upstream = client.connectToServer();
       connections.push({ client, upstream });
       client.onMessage((data) => {
-        if (data.toString() === '5') websocketReady = true;
+        if (data.toString().includes('phx_join')) websocketReady = true;
         upstream.send(data);
       });
     };
-    await alice.routeWebSocket('**/socket.io/**', routeSocket);
-    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true')
-      await alice.routeWebSocket('**/realtime/v1/websocket**', routeSocket);
+    await alice.routeWebSocket('**/realtime/v1/websocket**', routeSocket);
     for (const page of [alice, bob]) {
       await page.goto(`/messages/${match.id}`);
       await expect(
@@ -88,13 +85,10 @@ test('populated chats reconcile missed history and preserve live messages during
     await Promise.all(
       connections.flatMap(({ client, upstream }) => [client.close(), upstream.close()]),
     );
-    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
-      await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeEnabled();
-      await expect(
-        alice.getByText('Live updates unavailable. You can still send messages.'),
-      ).toBeVisible();
-    } else
-      await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeDisabled();
+    await expect(alice.getByRole('textbox', { name: 'Message', exact: true })).toBeEnabled();
+    await expect(
+      alice.getByText('Live updates unavailable. You can still send messages.'),
+    ).toBeVisible();
     async function send(content: string) {
       await bob.getByRole('textbox', { name: 'Message', exact: true }).fill(content);
       await bob.getByRole('button', { name: 'Send message', exact: true }).click();

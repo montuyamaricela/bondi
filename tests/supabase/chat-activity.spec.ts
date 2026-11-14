@@ -328,7 +328,7 @@ test('typing expires, combines views and retains ordering only while its authori
   }
 });
 
-test('native browsers type and read through HTTP, and can send with both live transports disconnected', async ({
+test('native browsers type and read through HTTP, and can send with live updates disconnected', async ({
   browser,
   baseURL,
 }) => {
@@ -353,9 +353,7 @@ test('native browsers type and read through HTTP, and can send with both live tr
         upstream.send(data);
       });
     };
-    await alice.routeWebSocket('**/socket.io/**', routeSocket);
     await alice.routeWebSocket('**/realtime/v1/websocket**', routeSocket);
-    await alice.route('**/socket.io/**', (route) => (blocked ? route.abort() : route.continue()));
     for (const page of [alice, bob]) {
       page.on('request', (request) => {
         if (request.method() === 'POST') http.push(new URL(request.url()).pathname);

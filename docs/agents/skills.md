@@ -29,7 +29,7 @@ commits use focused checks. See [tooling](../tooling.md) for dedicated test setu
 Use `ponytail` for the smallest complete solution. It complements the required
 validation, privacy boundaries, and checks; it does not replace them.
 `bondi-change-verification` owns the actual repository checks, while
-`bondi-data-boundaries` covers sessions, ownership, privacy, and socket delivery.
+`bondi-data-boundaries` covers sessions, ownership, privacy, and native delivery.
 
 The [GitHub tracker](issue-tracker.md), [label vocabulary](triage-labels.md), and
 [domain-doc layout](domain.md) remain configured. Four missing remote labels still

@@ -32,7 +32,6 @@ model MessageDelivery {
   messageId String
   userId String
   notificationId String?
-  excludedSocketId String?
   // A live hint was attempted, or communication ended; this is not a read receipt.
   completedAt DateTime?
   attempts Int @default(0)

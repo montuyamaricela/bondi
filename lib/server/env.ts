@@ -1,5 +1,4 @@
-import { configuredPort, configuredUrl } from '../configuration';
-import { isIP } from 'node:net';
+import { configuredUrl } from '../configuration';
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -38,45 +37,11 @@ export function authEnvironment(environment: Environment = process.env) {
   return { secret, baseURL: applicationOrigin(environment, 'BETTER_AUTH_URL') };
 }
 
-export function socketEnvironment(environment: Environment = process.env) {
-  if (environment.NEXT_PUBLIC_SOCKET_URL !== undefined)
-    configuredUrl(environment.NEXT_PUBLIC_SOCKET_URL, 'NEXT_PUBLIC_SOCKET_URL');
-  return {
-    clientOrigin: applicationOrigin(environment, 'NEXT_PUBLIC_APP_URL'),
-    port: configuredPort(environment.SOCKET_PORT, 'SOCKET_PORT', 3001),
-  };
-}
-
-export function applicationEnvironment(environment: Environment = process.env) {
-  const { clientOrigin } = socketEnvironment(environment);
-  const hostname = environment.HOSTNAME ?? 'localhost';
-  if (
-    !isIP(hostname) &&
-    (hostname.length > 253 ||
-      !hostname
-        .split('.')
-        .every((label) => /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label)))
-  )
-    throw new Error('HOSTNAME must be a hostname or IP address without a scheme or path.');
-  return {
-    hostname,
-    port: configuredPort(environment.PORT, 'PORT', 3000),
-    dev: !isProduction(environment),
-    clientOrigin,
-  };
-}
-
 export function realtimeEnvironment(environment: Environment = process.env) {
-  if (!nativeRealtimeEnabled(environment))
-    throw new Error('Supabase Realtime is not explicitly enabled.');
   const url = configuredUrl(environment.NEXT_PUBLIC_SUPABASE_URL, 'NEXT_PUBLIC_SUPABASE_URL');
   const signingKeysPath = environment.SUPABASE_SIGNING_KEYS_PATH;
   const secretKey = environment.SUPABASE_SECRET_KEY;
   if (!signingKeysPath || !secretKey)
     throw new Error('Supabase Realtime requires private signing-key and server-key configuration.');
   return { url, signingKeysPath, secretKey };
-}
-
-export function nativeRealtimeEnabled(environment: Environment = process.env) {
-  return environment.NEXT_PUBLIC_SUPABASE_REALTIME === 'true';
 }

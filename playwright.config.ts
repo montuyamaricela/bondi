@@ -14,24 +14,13 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: 'npm start',
+      command: 'npm start -- --hostname 127.0.0.1 --port 3100',
       url: `${baseURL}/login`,
       reuseExistingServer: false,
       timeout: 120_000,
       env: {
         HOSTNAME: '127.0.0.1',
         PORT: String(port),
-        BETTER_AUTH_URL: baseURL,
-        NEXT_PUBLIC_APP_URL: baseURL,
-      },
-    },
-    {
-      command: 'npm run start:socket',
-      url: 'http://127.0.0.1:3101/socket.io/?EIO=4&transport=polling',
-      reuseExistingServer: false,
-      timeout: 120_000,
-      env: {
-        SOCKET_PORT: '3101',
         BETTER_AUTH_URL: baseURL,
         NEXT_PUBLIC_APP_URL: baseURL,
       },

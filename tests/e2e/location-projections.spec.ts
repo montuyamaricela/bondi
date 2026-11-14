@@ -2,9 +2,6 @@ import { assertTestDatabase } from '../helpers/test-database';
 import { randomInt, randomUUID } from 'node:crypto';
 import { PrismaClient, type Prisma } from '@prisma/client';
 import { expect, test, type Browser, type BrowserContext } from '@playwright/test';
-import { io, type Socket } from 'socket.io-client';
-import type { ClientToServerEvents, ServerToClientEvents } from '../../lib/socket';
-import { connect, joinRooms } from './socket-helpers';
 import { calculateDistance } from '../../lib/geolocation';
 import { privateHintObserver } from '../helpers/realtime-observer';
 
@@ -130,7 +127,6 @@ test('effective origins filter before limiting and serialize only approved locat
   baseURL,
 }) => {
   const owned = await fixture(browser, baseURL!);
-  const clients: Array<Socket<ServerToClientEvents, ClientToServerEvents>> = [];
   const frames: Array<{ event: string; value: unknown }> = [];
   let nativeObserver: Awaited<ReturnType<typeof privateHintObserver>> | undefined;
   try {
@@ -263,21 +259,6 @@ test('effective origins filter before limiting and serialize only approved locat
     safe(publicBody);
     expect(Object.hasOwn(publicBody.profile, 'location')).toBe(false);
 
-    for (const context of contexts) {
-      const response = await context.request.get('/api/socket/token');
-      expect(response.status()).toBe(200);
-      const { token } = await response.json();
-      const client: Socket<ServerToClientEvents, ClientToServerEvents> = io(baseURL!, {
-        auth: { token },
-        autoConnect: false,
-        reconnection: false,
-        transports: ['websocket'],
-        extraHeaders: { Origin: baseURL! },
-      });
-      clients.push(client);
-      client.onAny((event, value) => frames.push({ event, value }));
-      await connect(client);
-    }
     const matched = await contexts[0].request.post('/api/discover', {
       data: { action: 'LIKE', targetUserId: people[1] },
     });
@@ -285,13 +266,8 @@ test('effective origins filter before limiting and serialize only approved locat
     const outcome = await matched.json();
     safe(outcome);
     expect(outcome.matched).toBe(true);
-    await joinRooms(clients[0], clients[1], outcome.matchId);
-    if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME === 'true') {
-      nativeObserver = await privateHintObserver(contexts[1].request);
-      nativeObserver.onHint(() =>
-        frames.push({ event: 'changed', value: nativeObserver!.lastHint }),
-      );
-    }
+    nativeObserver = await privateHintObserver(contexts[1].request);
+    nativeObserver.onHint(() => frames.push({ event: 'changed', value: nativeObserver!.lastHint }));
     const sent = await contexts[0].request.post('/api/messages', {
       data: {
         matchId: outcome.matchId,
@@ -303,12 +279,7 @@ test('effective origins filter before limiting and serialize only approved locat
     expect(sent.status()).toBe(201);
     const message = await sent.json();
     safe(message);
-    await expect
-      .poll(() =>
-        frames.some((frame) => frame.event === (nativeObserver ? 'changed' : 'message:new')),
-      )
-      .toBe(true);
-    if (nativeObserver) expect(frames.some((frame) => frame.event === 'message:new')).toBe(false);
+    await expect.poll(() => frames.some((frame) => frame.event === 'changed')).toBe(true);
     for (const path of [
       '/api/matches',
       `/api/matches/${outcome.matchId}`,
@@ -342,7 +313,6 @@ test('effective origins filter before limiting and serialize only approved locat
     expect(await db.message.count({ where: { matchId: outcome.matchId } })).toBe(1);
   } finally {
     await nativeObserver?.close();
-    for (const client of clients) client.disconnect();
     await owned.close();
   }
 });
