@@ -2,6 +2,7 @@ import { createUploadthing, type FileRouter } from 'uploadthing/next';
 import { UploadThingError } from 'uploadthing/server';
 import { getServerSession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { registerMessageAttachment } from '@/lib/server/messages';
 
 const f = createUploadthing();
 
@@ -105,15 +106,20 @@ export const uploadRouter = {
 
       return { userId: session.user.id };
     })
-    .onUploadComplete(async ({ file }) => {
-      // Note: We don't store message attachments in the File table
-      // They will be stored directly in the Message model
-      return {
-        url: file.url,
+    .onUploadComplete(async ({ metadata, file }) => {
+      const attachment = await registerMessageAttachment(metadata.userId, {
         key: file.key,
+        url: file.ufsUrl,
         name: file.name,
         size: file.size,
         type: file.type,
+      });
+      return {
+        url: attachment.url,
+        key: attachment.key,
+        name: attachment.name,
+        size: attachment.size,
+        type: attachment.type,
       };
     }),
 } satisfies FileRouter;

@@ -1,0 +1,15 @@
+// Trusted upload completions; separate from profile gallery files.
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String   @unique
+  url       String
+  name      String
+  size      Int
+  type      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

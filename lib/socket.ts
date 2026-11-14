@@ -3,10 +3,12 @@ import { Server as SocketIOServer } from 'socket.io';
 import { auth } from '@/lib/auth';
 import { getCookies } from 'better-auth/cookies';
 import { db } from '@/lib/db';
+import { writeMessage, messageWriteError } from '@/lib/server/messages';
 import { attachSocketSessionGuard } from '@/lib/server/socket-session';
 
 export type ServerToClientEvents = {
   'auth:error': (error: { code: 'UNAUTHORIZED'; message: string }) => void;
+  'message:error': (error: { code: string; message: string }) => void;
   'message:new': (message: {
     id: string;
     matchId: string;
@@ -33,11 +35,11 @@ export type ClientToServerEvents = {
     matchId: string;
     content: string;
     file?: {
-      url: string;
       key: string;
-      name: string;
-      size: number;
-      type: string;
+      url?: string;
+      name?: string;
+      size?: number;
+      type?: string;
     };
   }) => void;
   'message:read': (data: { messageId: string }) => void;
@@ -159,52 +161,10 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
       console.log(`User ${userId} left match room: ${matchId}`);
     });
 
-    socket.on('message:send', async ({ matchId, content, file }) => {
+    socket.on('message:send', async (payload) => {
       try {
-        const match = await db.match.findUnique({
-          where: { id: matchId },
-          select: { user1Id: true, user2Id: true, status: true },
-        });
-
-        if (!match || match.status !== 'ACTIVE') {
-          return;
-        }
-
-        if (match.user1Id !== userId && match.user2Id !== userId) {
-          return;
-        }
-
-        let messageType: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT';
-        if (file) {
-          messageType = file.type?.startsWith('image/') ? 'IMAGE' : 'FILE';
-        }
-
-        const message = await db.message.create({
-          data: {
-            matchId,
-            senderId: userId,
-            content: content || '',
-            type: messageType,
-            fileUrl: file?.url || null,
-            fileKey: file?.key || null,
-            fileName: file?.name || null,
-            fileSize: file?.size || null,
-            fileType: file?.type || null,
-          },
-          select: {
-            id: true,
-            matchId: true,
-            senderId: true,
-            content: true,
-            type: true,
-            fileUrl: true,
-            fileKey: true,
-            fileName: true,
-            fileSize: true,
-            fileType: true,
-            createdAt: true,
-          },
-        });
+        const { message, receiverId } = await writeMessage(userId, payload);
+        const { matchId, content } = message;
 
         io.to(`match:${matchId}`).emit('message:new', {
           id: message.id,
@@ -219,8 +179,6 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
           fileType: message.fileType,
           createdAt: message.createdAt.toISOString(),
         });
-
-        const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
 
         const senderProfile = await db.profile.findUnique({
           where: { userId },
@@ -253,7 +211,8 @@ export function initializeSocket(httpServer: NetServer): SocketServer {
 
         console.log(`Message sent in match ${matchId} by user ${userId}`);
       } catch (error) {
-        console.error('Error sending message:', error);
+        const { code, error: message } = messageWriteError(error);
+        socket.emit('message:error', { code, message });
       }
     });
 
