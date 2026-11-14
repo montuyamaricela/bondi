@@ -77,17 +77,17 @@ jobs:
       - run: npm ci
       - run: npm run db:generate
       - name: Start owned disposable native Supabase stack
-        run: npm run supabase:start
+        run: npm run supabase:keys:prepare && npm run supabase:start
       - name: Prepare native target identity and private synthetic environment
         run: npm run supabase:test:prepare
       - name: Apply application migrations explicitly to disposable Supabase Postgres
         run: npm run db:migrate
       - run: npm run check
       - run: npx --no-install playwright install --with-deps chromium
-      - name: Retained application journeys on native Supabase Postgres
-        run: npm run test:e2e
       - name: Native API role and database safety boundaries
         run: npm run test:supabase
+      - name: Retained application journeys on native Supabase Postgres
+        run: npm run test:e2e
       - name: Stop only the owned native project
         if: always()
         run: npm run supabase:stop

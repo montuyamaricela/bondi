@@ -65,3 +65,14 @@ export function applicationEnvironment(environment: Environment = process.env) {
     clientOrigin,
   };
 }
+
+export function realtimeEnvironment(environment: Environment = process.env) {
+  if (environment.NEXT_PUBLIC_SUPABASE_REALTIME !== 'true')
+    throw new Error('Supabase Realtime is not explicitly enabled.');
+  const url = configuredUrl(environment.NEXT_PUBLIC_SUPABASE_URL, 'NEXT_PUBLIC_SUPABASE_URL');
+  const signingKeysPath = environment.SUPABASE_SIGNING_KEYS_PATH;
+  const secretKey = environment.SUPABASE_SECRET_KEY;
+  if (!signingKeysPath || !secretKey)
+    throw new Error('Supabase Realtime requires private signing-key and server-key configuration.');
+  return { url, signingKeysPath, secretKey };
+}

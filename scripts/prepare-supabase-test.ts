@@ -54,6 +54,11 @@ async function main() {
     SUPABASE_TEST_URL: api,
     SUPABASE_TEST_PUBLIC_KEY: String(publicKey),
     SUPABASE_TEST_SECRET_KEY: String(secretKey),
+    NEXT_PUBLIC_SUPABASE_REALTIME: 'true',
+    NEXT_PUBLIC_SUPABASE_URL: api,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: String(publicKey),
+    SUPABASE_SECRET_KEY: String(secretKey),
+    SUPABASE_SIGNING_KEYS_PATH: 'supabase/signing_keys.json',
   };
   assertTestDatabase(values);
   const db = new PrismaClient({ datasources: { db: { url: database } }, log: [] });

@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { supabaseFailureDetails, supabaseFailureSymptoms } from './supabase-failure.mjs';
 
 const action = process.argv[2];
 if (
@@ -11,6 +12,10 @@ if (
   process.exit(1);
 }
 const expected = JSON.parse(readFileSync('package.json', 'utf8')).devDependencies.supabase;
+if (action === 'start' && !existsSync('supabase/signing_keys.json')) {
+  console.error('Prepare local signing keys explicitly with npm run supabase:keys:prepare first.');
+  process.exit(1);
+}
 const version = spawnSync('npx', ['--no-install', 'supabase', '--version'], { encoding: 'utf8' });
 if (version.status !== 0 || version.stdout.trim() !== expected) {
   console.error('The installed Supabase CLI must match the exact package.json pin. Run npm ci.');
@@ -32,6 +37,20 @@ const result = spawnSync('npx', ['--no-install', 'supabase', ...args], {
   maxBuffer: 16 * 1024 * 1024,
 });
 if (result.status !== 0) {
+  const symptoms = supabaseFailureSymptoms(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+  console.error(
+    'Native setup diagnostic categories:',
+    symptoms.length ? symptoms.join('; ') : 'unclassified failure',
+  );
+  let privateKeys = [];
+  try {
+    const parsed = JSON.parse(readFileSync('supabase/signing_keys.json', 'utf8'));
+    if (Array.isArray(parsed)) privateKeys = parsed;
+  } catch {
+    /* Invalid key files must not expose JSON source in diagnostics. */
+  }
+  for (const detail of supabaseFailureDetails(result.stderr ?? '', privateKeys))
+    console.error(detail);
   console.error(
     `Local Supabase ${action} failed. Check Docker availability, disk space and container health; credential output is omitted.`,
   );

@@ -36,6 +36,15 @@ operations retain their session/ownership checks. The explicit native Supabase t
 stack and its test-only marker schema are described in [native setup](supabase-testing.md).
 Prisma owns app migrations; the harness does not modify Supabase-owned native schemas.
 
+The staged [Supabase subscription owner](realtime.md) uses server-issued ES256
+credentials and random, receive-only session leases. Its private native policy
+checks the live Better Auth session through a private boolean lookup. Empty hints
+invalidate authorized HTTP queries; neither cached channel permissions nor a JWT
+authorize application reads/writes. Socket.IO remains the command transport until
+the dependent migration slices retire it. The native owner is explicitly enabled,
+without an automatic fallback. The [decision](adr/0001-session-owned-realtime.md)
+records the privacy constraints and retained authentication/schema ownership.
+
 The sample environment points sockets at the combined app server on port 3000.
 `npm run dev` starts that process. The optional `npm run socket` entry point uses
 port 3001; point clients at it only when intentionally choosing that topology.

@@ -20,11 +20,18 @@ only with their owners' authorization. These commands never select or modify a
 hosted project:
 
 ```bash
+npm run supabase:keys:prepare
 npm run supabase:start
 npm run supabase:test:prepare
 ```
 
-The first command starts only the required local database, Auth, REST, Realtime and
+Key preparation creates two private ES256 overlap keys (one active signer, one
+verification-only key) in ignored
+`supabase/signing_keys.json` (0600), without replacing an existing file. Native
+startup imports those keys explicitly. Never commit or print them. See the
+[subscription contract](realtime.md) for hosted configuration and rotation.
+
+The start command starts only the required local database, Auth, REST, Realtime and
 gateway services. It checks the CLI pin and omits credential-bearing CLI output.
 The preparation command requires the committed project confirmation, reads status
 privately, validates the exact loopback endpoints and native database identity, and
@@ -85,6 +92,9 @@ path, an existing private profile, denied anonymous and genuinely authenticated 
 requests, RLS flags/grants, private defaults and a mismatched marker. Administrative
 API calls use Node fetch so server test keys are not recorded in Playwright traces.
 Native tests fail without the prepared stack; they do not skip or use a mocked SDK.
+The Realtime cases additionally test actual private joins, text account IDs,
+issuer/audience/key/expiry rejection, receive-only permissions, cached-connection
+revocation and browser ownership across delayed responses, logout and replacement.
 
 ## Verification evidence
 

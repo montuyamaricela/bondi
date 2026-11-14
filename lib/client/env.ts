@@ -19,3 +19,12 @@ export function browserSocketUrl() {
     window.location.origin,
   );
 }
+
+export function browserRealtimeConfiguration() {
+  if (process.env.NEXT_PUBLIC_SUPABASE_REALTIME !== 'true') return null;
+  const url = configuredUrl(process.env.NEXT_PUBLIC_SUPABASE_URL, 'NEXT_PUBLIC_SUPABASE_URL');
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!key || !(key.startsWith('sb_publishable_') || key.startsWith('eyJ')))
+    throw new Error('Supabase Realtime requires a public API key.');
+  return { url, key };
+}
