@@ -1,27 +1,30 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, JetBrains_Mono, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { QueryProvider } from '@/app/components/providers/query-provider';
 import { SocketProvider } from '@/app/components/providers/socket-provider';
 import { ThemeProvider } from '@/app/components/providers/theme-provider';
 import { Toaster } from '@/app/components/ui/sonner';
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = localFont({
+  src: './fonts/SpaceGrotesk.ttf',
   variable: '--font-space-grotesk',
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+  weight: '300 700',
+  display: 'swap',
 });
 
-const inter = Inter({
+const inter = localFont({
+  src: './fonts/Inter.ttf',
   variable: '--font-inter',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: '400 700',
+  display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: './fonts/JetBrainsMono.ttf',
   variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: '400 700',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
