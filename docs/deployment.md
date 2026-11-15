@@ -5,6 +5,10 @@ Browsers connect directly to Supabase; the application host serves authenticated
 HTTP. A static export cannot serve these operations. This guide prepares a release;
 it does not establish a deployed or qualified site.
 
+The [release audit and go/no-go checklist](supabase-release-readiness.md) maps
+the completed implementation evidence, safe operational observations and remaining
+approved-target deployment steps. Production cutover is still a separate action.
+
 ## Environment and ownership
 
 Use the Node version in `.nvmrc` and configure server secrets through the host's
@@ -20,6 +24,13 @@ explicit target before issuing credentials; follow the [Realtime contract](realt
 for receive-only capabilities, rotation, delivery/pruning and operational limits.
 Missing public configuration reports disconnected updates and never chooses another
 transport; message writes require the native dispatcher installed in Supabase.
+
+Next validates public settings before building or starting: only a publishable key
+or a legacy JWT with the `anon` role is accepted. Secret/service-role keys, malformed
+keys and partial configuration fail with a value-free error. This classifies the
+key; the selected native endpoint verifies validity. Follow
+[Supabase's key guidance](https://supabase.com/docs/guides/getting-started/api-keys).
+Never place a privileged key in any public setting or publish an interrupted build.
 
 Next CLI owns listener options. For example, the host may run
 `npm start -- --hostname 0.0.0.0 --port <assigned-port>`. Application replicas share

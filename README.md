@@ -431,6 +431,11 @@ and UploadThing credentials for uploads. See [deployment preparation](docs/deplo
 for environment settings, release commands, and the remaining verification gates.
 A live demo link will be added after a deployment is verified.
 
+The [Supabase release audit](docs/supabase-release-readiness.md) maps the completed
+Database + Realtime tickets, native/populated-rehearsal evidence and the explicit
+production go/no-go checklist. Better Auth and UploadThing remain in use; no
+production cutover is claimed by local/CI checks.
+
 ## Project history
 
 The first commit was on **26 October 2025**. The **November 2026** modernization
