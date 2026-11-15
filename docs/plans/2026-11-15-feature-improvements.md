@@ -87,6 +87,10 @@ interface. The review established these defects on the inventory baseline.
 5. **R5: bound each Realtime credential attempt.** A pending fetch currently
    prevents all renewal/retry. Bound headers and body consumption without aborting
    the reusable owner lifetime. Test retry, late responses, disposal and focus.
+   #98 bounds each POST/body read to eight seconds, releases pending work into
+   the existing retry path and ignores late continuations. Deterministic unit
+   clocks and real native credential/channel recovery qualify separate layers;
+   no server authorization or SDK dependency change is required.
 6. **R7: make photo deletion and ordering keyboard accessible.** Name controls,
    provide an actual keyboard ordering alternative and preserve focus and primary
    photo semantics. Test keyboard-only reordering and saved order after reload.

@@ -211,6 +211,22 @@ fixtures. Native presence/provider lifecycle suites separately exercise cleanup,
 renewal, privacy and authorized hints. Existing visibility assertions remain;
 keyboard consumers wait for the intentionally disabled pending control to be ready.
 
+### Credential deadline verification
+
+`tests/unit/realtime-credential-timeout.test.ts` controls timers and holds the
+actual subscription owner's header/body promises, deliberately ignoring abort in
+the fixture. It verifies the eight-second boundary, released pending state,
+fresh retry signals, deduplicated focus, bounded automatic attempts, explicit
+restart, disposal and replacement-session isolation. Resolving a late valid-shaped
+payload cannot start SDK setup. These tests do not connect to a native service.
+
+The native provider lifecycle suite separately holds actual signed credential
+response/body continuations. A controlled browser clock crosses the deadline and
+asserts request abort, automatic/explicit recovery, one actual native connection,
+ignored late completion and successful scheduled renewal. Existing logout,
+account/session replacement and authorized hint cases remain intact. A timeout
+cannot reverse server issuance; an unread lease retains its existing expiry.
+
 ### Chat-history recovery verification
 
 `tests/e2e/chat-history-errors.spec.ts` starts with real synthetic sessions and saved

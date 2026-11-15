@@ -11,6 +11,8 @@ type Probe = {
   tokenRequests: number;
   completedTokens: number;
   handshakes: number;
+  abortedRequests: number;
+  firstRequestedAt: number;
   releaseFirst: () => void;
 };
 type ProbeWindow = typeof window & { realtimeLifecycleProbe: Probe };
@@ -25,6 +27,8 @@ async function installProbe(page: Page, phase: Phase) {
         tokenRequests: 0,
         completedTokens: 0,
         handshakes: 0,
+        abortedRequests: 0,
+        firstRequestedAt: 0,
         releaseFirst: () => {},
       };
       (window as ProbeWindow).realtimeLifecycleProbe = state;
@@ -60,6 +64,8 @@ async function installProbe(page: Page, phase: Phase) {
         )
           return nativeFetch(input, init);
         const first = ++state.tokenRequests === 1;
+        if (first) state.firstRequestedAt = Date.now();
+        init.signal?.addEventListener('abort', () => state.abortedRequests++, { once: true });
         if (first && phase === 'request') await hold();
         const response = await nativeFetch(input, init);
         // Buffer the real response; abort alone cannot cancel the later fixture continuation.
@@ -83,9 +89,24 @@ async function installProbe(page: Page, phase: Phase) {
 
 async function probe(page: Page) {
   return page.evaluate(() => {
-    const { marker, held, tokenRequests, completedTokens, handshakes } = (window as ProbeWindow)
-      .realtimeLifecycleProbe;
-    return { marker, held, tokenRequests, completedTokens, handshakes };
+    const {
+      marker,
+      held,
+      tokenRequests,
+      completedTokens,
+      handshakes,
+      abortedRequests,
+      firstRequestedAt,
+    } = (window as ProbeWindow).realtimeLifecycleProbe;
+    return {
+      marker,
+      held,
+      tokenRequests,
+      completedTokens,
+      handshakes,
+      abortedRequests,
+      firstRequestedAt,
+    };
   });
 }
 
@@ -360,3 +381,55 @@ test('a native browser receives empty hints, renews one channel, and recovers af
     await fixture.close();
   }
 });
+
+for (const { phase, recovery, offset } of [
+  { phase: 'response', recovery: 'automatic', offset: 180 },
+  { phase: 'body', recovery: 'explicit', offset: 184 },
+] as const)
+  test(`a held native credential ${phase} times out and supports ${recovery} recovery`, async ({
+    browser,
+    baseURL,
+  }) => {
+    const fixture = await participants(browser, baseURL!, offset);
+    try {
+      const page = await fixture.contexts[0].newPage();
+      await page.clock.install();
+      await installProbe(page, phase);
+      const match = await fixture.db.match.findFirstOrThrow({
+        where: { user1Id: fixture.people[0].id, user2Id: fixture.people[2].id },
+      });
+      await page.goto(`/messages/${match.id}`);
+      await expect.poll(async () => (await probe(page)).held).toBe(true);
+      expect((await probe(page)).handshakes).toBe(0);
+      await page.clock.pauseAt((await probe(page)).firstRequestedAt + 7000);
+      expect((await probe(page)).abortedRequests).toBe(0);
+      await page.clock.fastForward(1100);
+      await expect.poll(async () => (await probe(page)).abortedRequests).toBe(1);
+      await expect(
+        page.getByText('Live updates unavailable. You can still send messages.'),
+      ).toBeVisible();
+      if (recovery === 'automatic') await page.clock.fastForward(1000);
+      else await page.getByRole('button', { name: 'Retry live updates', exact: true }).click();
+      await expect.poll(async () => (await probe(page)).handshakes).toBe(1);
+      await expect(
+        page.getByText('Live updates unavailable. You can still send messages.'),
+      ).toHaveCount(0);
+      const before = await probe(page);
+      await page.evaluate(() => (window as ProbeWindow).realtimeLifecycleProbe.releaseFirst());
+      await page.clock.runFor(50);
+      expect((await probe(page)).handshakes).toBe(before.handshakes);
+      await page.clock.fastForward(9000);
+      expect((await probe(page)).abortedRequests).toBe(1);
+      expect((await probe(page)).handshakes).toBe(1);
+      const requests = (await probe(page)).tokenRequests;
+      // Exercise scheduled renewal after recovery without replacing the native channel.
+      await page.clock.fastForward(60_000);
+      await expect.poll(async () => (await probe(page)).completedTokens).toBeGreaterThan(requests);
+      expect((await probe(page)).handshakes).toBe(1);
+      await expect(
+        page.getByText('Live updates unavailable. You can still send messages.'),
+      ).toHaveCount(0);
+    } finally {
+      await fixture.close();
+    }
+  });

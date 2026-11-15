@@ -109,6 +109,11 @@ serialize commands from separate clients.
 are bound to the expected owner, and cleanup aborts outstanding requests, removes
 channels/listeners/timers and closes only its lease. Delayed responses cannot
 replace the next owner. Focus revalidates credentials; reconnect refreshes canonical HTTP queries.
+Credential POST attempts have an eight-second deadline through body consumption.
+Each attempt composes owner disposal with its own cancellation; timeout releases
+the pending operation into bounded retry, without aborting the reusable owner.
+The cancellation race ignores late parsing and clears its deadline after a complete
+body, before SDK setup. No shared request framework or alternate transport is added.
 
 `lib/server/messages.ts` is the authoritative HTTP write operation. It validates
 untrusted payloads and owned attachments, locks the active match, and commits the

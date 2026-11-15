@@ -32,6 +32,13 @@ one channel on same-session refresh. A failed renewal disconnects cached native
 authorization and retries at most five times; focus can initiate another bounded
 attempt. Account/session replacement aborts pending work and removes all owned
 channels, listeners and timers. Late response parsing cannot create a new client.
+Each credential POST has an eight-second attempt deadline covering headers and
+body consumption. Timeout aborts that request and releases the pending attempt,
+even if a delayed response continuation ignores cancellation. The reusable owner
+can retry; successful body consumption clears the deadline before SDK setup.
+Late headers/body cannot install a credential or close the next attempt's lease.
+An accepted but unread issuance may leave an unused server lease until its existing
+expiry; browser cancellation does not roll back a committed issuance.
 No credential is retained in localStorage. See the [decision](adr/0001-session-owned-realtime.md)
 for cached authorization limits and the no-private-payload rule.
 
