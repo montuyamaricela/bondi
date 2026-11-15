@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,13 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
 
   const { startUpload } = useUploadThing(endpoint);
 
@@ -37,6 +44,7 @@ export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }:
 
       try {
         const result = await startUpload(acceptedFiles);
+        if (!active.current) return;
 
         if (result && result.length > 0) {
           const files = result.map((file) => {
@@ -66,12 +74,12 @@ export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }:
           toast.success('Upload successful!');
         }
       } catch (error) {
-        console.error('Upload failed:', error);
+        if (!active.current) return;
         const err = error instanceof Error ? error : new Error('Upload failed');
         onUploadError?.(err);
         toast.error('Upload failed');
       } finally {
-        setIsUploading(false);
+        if (active.current) setIsUploading(false);
       }
     },
     disabled: isUploading,

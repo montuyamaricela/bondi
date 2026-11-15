@@ -316,6 +316,15 @@ parallel edits retain a complete committed result. Browser age inputs keep decim
 and blank values for validation. Existing stored values remain readable; profiles
 outside the shared write bounds require correction when edited.
 
+Profile forms capture the account and session that opened them. Setup/edit requests
+with stale owners return 409 before writing; malformed or incomplete owner pairs
+return 400. Older API callers may still omit both fields. Native HTTP/browser cases
+cover shared cookies changing to another account, same-account session replacement,
+unchanged profiles after rejection and a held accepted-save response arriving after
+the editor switches accounts. Such an acknowledgement cannot route or toast in the
+replacement editor. Photo callbacks also stop affecting an unmounted form; a real
+provider upload after account replacement is not covered by these local cases.
+
 Keyboard/touch controls supplement discovery gestures with Like/Pass buttons using
 the same guarded actions. Password visibility and selected-option removal have
 accessible names. The photo viewer uses the shared dialog primitive for initial

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import Image from 'next/image';
 import { Photo } from '../types';
 import { PhotoUpload } from '@/app/components/ui/custom/PhotoUpload';
@@ -18,6 +18,13 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const deleteMutation = usePhotoDeleteMutation();
   const queryClient = useQueryClient();
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
 
   const handleUploadComplete = (
     res:
@@ -31,7 +38,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
         }[]
       | undefined,
   ) => {
-    if (res && res.length > 0) {
+    if (active.current && res && res.length > 0) {
       const newPhotos = res.map((file) => ({
         id: file.fileId || `temp-${file.key}`,
         url: file.url,
@@ -52,9 +59,12 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
   const handleDelete = async (photoKey: string) => {
     try {
       await deleteMutation.mutateAsync(photoKey);
+      if (!active.current) return;
       onPhotosChange(photos.filter((p) => p.key !== photoKey));
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Photo deleted successfully');
     } catch {
+      if (!active.current) return;
       toast.error('Photo deletion could not be completed. Please try again.');
     }
   };
@@ -144,7 +154,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
           endpoint="profilePhotos"
           onClientUploadComplete={handleUploadComplete}
           onUploadError={(error: Error) => {
-            toast.error(`Upload failed: ${error.message}`);
+            if (active.current) toast.error(`Upload failed: ${error.message}`);
           }}
         />
       ) : (

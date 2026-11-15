@@ -3,7 +3,12 @@ import { getServerSession } from '@/lib/session';
 import { profileSetupSchema } from '@/app/components/features/auth/validation';
 import { profileEditSchema } from '@/app/components/features/profile/validation';
 import { handleApiError } from '@/lib/errors';
-import { getProfileByUserId, createProfile, updateProfile } from '@/lib/server/profile';
+import {
+  getProfileByUserId,
+  createProfile,
+  updateProfile,
+  assertOptionalProfileOwner,
+} from '@/lib/server/profile';
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,6 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
+    assertOptionalProfileOwner({ userId: session.user.id, sessionId: session.session.id }, body);
     const result = profileSetupSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
@@ -88,6 +94,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
+    assertOptionalProfileOwner({ userId: session.user.id, sessionId: session.session.id }, body);
     const result = profileEditSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(

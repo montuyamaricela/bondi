@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { safeCallbackUrl } from '@/lib/auth-navigation';
 import { useForm } from 'react-hook-form';
@@ -53,8 +53,9 @@ export function ProfileSetupForm({ callbackUrl = '/discover' }: { callbackUrl?: 
 
   return (
     <AccountProfileSetupForm
-      key={session.user.id}
+      key={`${session.user.id}:${session.session.id}`}
       userId={session.user.id}
+      sessionId={session.session.id}
       userName={session.user.name}
       callbackUrl={callbackUrl}
     />
@@ -63,17 +64,22 @@ export function ProfileSetupForm({ callbackUrl = '/discover' }: { callbackUrl?: 
 
 function AccountProfileSetupForm({
   userId,
+  sessionId,
   userName,
   callbackUrl,
 }: {
   userId: string;
+  sessionId: string;
   userName?: string | null;
   callbackUrl: string;
 }) {
   const router = useRouter();
   const [apiError, setApiError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const profileSetupMutation = useProfileSetupMutation();
+  const profileSetupMutation = useProfileSetupMutation({
+    expectedUserId: userId,
+    expectedSessionId: sessionId,
+  });
 
   const [savedFormData, saveDraftData, clearDraftData] = useLocalStorage<
     Partial<ProfileSetupFormData>
@@ -82,7 +88,7 @@ function AccountProfileSetupForm({
   const activeRef = useRef(false);
   const completedRef = useRef(false);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => {
+  useLayoutEffect(() => {
     activeRef.current = true;
     return () => {
       activeRef.current = false;
@@ -171,6 +177,7 @@ function AccountProfileSetupForm({
   };
 
   const onSubmit = async (data: ProfileSetupFormData) => {
+    if (!activeRef.current) return;
     setApiError(null);
 
     const dataToSubmit = {

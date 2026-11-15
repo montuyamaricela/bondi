@@ -45,3 +45,9 @@ export const photoOrderSchema = z
   .array(z.string().min(1).max(512))
   .refine((keys) => new Set(keys).size === keys.length, 'Photo keys must be unique');
 export type ProfileFields = z.infer<typeof profileFieldsSchema>;
+
+export const profileWriteOwnerSchema = z.object({
+  expectedUserId: z.string().min(1).max(128),
+  expectedSessionId: z.string().min(1).max(128),
+});
+export type ProfileWriteOwner = z.infer<typeof profileWriteOwnerSchema>;
