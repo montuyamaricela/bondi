@@ -32,7 +32,17 @@
     "prepare": "lefthook install",
     "hooks:install": "lefthook install",
     "hooks:validate": "lefthook validate",
-    "check:realtime": "node scripts/check-realtime-retirement.mjs"
+    "check:realtime": "node scripts/check-realtime-retirement.mjs",
+    "migration:local": "tsx scripts/migration/local-cli.ts",
+    "migration:schema": "tsx scripts/migration/schema-cli.ts",
+    "migration:fixtures": "tsx scripts/migration/fixtures-cli.ts",
+    "migration:accounts": "tsx scripts/migration/accounts-cli.ts",
+    "migration:transfer": "tsx scripts/migration/transfer-cli.ts",
+    "migration:qualify": "tsx scripts/migration/qualify-cli.ts",
+    "migration:build": "tsx scripts/migration/build-cli.ts",
+    "migration:delivery": "tsx scripts/migration/delivery-cli.ts",
+    "test:migration": "tsx scripts/migration/test-cli.ts",
+    "migration:guards": "tsx scripts/migration/guards-cli.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

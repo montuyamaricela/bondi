@@ -98,6 +98,8 @@ retry/retention limits, HTTP chat commands, server-owned presence and signing-ke
 rotation. Native chat and online status use authenticated HTTP with private refresh
 hints. Missing public configuration reports unavailable live updates; it does not
 select another transport.
+The [populated migration rehearsal](docs/migration-rehearsal.md) covers explicit transfer,
+failed-copy recovery and rollback using separate isolated resources.
 See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
 
