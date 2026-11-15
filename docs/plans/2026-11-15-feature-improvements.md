@@ -7,8 +7,10 @@ it does not claim the work is already implemented or production-qualified.
 The user selected this order: improve existing features, then authentication and
 account management, then implement bounded feature additions chosen from research.
 Authentication will move from Better Auth to **Supabase Auth**, with **Resend SMTP**
-for production transactional email. The earlier Database/Realtime migration kept
-Better Auth; Supabase hosting alone does not migrate application accounts.
+for production transactional email. The user subsequently approved **starting with
+fresh auth accounts**, so legacy password import, account migration and session
+continuity are no longer requirements. This is not authorization to delete an
+unspecified database. The earlier Database/Realtime migration kept Better Auth.
 
 ## What Bondi already has
 
@@ -94,13 +96,16 @@ owns current primary-source details. Resolve compatibility in a disposable nativ
 test environment before switching login. Do not provision a hosted service,
 rotate credentials or cut over production as a side effect of build/tests.
 
-- Preserve existing text application IDs, profile/gallery ownership, matches and
-  message history through a trusted unique mapping to native UUID identities.
-  Never trust editable metadata or link two accounts on email alone.
-- Better Auth's scrypt hashes are not directly compatible with Supabase's
-  supported import formats. Qualify a bounded credential bridge, including
-  normalization, long-password behavior, reset invalidation and retirement.
-  Do not silently force resets, change verified-email status or recreate accounts.
+- Start new users in native Supabase Auth. Use the verified native UUID as the
+  existing text application User ID, avoiding an unnecessary mapping table.
+  Provision app data only from the server-verified subject, never editable
+  metadata, browser IDs or an email-only match. Domain foreign keys and ownership
+  checks retain their existing structure.
+- Do not implement a legacy credential bridge, copy password hashes, import old
+  sessions or maintain two login providers. Retired Better Auth cookies must fail.
+  Existing legacy-account continuity tests must be replaced by meaningful fresh
+  native-account and retired-cookie rejection coverage because the user changed
+  that requirement; preserve all unrelated privacy/access/failure assertions.
 - Replace session resolution, browser auth state, middleware and Realtime
   credential/audience checks coherently. Native JWT verification alone does not
   prove a live session: retain rejection on the next protected request after
@@ -108,18 +113,22 @@ rotate credentials or cut over production as a side effect of build/tests.
 - Add forgot/reset password and signed-in change-password UI using Supabase's
   actual recovery flow. Use allowlisted callbacks, generic request feedback,
   expiry/replay handling, rate controls and consistent server/client policy.
-  Preserve legacy sign-in compatibility rather than imposing signup-only rules
-  on existing accounts.
+  Native Auth owns password policy and email confirmation. Test confirmation,
+  recovery and password changes against the selected native runtime, with no
+  fabricated verified-email state.
 - Configure production email through Resend SMTP on an approved verified sending
   domain. SMTP transports mail; Supabase owns credentials/tokens. Local native
   email capture can establish end-to-end recovery without delivering real mail.
   Hosted sender/domain credentials and delivery qualification remain explicit
   operator prerequisites.
 
-Split the work at tested interfaces: compatibility qualification; identity/session
-foundation; browser/HTTP/Realtime cutover; recovery/account UI; deployment
-qualification and legacy retirement. Every runtime PR must work against its
-stated configuration and preserve all existing gates; no half-switched default.
+Split the work into a coherent fresh native-auth cutover (server/browser identity,
+live session authorization, Realtime and retired-provider cleanup), followed by
+recovery/change-password UI and deployment qualification. Use atomic commits
+inside each ticket's PR. Test local captured mail before claiming recovery works.
+Every runtime PR must work against its stated configuration; no half-switched
+default. Database reset/provisioning is a separate explicit operator action against
+a known target, never an implicit test/build side effect.
 
 ## Phase C: selected additions after account work
 

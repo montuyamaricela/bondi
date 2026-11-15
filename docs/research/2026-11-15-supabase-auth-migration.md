@@ -1,16 +1,17 @@
 # Supabase Auth migration compatibility — 15 November 2026
 
-The user has chosen **Supabase Auth as the eventual authentication owner**, with
-Resend SMTP as the planned email sender. Existing reliability, privacy and UI
-improvements come first. This is research and a proposed migration sequence, not
-an implemented migration or permission to provision services. No provider account,
-verified sending domain or production target has been supplied.
+The user has chosen **Supabase Auth as the authentication owner**, with Resend SMTP
+as the planned email sender, and explicitly approved **starting with fresh auth
+accounts**. Existing reliability, privacy and UI improvements come first. No
+legacy password or session bridge is required. This is research, not an
+implemented cutover or permission to delete an unspecified database or provision
+services. No provider account, verified domain or production target was supplied.
 
-The migration is feasible without rewriting application identities, but it is not
-a package swap. The two principal blockers are incompatible password formats and
-the difference between Bondi's immediate session revocation and ordinary JWT
-validation. Preserve the existing text IDs and use a trusted mapping to Supabase
-UUIDs; preserve live authorization rather than replacing it with cached claims.
+Fresh accounts avoid the incompatible-password import problem. New native UUIDs
+can be stored directly in the existing text app-ID column; a separate legacy
+mapping table is unnecessary. Preserve live authorization rather than replacing it
+with cached JWT claims. The legacy compatibility analysis below explains the
+alternative that was considered; its bridge options are not selected work.
 
 ## Evidence and versions
 
@@ -170,13 +171,13 @@ sessions from a browser-supplied email/ID.
 [generateLink](https://supabase.com/docs/reference/javascript/auth-admin-generatelink),
 [verifyOtp](https://supabase.com/docs/reference/javascript/auth-verifyotp).
 
-## Stable application IDs and native identity mapping
+## Identity choices: fresh accounts versus retained legacy accounts
 
 Supabase Auth's user ID is a UUID; its admin create endpoint validates custom IDs
 as UUIDs. Existing CUID/text app IDs therefore cannot simply become native IDs.
 [Admin implementation](https://github.com/supabase/auth/blob/3e79d8513b67d7dc3f234153aacc074daf82db5f/internal/api/admin.go).
 
-Use one private owned mapping with unique `appUserId` and `authUserId`, or an
+For retained legacy accounts, use one private mapping with unique `appUserId` and `authUserId`, or an
 equivalent unique nullable native UUID on the existing app User during migration.
 Preserve every existing `User.id` and domain foreign key. Resolve native JWT `sub`
 through this mapping on the server; use the resulting app ID in profile,
@@ -311,47 +312,42 @@ captured mail instead of external delivery.
 [startup exclusions](../../scripts/supabase-local.mjs),
 [CLI configuration](https://supabase.com/docs/guides/local-development/cli/config).
 
-## Small staged migration and retirement
+## Selected fresh-account cutover
 
-Before implementation, explicitly settle these product choices: JIT versus a
-reset requirement; whether current sessions must cross without another sign-in;
-how unverified legacy emails become verified without silently changing access;
-Unicode/long-password compatibility; session lifetime; and current-device versus
-all-device logout/reset behavior. A short compatibility spike using synthetic
-fixtures must prove the chosen policy before a production migration is promised.
-No forced reset, automatic email confirmation or new verification lockout is
-authorized merely by choosing Supabase Auth.
+The user answered the legacy-continuity question with “we can start from scratch”.
+Consequently, **do not build JIT, password import, retained legacy sessions or an
+identity mapping table**. Keep the current text domain-ID columns and set a fresh
+app User ID from the verified native UUID. This permits reuse of existing domain
+foreign keys without rewriting them. Never claim a stale app row by email alone.
 
-1. **Resolve policy before changing authentication.** Select JIT or explicit reset,
-   active-session continuity, normalization/long-password handling, legacy email
-   verification, lifetime and logout/reset scope. Identify the eventual hosted
-   target and mail domain separately. Existing feature fixes remain first.
-2. **Prepare additive identity and verification seams.** Add the unique private
-   mapping and idempotent migration state, retain app IDs/FKs, and add synthetic
-   native Auth/mail cases. Prisma owns app migrations; Supabase owns its managed
-   Auth schema. No migrations or seeds run implicitly in builds/tests.
-3. **Implement one native vertical slice.** Native signup/login, mapped server
-   identity, SSR refresh and logout must work together for synthetic users. Then
-   add recovery/change-password and the chosen bounded legacy bridge. Native
-   signup must not claim a pre-existing legacy account by email alone.
-4. **Move the session boundary and Realtime together.** Replace every legacy
-   Session dependency in protected HTTP, uploads, dispatch, presence and typing;
-   preserve next-request denial, unchanged history and privacy projections.
-   Capture a populated rehearsal, failure recovery and rollback boundary before
-   any hosted cutover. Reverting only code after native passwords change cannot
-   safely restore old hashes as current credentials.
-5. **Retire the bridge.** Once remaining accounts are migrated or follow the
-   agreed recovery path, disable all Better Auth routes and cookie acceptance,
-   clear old cookies, remove legacy sessions/leases through explicit cleanup, and
-   remove Better Auth dependency, credential writes, hooks and obsolete secrets.
-   Delete retained legacy hashes on the agreed schedule after rollback retention
-   ends. Supabase alone issues/verifies login credentials and refresh sessions;
-   retain only the mapping and the app's domain authorization/lease operations.
+1. **Implement one coherent native auth slice.** Native signup/confirmation/login,
+   server-verified identity, browser/SSR refresh and local-session logout work
+   together. Retain the existing bounded session lifetime and next-request
+   revocation behavior. Prefer the documented SSR pattern, with explicit origin
+   protection and account/session-owned cleanup.
+2. **Move Realtime's live boundary in the same cutover.** Replace legacy Session
+   joins in credentials, presence, typing, private policy and durable dispatch.
+   Keep leases and minimal hints; authorize every subsequent HTTP operation.
+   Remove Better Auth routes/dependency and reject old cookies. Do not leave a
+   second login path or an inactive legacy password bridge.
+3. **Update qualification to the new requirement.** Replace legacy-account
+   continuity assertions with fresh native signup/login and old-cookie rejection.
+   Preserve meaningful authorization, rollback, ownership and privacy assertions
+   elsewhere. Adapt the populated database rehearsal to native synthetic accounts
+   rather than quietly skipping the job or accepting old cookies.
+4. **Complete account management.** Add forgot/reset and signed-in change-password
+   UI with captured local mail, safe callbacks, uniform request feedback and
+   accurate expiry/replay/revocation tests. Normal logout targets this session;
+   a completed reset requires a fresh sign-in and revoked prior sessions.
+5. **Qualify an explicit hosted target later.** Domain verification, Resend SMTP,
+   production callbacks and actual delivery require supplied service configuration.
+   Resetting an identified development database is a separate operator step;
+   builds/tests never reset data, run migrations implicitly or provision services.
 
 ## Required evidence before implementation is called complete
 
 Use the repository's guarded disposable Supabase environment and synthetic
-accounts. [Native test contract](../supabase-testing.md). The migration slice needs:
+accounts. [Native test contract](../supabase-testing.md). The fresh cutover needs the session/browser/mail/ownership checks below. Legacy hash/JIT cases apply only if continuity becomes a requirement again; do not build an unused bridge:
 
 - Old 1.3.33 fixture and current hashes: correct/wrong password, Unicode-equivalent
   input, more than 72 UTF-8 bytes, policy mismatch, concurrent JIT and interrupted
