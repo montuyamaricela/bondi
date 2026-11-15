@@ -3,14 +3,29 @@ import { UploadThingError } from 'uploadthing/server';
 import { getServerSession } from '@/lib/session';
 import { checkProfilePhotoCapacity, registerProfilePhoto } from '@/lib/server/profile-photos';
 import { registerMessageAttachment } from '@/lib/server/messages';
+import { UPLOAD_USER_HEADER, UPLOAD_SESSION_HEADER } from '@/lib/upload-owner';
 
 const f = createUploadthing();
 
-async function authorizeProfileUpload({ req, files }: { req: Request; files: readonly unknown[] }) {
+async function authorizeUpload(req: Request) {
   const session = await getServerSession(req.headers);
   if (!session?.user) throw new UploadThingError({ code: 'FORBIDDEN', message: 'Unauthorized' });
-  await checkProfilePhotoCapacity(session.user.id, files.length);
+  const userId = req.headers.get(UPLOAD_USER_HEADER);
+  const sessionId = req.headers.get(UPLOAD_SESSION_HEADER);
+  // Older API clients may omit both; first-party uploaders always send the pair.
+  if (userId !== null || sessionId !== null) {
+    if (!userId || !sessionId || userId.length > 128 || sessionId.length > 128)
+      throw new UploadThingError({ code: 'BAD_REQUEST', message: 'Invalid upload owner' });
+    if (userId !== session.user.id || sessionId !== session.session.id)
+      throw new UploadThingError({ code: 'FORBIDDEN', message: 'Your upload session changed' });
+  }
   return { userId: session.user.id };
+}
+
+async function authorizeProfileUpload({ req, files }: { req: Request; files: readonly unknown[] }) {
+  const owner = await authorizeUpload(req);
+  await checkProfilePhotoCapacity(owner.userId, files.length);
+  return owner;
 }
 
 export const uploadRouter = {
@@ -41,15 +56,7 @@ export const uploadRouter = {
     pdf: { maxFileSize: '16MB', maxFileCount: 1 },
     video: { maxFileSize: '32MB', maxFileCount: 1 },
   })
-    .middleware(async ({ req }) => {
-      const session = await getServerSession(req.headers);
-
-      if (!session?.user) {
-        throw new UploadThingError({ code: 'FORBIDDEN', message: 'Unauthorized' });
-      }
-
-      return { userId: session.user.id };
-    })
+    .middleware(({ req }) => authorizeUpload(req))
     .onUploadComplete(async ({ metadata, file }) => {
       const attachment = await registerMessageAttachment(metadata.userId, {
         key: file.key,

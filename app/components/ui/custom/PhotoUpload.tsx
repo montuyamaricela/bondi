@@ -4,7 +4,9 @@ import { useState, useRef, useLayoutEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useUploadThing } from '@/lib/client/uploadthing';
+import { uploadFiles } from '@/lib/client/uploadthing';
+import { useSession } from '@/lib/auth-client';
+import { UPLOAD_USER_HEADER, UPLOAD_SESSION_HEADER } from '@/lib/upload-owner';
 import { Upload } from 'lucide-react';
 
 interface PhotoUploadProps {
@@ -24,27 +26,52 @@ interface PhotoUploadProps {
   onUploadError?: (error: Error) => void;
 }
 
-export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }: PhotoUploadProps) {
+export function PhotoUpload(props: PhotoUploadProps) {
+  const { data: session, isPending } = useSession();
+  const userId = session?.user.id;
+  const sessionId = session?.session.id;
+  if (!userId || !sessionId)
+    return <p role="status">{isPending ? 'Preparing uploader...' : 'Sign in to upload files.'}</p>;
+  return (
+    <OwnedPhotoUpload key={`${userId}:${sessionId}`} {...props} owner={{ userId, sessionId }} />
+  );
+}
+
+function OwnedPhotoUpload({
+  endpoint,
+  onClientUploadComplete,
+  onUploadError,
+  owner,
+}: PhotoUploadProps & { owner: { userId: string; sessionId: string } }) {
   const [isUploading, setIsUploading] = useState(false);
   const active = useRef(false);
+  const pending = useRef<AbortController | null>(null);
   useLayoutEffect(() => {
     active.current = true;
     return () => {
       active.current = false;
+      pending.current?.abort();
+      pending.current = null;
     };
   }, []);
 
-  const { startUpload } = useUploadThing(endpoint);
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (acceptedFiles) => {
-      if (acceptedFiles.length === 0) return;
-
+      if (!active.current || pending.current || acceptedFiles.length === 0) return;
+      const controller = new AbortController();
+      pending.current = controller;
       setIsUploading(true);
 
       try {
-        const result = await startUpload(acceptedFiles);
-        if (!active.current) return;
+        const result = await uploadFiles(endpoint, {
+          files: acceptedFiles,
+          headers: {
+            [UPLOAD_USER_HEADER]: owner.userId,
+            [UPLOAD_SESSION_HEADER]: owner.sessionId,
+          },
+          signal: controller.signal,
+        });
+        if (!active.current || controller.signal.aborted) return;
 
         if (result && result.length > 0) {
           const files = result.map((file) => {
@@ -74,12 +101,13 @@ export function PhotoUpload({ endpoint, onClientUploadComplete, onUploadError }:
           toast.success('Upload successful!');
         }
       } catch (error) {
-        if (!active.current) return;
+        if (!active.current || controller.signal.aborted) return;
         const err = error instanceof Error ? error : new Error('Upload failed');
         onUploadError?.(err);
         toast.error('Upload failed');
       } finally {
-        if (active.current) setIsUploading(false);
+        if (pending.current === controller) pending.current = null;
+        if (active.current && !controller.signal.aborted) setIsUploading(false);
       }
     },
     disabled: isUploading,
