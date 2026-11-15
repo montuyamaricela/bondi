@@ -90,3 +90,65 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 3
+
+  migration-rehearsal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:synthetic-generation-only@127.0.0.1:54332/postgres
+      DIRECT_URL: postgresql://postgres:synthetic-generation-only@127.0.0.1:54332/postgres
+      BONDI_PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Install PostgreSQL 17 clients from the official signed repository
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/bondi-pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+      - name: Explicit isolated source and native target preparation
+        run: npm run migration:local -- prepare --confirm-project bondi-migration-rehearsal
+      - name: Explicit application schema and synthetic fixture preparation
+        run: |
+          npm run migration:schema -- --confirm-project bondi-migration-rehearsal
+          npm run migration:fixtures -- --confirm-project bondi-migration-rehearsal
+      - name: Build application without database mutation
+        run: npm run migration:build -- --confirm-project bondi-migration-rehearsal
+      - name: Preserve genuine legacy-account cookies before the write fence
+        run: npm run migration:accounts -- --confirm-project bondi-migration-rehearsal
+      - name: Capture and prove atomic restore failure with a usable source
+        run: |
+          npm run migration:transfer -- capture --confirm-project bondi-migration-rehearsal
+          npm run migration:transfer -- prove-failure --confirm-project bondi-migration-rehearsal
+          npm run migration:qualify -- source --confirm-project bondi-migration-rehearsal
+      - name: Restore and qualify the exact captured data without accepting writes
+        run: |
+          npm run migration:transfer -- restore --confirm-project bondi-migration-rehearsal
+          npm run migration:qualify -- target --confirm-project bondi-migration-rehearsal
+      - name: Rehearse before-write rollback and qualify the source again
+        run: |
+          npm run migration:transfer -- rollback --confirm-project bondi-migration-rehearsal
+          npm run migration:qualify -- source --confirm-project bondi-migration-rehearsal
+          npm run migration:transfer -- reselect --confirm-project bondi-migration-rehearsal
+          npm run migration:transfer -- accept --confirm-project bondi-migration-rehearsal
+      - name: Verify live negative guards and the post-write rollback boundary
+        run: npm run migration:guards -- --confirm-project bondi-migration-rehearsal
+      - name: Recover original pending work through real private native subscribers
+        run: npm run migration:delivery -- --confirm-project bondi-migration-rehearsal
+      - run: npx --no-install playwright install --with-deps chromium
+      - name: Qualify migrated accounts, idempotency, browser chat and location
+        run: npm run test:migration -- --confirm-project bondi-migration-rehearsal
+      - name: Read-only native security advisors for the restored target
+        run: npx --no-install supabase db advisors --local --workdir tooling/migration-rehearsal --type security --fail-on warn
+      - name: Stop only the owned isolated migration resources
+        if: always()
+        run: npm run migration:local -- stop --confirm-project bondi-migration-rehearsal

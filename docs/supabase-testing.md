@@ -99,7 +99,10 @@ revocation and browser ownership across delayed responses, logout and replacemen
 
 ## Verification evidence
 
-CI has two required checks: the ordinary PostgreSQL schema/build/unit job and `native-supabase`.
+CI runs the ordinary PostgreSQL schema/build/unit job, `native-supabase` and
+`migration-rehearsal`. The [populated rehearsal](migration-rehearsal.md) owns separate
+PostgreSQL 14/source and Supabase 17/target resources and explicit operator steps;
+it never reuses this environment or runs imports during normal tests.
 The native job explicitly starts/prepares/migrates an ephemeral local Supabase stack,
 runs strict checks and a fresh build, then all retained application journeys and
 the native permission cases. It stops only its owned stack. This job does not need

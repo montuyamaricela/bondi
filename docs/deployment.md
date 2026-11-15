@@ -31,7 +31,7 @@ or availability on a particular host.
 
 1. Select the intended target and obtain any required provisioning/cost approval.
    Preserve backups and use the populated transfer/rollback runbook from
-   [#82](https://github.com/montuyamaricela/bondi/issues/82). Keep one active writer
+   the [populated rehearsal runbook](migration-rehearsal.md). Keep one active writer
    during cutover; retain the previous known-good build and recovery data.
 2. Install the lockfile with `npm ci`. Run `npm run check` against the intended
    revision with its build environment. This includes strict checks, tests, Prisma

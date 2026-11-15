@@ -58,3 +58,8 @@ PROGRESS.md
 /supabase/.temp/
 /supabase/.branches/
 /supabase/signing_keys.json
+
+# Isolated migration rehearsal infrastructure
+/tooling/migration-rehearsal/supabase/.temp/
+/tooling/migration-rehearsal/supabase/.branches/
+/tooling/migration-rehearsal/supabase/signing_keys.json

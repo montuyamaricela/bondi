@@ -374,8 +374,9 @@ startup/build/test/migration imports reference data.
 1. Extend qualified journeys for live uploads and other uncovered boundaries
    before moving their data code. [Coverage](realtime-retirement.md) distinguishes
    actual native integration from unit and schema/build evidence.
-2. Rehearse populated database transfer/rollback and qualify the chosen hosted
-   target separately; local platform tests do not establish production cutover.
+2. Use the [populated transfer/rollback rehearsal](migration-rehearsal.md) before
+   separately qualifying a hosted target; local platform tests do not establish
+   production cutover.
 
 3. Extract one domain operation at a time from handlers into `lib/server/`, using
    the existing profile operation as a starting point. Keep route contracts stable.
