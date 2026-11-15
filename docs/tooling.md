@@ -23,12 +23,9 @@ reporting. `eslint-config-prettier` runs last so Prettier owns formatting.
 
 Environment access is restricted to `env` modules, config files, scripts/tests,
 and the remaining owned upload-credential route. `lib/server/env.ts` validates
-runtime database, auth, origin and port configuration; `lib/client/env.ts` reads
-only explicit public socket settings. Pure parsing lives in `lib/configuration.ts`.
-The former auth/socket/provider compatibility exceptions have been removed, so new
-runtime readers must use these owners. Socket.IO's `socket.data` and Node's
-response object use documented mutable APIs, so property writes to `socket` and
-`res` are the narrow parameter-mutation exceptions.
+runtime database, auth and origin configuration; `lib/client/env.ts` reads only the
+public Supabase URL/key. Pure parsing lives in `lib/configuration.ts`. Runtime
+readers use these owners. Shared rules remain in `tooling/`.
 
 `tooling/prettier-config.mjs` uses the source's semicolons, single quotes, trailing
 commas, two-space indentation, and 100-column width. Tailwind class sorting loads
@@ -61,76 +58,25 @@ actual failed commits, documentation-only skips, and missing configuration.
 
 ### Local E2E setup
 
-Copy `.env.test.example` to ignored `.env.test.local`. Set its `DATABASE_URL` to
-a disposable test database and keep its origins on `http://127.0.0.1:3100`.
-Use synthetic auth credentials and test-only service tokens. The hook requires
-the test file's values and loads them over inherited shell settings; it never
-falls back to a production database URL from the shell. The file remains local.
+Application browser checks require the explicitly prepared native Supabase target;
+follow [native setup](supabase-testing.md) and deliberately configure ignored
+`.env.test.local` from those prepared values. `.env.test.example` documents only
+ordinary unit/schema settings and is insufficient for application E2E. Test origins
+remain `http://127.0.0.1:3100`. The hook loads its file over inherited values so a
+shell production URL cannot substitute for the intended disposable target.
 
-Apply database migrations explicitly against that test database before the first
-run, and install Chromium with `npx --no-install playwright install chromium`.
-The hook never migrates or seeds a database. Missing setup blocks runtime commits
-with a setup message. Keep ports 3100 and 3101 free for the hook's owned combined
-and standalone servers. The initializer test owns and closes an ephemeral listener.
+Apply migrations explicitly before the first run and install Chromium with
+`npx --no-install playwright install chromium`. Missing setup blocks runtime
+commits. The hook never starts containers, migrates or seeds. Keep port 3100 free
+for one owned standard Next listener.
 
-While editing, run focused tests for fast feedback. The current forty-two-test browser
-suite is small enough for the commit gate; revisit a smaller commit smoke suite
-plus fuller CI coverage if the suite grows substantially. CI still runs its own
-checks and E2E independently. Add journeys for changed acceptance behavior; the
-authenticated journey covers onboarding, mutual likes through the API, live two-user
-chat and history, and outsider HTTP/socket denial. A separate legacy-credential
-case verifies account/profile preservation and rejected access after upgrades.
-The session lifecycle case verifies immediate HTTP rejection after revocation or
-expiry with retained signed cache cookies, plus valid session renewal.
-The socket lifecycle case exercises the combined, standalone, and library
-initializer owners: valid room/message/read behavior and all seven incoming actions
-after expiry/revocation. It verifies an auth error, disconnect, and no unauthorized
-message/read/typing side effects using real sessions and sockets.
-The message-write case verifies runtime payload parsing, the text limit and trimming,
-active membership, and attachment ownership/metadata across HTTP and all socket
-owners. It calls the trusted upload-completion callback with synthetic files and
-checks PostgreSQL records; external storage and webhook signature delivery are not exercised.
-The retry case exercises eight concurrent identified operations per transport against
-PostgreSQL, conflict rejection and sender/conversation scoping. A browser WebSocket
-proxy drops a real saved acknowledgement and closes the connection; retry must
-retain the same operation ID, render one saved message, and avoid duplicate
-notifications. A rejected write retains its draft too.
-The recovery case reconnects an already-populated chat after a socket-only outage,
-holds its history response while a live message arrives, and verifies ordered,
-duplicate-free convergence and draft preservation. Pure merge tests also cover
-timestamp ties, conversation isolation, and non-regressing read receipts.
-The matching case uses authenticated HTTP calls and real PostgreSQL transactions,
-including a fixture-only notification trigger that injects failure and is removed
-in cleanup. It checks rollback/retry, notification preservation/repair, repeated
-opposite-direction concurrency, database pair uniqueness, and pass/unmatch rules.
-The photo-deletion case verifies HTTP auth/ownership/expired-session/missing-token
-behavior, real PostgreSQL references and cleanup failure injection, and actual SDK
-response handling through a synthetic fetch adapter. Provider failure retains the
-owned reference; confirmed deletion and retry clean it up without touching another
-owner's file. External storage network behavior is not exercised.
-The onboarding-draft case uses real accounts in one browser to verify same-owner
-reload/expiry, normal logout, legacy cleanup and a different account signing in from
-another tab. Returning to the original tab refreshes identity without a reload and
-must reset private form/image state. Its saved image is synthetic; it does not upload.
-The unmatch cases exercise actual sessions, PostgreSQL and all three socket owners:
-allowed communication, foreign typing rejection, ended-match updates restricted to
-participants, live-action denial, and retained read-only history. Two open browser
-chats must both become read-only after one participant unmatches.
-The presence cases cover authorized initial snapshots and live audiences in all
-three owners, multi-tab aggregation, last disconnect, privacy retraction/re-enable,
-unmatch and expired-session filtering. The new presence request also participates
-in the session lifecycle matrix (42 rejected actions). Real chat/inbox indicators
-exercise navigation and privacy changes through the keyboard-accessible settings.
-Four provider lifecycle cases hold real token requests/responses/body parsing across
-logout or account changes. They count new Engine.IO handshakes rather than polls or
-upgrades, check that a still-valid old session cannot become an orphan connection,
-and exercise stable-owner refresh and replacement-session behavior. Date-only clock
-control advances the SDK's focus-refresh throttle; network responses and timers
-remain real. Authentication and session payloads are not mocked.
-The journeys use unique synthetic accounts and targeted cleanup. Use a local database
-with a `test`, `e2e`, or `harness` name segment. This is focused coverage, not a full
-security audit or coverage of external storage uploads, swipe gestures, idle socket termination, or every
-socket lifecycle event. See README for the exercised boundaries.
+Run focused tests while editing. The commit gate runs full checks/build and the
+retained application journeys; CI independently runs those journeys plus the
+non-skipping native suite. Ordinary PostgreSQL CI proves schema/build/unit
+compatibility only. [Coverage and retirement mapping](realtime-retirement.md)
+records where former transport-specific assertions run now; [README](../README.md)
+records feature coverage and gaps. Counts come from actual command results, not
+this setup guide. Fixtures use synthetic users and targeted cleanup.
 
 Pre-push runs type checking, strict lint, and formatting checks. It does not apply
 migrations, push on its own, or replace the full verification command. CI runs
@@ -160,13 +106,10 @@ Official references:
 [Lefthook configuration](https://github.com/evilmartians/lefthook/tree/v2.2.2/docs/configuration),
 and [next-themes](https://github.com/pacocoursey/next-themes/tree/v0.4.6).
 
-The delivery cases cover HTTP/socket sends in all three owners without joining a
-chat, both participants' inboxes and browser notification preferences, transactional
-notification failure rollback and retry, expired-session audiences and unmatch denial.
-A real browser selects a library socket owner while HTTP stays on the combined app.
-A PostgreSQL completion-failure trigger causes repeated hints; the same owned browser
-connection shows one notification and recovers its pending intent after owner restart.
-Only the OS notification adapter is replaced; auth, database and socket traffic are real.
+Delivery cases use validated HTTP and real private Supabase subscribers, including
+off-room sender/receiver devices, inbox/notification preferences, transactional
+rollback, repeated-hint deduplication and managed relay restart. Only OS notification
+effects use a synthetic adapter; sessions, database and native delivery are real.
 
 The discovery selection cases use actual sessions and PostgreSQL candidates to
 exercise eligible candidate 51 and a second 100-row batch, zero coordinates,
@@ -289,7 +232,7 @@ cannot undo a write already accepted by the server.
 missing/expired sessions, rollback, and real queued competing PostgreSQL writes.
 `location-projections.spec.ts` covers all Device/City distance pairs, zero and exact
 radius boundaries, unrounded exclusion, candidates beyond the first 100, mutual
-preferences/passes, and actual serialized profile/likes/match/chat/socket payloads.
+preferences/passes, and actual serialized profile/likes/match/chat responses and minimal native hints.
 Unit cases cover projection/input/geometry and account-scoped draft cleanup.
 
 The additive migration was explicitly applied to the known local disposable PG14

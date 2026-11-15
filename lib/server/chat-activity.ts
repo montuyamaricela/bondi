@@ -1,7 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { createAppError } from '@/lib/app-error';
-import { nativeRealtimeEnabled } from '@/lib/server/env';
 import { publishRealtimeHint } from '@/lib/server/realtime';
 import {
   chatOwnerInput,
@@ -41,7 +40,6 @@ async function activeMatch(tx: Prisma.TransactionClient, owner: ChatOwner, match
 }
 
 async function refreshParticipants(userIds: string[]) {
-  if (!nativeRealtimeEnabled()) return;
   await Promise.all(
     userIds.map((userId) =>
       publishRealtimeHint(userId).catch(() => {

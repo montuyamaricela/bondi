@@ -8,8 +8,6 @@ import { ThemeToggle } from './ThemeToggle';
 import { LocationControlCenter } from '@/app/components/features/location/components/LocationControlCenter';
 import { useSession } from '@/lib/auth-client';
 import { api } from '@/lib/fetch-wrapper';
-import { useSocket } from '@/app/components/providers/socket-provider';
-import { useRealtime } from '@/app/components/providers/realtime-provider';
 
 interface SettingsContentProps {
   user: {
@@ -35,8 +33,6 @@ export function SettingsContent(props: SettingsContentProps) {
 }
 
 function SettingsForAccount({ user, profile }: SettingsContentProps) {
-  const { socket, isConnected } = useSocket();
-  const { enabled: native } = useRealtime();
   const { data: session } = useSession();
   const [privacySettings, setPrivacySettings] = useState({
     showOnlineStatus: profile?.showOnlineStatus ?? true,
@@ -44,7 +40,7 @@ function SettingsForAccount({ user, profile }: SettingsContentProps) {
 
   const updatePrivacySetting = async (value: boolean) => {
     try {
-      if (native && !session?.session.id) throw new Error('Session changed');
+      if (!session?.session.id) throw new Error('Session changed');
       const newSettings = { showOnlineStatus: value };
       setPrivacySettings(newSettings);
 
@@ -53,12 +49,6 @@ function SettingsForAccount({ user, profile }: SettingsContentProps) {
         expectedUserId: user.id,
         expectedSessionId: session?.session.id,
       });
-      if (!native && socket && isConnected) {
-        void socket
-          .timeout(5000)
-          .emitWithAck('presence:sync', { userIds: [], refreshOwn: true })
-          .catch(() => {});
-      }
       toast.success('Privacy setting updated');
     } catch {
       setPrivacySettings(privacySettings);

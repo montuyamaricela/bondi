@@ -1,16 +1,11 @@
 import { assertTestDatabase } from '../helpers/test-database';
 import { randomUUID } from 'node:crypto';
-import { createServer } from 'node:http';
 import { PrismaClient } from '@prisma/client';
 import { expect, test, type Browser, type BrowserContext } from '@playwright/test';
-import { io, type Socket } from 'socket.io-client';
-import { initializeSocket } from '../../lib/socket';
-import { connect, joinRooms } from './socket-helpers';
-import { privateHintObserver } from '../helpers/realtime-observer';
 
 async function participants(browser: Browser, baseURL: string, db: PrismaClient, offset: number) {
   const contexts: BrowserContext[] = [];
-  const people: Array<{ userId: string; email: string; token: string }> = [];
+  const people: Array<{ userId: string; email: string }> = [];
   const emails: string[] = [];
   try {
     for (const [index, name] of ['Alice', 'Bob', 'Outsider'].entries()) {
@@ -26,7 +21,7 @@ async function participants(browser: Browser, baseURL: string, db: PrismaClient,
       });
       expect(response.status()).toBe(200);
       const userId = (await response.json()).user.id;
-      people.push({ userId, email, token: '' });
+      people.push({ userId, email });
       await db.profile.create({
         data: {
           userId,
@@ -39,9 +34,6 @@ async function participants(browser: Browser, baseURL: string, db: PrismaClient,
           showOnlineStatus: false,
         },
       });
-      const token = await context.request.get('/api/socket/token');
-      expect(token.status()).toBe(200);
-      people[index].token = (await token.json()).token;
     }
     const match = await db.match.create({
       data: { user1Id: people[0].userId, user2Id: people[1].userId },
@@ -64,200 +56,6 @@ async function participants(browser: Browser, baseURL: string, db: PrismaClient,
 function testDatabase() {
   assertTestDatabase();
 }
-
-test('all socket owners deny foreign typing and end live access without deleting history', async ({
-  browser,
-  baseURL,
-  request,
-}) => {
-  test.setTimeout(120_000);
-  testDatabase();
-  const db = new PrismaClient();
-  const server = createServer();
-  const initializer = initializeSocket(server);
-  const clients: Socket[] = [];
-  const allContexts: BrowserContext[] = [];
-  const nativeObservers: Awaited<ReturnType<typeof privateHintObserver>>[] = [];
-  const emails: string[] = [];
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(0, '127.0.0.1', resolve);
-    });
-    const address = server.address();
-    if (!address || typeof address === 'string') throw new Error('Expected TCP listener');
-    for (const [runtime, url] of [
-      baseURL!,
-      'http://127.0.0.1:3101',
-      `http://127.0.0.1:${address.port}`,
-    ].entries()) {
-      const fixture = await participants(browser, baseURL!, db, 246 + runtime * 3);
-      const { contexts, people, match, message } = fixture;
-      allContexts.push(...contexts);
-      emails.push(...people.map(({ email }) => email));
-      const connected = [];
-      for (const person of people) {
-        const client = io(url, {
-          auth: { token: person.token },
-          autoConnect: false,
-          reconnection: false,
-          transports: ['websocket'],
-          extraHeaders: { Origin: baseURL! },
-        });
-        clients.push(client);
-        await connect(client);
-        connected.push(client);
-      }
-      const [alice, bob, outsider] = connected;
-      await joinRooms(alice, bob, match.id);
-      if (runtime === 0) {
-        if (assertTestDatabase().native) {
-          const observer = await privateHintObserver(contexts[1].request);
-          nativeObservers.push(observer);
-          expect(
-            (
-              await contexts[1].request.post('/api/presence', {
-                data: {
-                  expectedUserId: observer.userId,
-                  expectedSessionId: observer.sessionId,
-                  leaseId: observer.leaseId,
-                  sequence: 1,
-                },
-              })
-            ).status(),
-          ).toBe(200);
-        }
-        await db.profile.update({
-          where: { userId: people[1].userId },
-          data: { showOnlineStatus: true },
-        });
-        const query = { data: { userIds: [people[1].userId] } };
-        const foreignStatus = await contexts[2].request.post('/api/users/online-status', query);
-        expect(await foreignStatus.json()).toEqual({ [people[1].userId]: false });
-        const allowedStatus = await contexts[0].request.post('/api/users/online-status', query);
-        expect(await allowedStatus.json()).toEqual({ [people[1].userId]: true });
-      }
-      let typing = 0;
-      let receipts = 0;
-      let outsiderErrors = 0;
-      let aliceErrors = 0;
-      const updates = [0, 0, 0];
-      bob.on('typing:start', () => typing++);
-      bob.on('typing:stop', () => typing++);
-      bob.on('message:read', () => receipts++);
-      outsider.on('match:error', () => outsiderErrors++);
-      alice.on('match:error', () => aliceErrors++);
-      connected.forEach((client, index) =>
-        client.on('match:updated', (update) => {
-          expect(update).toEqual({ matchId: match.id, status: 'UNMATCHED' });
-          updates[index]++;
-        }),
-      );
-      alice.emit('typing:start', { matchId: match.id });
-      await expect.poll(() => typing).toBe(1);
-      alice.emit('typing:stop', { matchId: match.id });
-      await expect.poll(() => typing).toBe(2);
-      alice.emit('message:read', { messageId: message.id });
-      await expect.poll(() => receipts).toBe(1);
-      expect((await db.message.findUniqueOrThrow({ where: { id: message.id } })).readAt).not.toBe(
-        null,
-      );
-      await db.message.update({ where: { id: message.id }, data: { readAt: null } });
-      const beforeForeign = typing;
-      outsider.emit('typing:start', { matchId: match.id });
-      await expect
-        .poll(
-          () =>
-            typing > beforeForeign ? 'forwarded' : outsiderErrors > 0 ? 'rejected' : 'waiting',
-          { message: `runtime ${runtime} must reject foreign typing` },
-        )
-        .toBe('rejected');
-      outsider.emit('message:read', { messageId: message.id });
-      await expect.poll(() => outsiderErrors).toBe(2);
-      expect((await contexts[2].request.patch(`/api/matches/${match.id}/unmatch`)).status()).toBe(
-        403,
-      );
-      expect((await request.patch(`/api/matches/${match.id}/unmatch`)).status()).toBe(401);
-      expect(updates).toEqual([0, 0, 0]);
-      expect((await contexts[0].request.patch(`/api/matches/${match.id}/unmatch`)).status()).toBe(
-        200,
-      );
-      if (runtime === 0)
-        await expect
-          .poll(() => updates[0] > 0 && updates[1] > 0, {
-            message: 'combined HTTP unmatch must publish across the app/server module boundary',
-          })
-          .toBe(true);
-      // The connected UI also leaves its live room after HTTP success, reaching its selected owner.
-      alice.emit('match:leave', { matchId: match.id });
-      await expect.poll(() => updates[0] > 0 && updates[1] > 0).toBe(true);
-      expect(updates[2]).toBe(0);
-      const beforeClosed = typing;
-      for (const [index, event] of ['typing:start', 'typing:stop', 'message:read'].entries()) {
-        alice.emit(
-          event,
-          event === 'message:read' ? { messageId: message.id } : { matchId: match.id },
-        );
-        await expect.poll(() => aliceErrors).toBe(index + 1);
-      }
-      const sent = await alice.timeout(5000).emitWithAck('message:send', {
-        matchId: match.id,
-        content: 'Forbidden after unmatch',
-        clientRequestId: randomUUID(),
-      });
-      expect(sent).toMatchObject({ ok: false, code: 'FORBIDDEN' });
-      expect(await bob.timeout(5000).emitWithAck('match:join', { matchId: match.id })).toEqual({
-        ok: false,
-      });
-      expect(typing).toBe(beforeClosed);
-      if (runtime === 0) {
-        const endedStatus = await contexts[0].request.post('/api/users/online-status', {
-          data: { userIds: [people[1].userId] },
-        });
-        expect(await endedStatus.json()).toEqual({ [people[1].userId]: false });
-      }
-      expect(receipts).toBe(1);
-      expect((await db.message.findUniqueOrThrow({ where: { id: message.id } })).readAt).toBe(null);
-      expect(await db.message.count({ where: { matchId: match.id } })).toBe(1);
-      for (const context of contexts.slice(0, 2)) {
-        const history = await context.request.get(`/api/messages?matchId=${match.id}`);
-        expect(history.status()).toBe(200);
-        expect((await history.json()).items).toEqual([
-          expect.objectContaining({ id: message.id, content: message.content }),
-        ]);
-      }
-      expect((await contexts[2].request.get(`/api/messages?matchId=${match.id}`)).status()).toBe(
-        403,
-      );
-      expect((await contexts[0].request.patch(`/api/matches/${match.id}/unmatch`)).status()).toBe(
-        200,
-      );
-      await db.session.updateMany({
-        where: { userId: people[0].userId },
-        data: { expiresAt: new Date(Date.now() - 60_000) },
-      });
-      let denied = false;
-      alice.once('auth:error', () => {
-        denied = true;
-      });
-      alice.emit('typing:start', { matchId: match.id });
-      await expect.poll(() => denied && !alice.connected).toBe(true);
-      for (const client of connected) client.disconnect();
-    }
-  } finally {
-    for (const client of clients) client.disconnect();
-    await Promise.allSettled(nativeObservers.map((observer) => observer.close()));
-    await Promise.all(allContexts.map((context) => context.close()));
-    await new Promise<void>((resolve) => {
-      initializer.close(() => resolve());
-    });
-    try {
-      await db.user.deleteMany({ where: { email: { in: emails } } });
-    } finally {
-      await db.$disconnect();
-    }
-  }
-});
 
 test('unmatching one open browser keeps both conversations visible and read-only', async ({
   browser,

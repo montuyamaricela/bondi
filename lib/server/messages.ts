@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { nativeMessageTransport } from '@/lib/server/message-transport';
+import { requireMessageTransport } from '@/lib/server/message-transport';
 
 const messageInput = z
   .object({
@@ -64,7 +64,7 @@ export async function registerMessageAttachment(userId: string, file: unknown) {
   return attachment;
 }
 
-export async function writeMessage(userId: string, payload: unknown, excludedSocketId?: string) {
+export async function writeMessage(userId: string, payload: unknown) {
   const parsed = messageInput.safeParse(payload);
   if (!parsed.success)
     throw new MessageWriteError(
@@ -102,7 +102,7 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
         if (match.status !== 'ACTIVE' || (match.user1Id !== userId && match.user2Id !== userId))
           throw new MessageWriteError('An active match is required', 403, 'FORBIDDEN');
         const receiverId = match.user1Id === userId ? match.user2Id : match.user1Id;
-        const nativeDelivery = await nativeMessageTransport(transaction);
+        await requireMessageTransport(transaction);
         const existing = await replay(transaction);
         if (existing) return { message: existing, receiverId, replayed: true };
         const attachment = file
@@ -151,27 +151,9 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
                   : `${name} sent you a message: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
           },
         });
-        const recipients = new Map<
-          string,
-          { userId: string; excludedSocketId?: string; notificationId: string | null }
-        >([
-          [
-            userId,
-            {
-              userId,
-              excludedSocketId: nativeDelivery ? undefined : excludedSocketId,
-              notificationId: null,
-            },
-          ],
-          [
-            receiverId,
-            {
-              userId: receiverId,
-              excludedSocketId:
-                !nativeDelivery && receiverId === userId ? excludedSocketId : undefined,
-              notificationId: notification.id,
-            },
-          ],
+        const recipients = new Map<string, { userId: string; notificationId: string | null }>([
+          [userId, { userId, notificationId: null }],
+          [receiverId, { userId: receiverId, notificationId: notification.id }],
         ]);
         await transaction.messageDelivery.createMany({
           data: [...recipients.values()].map((recipient) => ({
@@ -179,8 +161,7 @@ export async function writeMessage(userId: string, payload: unknown, excludedSoc
             messageId: message.id,
           })),
         });
-        if (nativeDelivery)
-          await transaction.$queryRaw`SELECT bondi_private.dispatch_message_hints(${message.id})`;
+        await transaction.$queryRaw`SELECT bondi_private.dispatch_message_hints(${message.id})`;
         return { message, receiverId, replayed: false };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },

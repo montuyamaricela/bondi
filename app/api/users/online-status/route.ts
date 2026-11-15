@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getPresence } from '@/lib/server/presence';
 import { handleApiError, readJson } from '@/lib/errors';
-import { getSocketInstance } from '@/lib/socket-instance';
-import { nativeRealtimeEnabled } from '@/lib/server/env';
 import { getNativePresence } from '@/lib/server/native-presence';
 
 export async function POST(request: NextRequest) {
@@ -29,9 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const statuses = nativeRealtimeEnabled()
-      ? await getNativePresence(session.user.id, userIds)
-      : await getPresence(getSocketInstance(), session.user.id, userIds);
+    const statuses = await getNativePresence(session.user.id, userIds);
     const onlineUsers = Object.fromEntries(
       Object.entries(statuses).map(([id, status]) => [id, status.visible && status.online]),
     );

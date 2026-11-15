@@ -22,5 +22,9 @@ export async function verifyDatabaseSafety(
 }
 
 export default function verifyTestDatabase() {
+  if (!assertTestDatabase().native)
+    throw new Error(
+      'Application journeys require the explicitly prepared native Supabase environment.',
+    );
   return verifyDatabaseSafety(process.env);
 }

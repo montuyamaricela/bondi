@@ -3,7 +3,7 @@
 A full-stack dating app for creating a profile, discovering people, matching on
 mutual likes, and continuing the conversation through real-time messaging.
 
-Built with Next.js, React, TypeScript, PostgreSQL, and Socket.IO.
+Built with Next.js, React, TypeScript, Supabase Postgres, and Supabase Realtime.
 
 ![Bondi landing page captured from a local production build](docs/images/bondi-landing.jpg)
 
@@ -28,10 +28,11 @@ Prisma maps the PostgreSQL domain models. React Query manages server state in th
 browser, while React Hook Form and Zod handle form validation. The interface uses
 Tailwind CSS v4, shadcn/ui, and Radix primitives. UploadThing handles file uploads.
 
-A custom Node server hosts Next and Socket.IO together. This lets HTTP handlers
-and connected clients share the socket instance within one process. A separate
-socket entry point also exists; consolidating duplicated socket setup behind a
-well-tested interface is a documented next step.
+Standard Next dev/start serves pages and authenticated HTTP operations. Supabase
+Realtime provides private session-owned invalidation hints; authorized HTTP reads
+supply canonical data. Durable sending does not depend on browser subscription
+readiness. [Realtime contracts](docs/realtime.md) describe delivery, privacy and
+recovery; no custom WebSocket server or alternate live transport is required.
 
 Feature code is grouped by domain, with browser adapters and server operations
 separated where those boundaries are established:
@@ -58,7 +59,8 @@ existing limitations, and the next structural improvements.
 
 ## Run locally
 
-Requirements: Node.js 22.14 (`.nvmrc`), npm 10.9.2, and a PostgreSQL database.
+Requirements: Node.js 22.14 (`.nvmrc`), npm 10.9.2, and a configured Supabase Database + Realtime target.
+Use the [isolated local setup](docs/supabase-testing.md) for development/testing.
 
 ```bash
 git clone https://github.com/montuyamaricela/bondi.git
@@ -69,15 +71,15 @@ cp .env.example .env
 ```
 
 Fill in `DATABASE_URL` and a random `BETTER_AUTH_SECRET` of at least 32 characters.
-Set `UPLOADTHING_TOKEN` to enable uploads. The example uses the combined server
-for both the app and sockets at `http://localhost:3000`.
+Set `UPLOADTHING_TOKEN` to enable uploads. The application defaults to `http://localhost:3000`. Configure the public
+Supabase URL/key and private signing/server keys using the [Realtime contract](docs/realtime.md).
 
 Runtime settings are validated by `lib/server/env.ts`; invalid values name the
 setting without printing its contents. Production requires explicit
 `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` origins and a strong auth secret.
-`PORT`/`SOCKET_PORT` must be integers from 1 to 65535. Browser authentication uses
-the app origin; the socket client uses its explicit public socket/app URL or the
-current origin. No server secret belongs in `NEXT_PUBLIC_` settings.
+Next CLI owns listener hostname/port options. Browser authentication uses the app
+origin; live subscriptions connect directly to the configured Supabase origin.
+No server secret belongs in `NEXT_PUBLIC_` settings.
 
 For Supabase Postgres, `DATABASE_URL` is the runtime connection. Set `DIRECT_URL`
 to the **same database's direct or session-mode connection** for Prisma CLI when
@@ -85,19 +87,21 @@ the runtime uses transaction pooling. The CLI refuses a transaction-pool migrati
 connection; when `DIRECT_URL` is absent, an ordinary local/direct/session
 `DATABASE_URL` is used. Prisma Client explicitly uses `DATABASE_URL` even when the
 CLI has a different connection. See [Supabase's Prisma connection guide](https://supabase.com/docs/guides/database/prisma).
-These settings prepare the migration in [#74](https://github.com/montuyamaricela/bondi/issues/74);
-they do not change the live transport or provision/migrate a Supabase project.
+Connection settings do not provision or migrate a Supabase project.
+The [migration tracker](https://github.com/montuyamaricela/bondi/issues/74) separates
+application integration, populated migration rehearsal and hosted cutover.
 
 Native Supabase verification uses an explicitly prepared disposable local stack and
 an independent CI check. The [private subscription contract](docs/realtime.md)
-documents explicit activation, session ownership, managed durable message hints,
+documents configuration, session ownership, managed durable message hints,
 retry/retention limits, HTTP chat commands, server-owned presence and signing-key
 rotation. Native chat and online status use authenticated HTTP with private refresh
-hints. Socket.IO remains for the explicit ordinary path until its retirement slice.
+hints. Missing public configuration reports unavailable live updates; it does not
+select another transport.
 See [Supabase test setup](docs/supabase-testing.md) for pinned
 tooling, safe target checks, private API-role access and the native test command.
 
-Export the environment before running the custom Node entry points. In macOS/Linux:
+Export the environment before repository database commands and checks. In macOS/Linux:
 
 ```bash
 set -a
@@ -117,7 +121,7 @@ applying migrations. Create schema changes with
 
 ```bash
 npm test                 # Behavioral tests and harness failure-path tests
-npm run typecheck        # Next route types, app types, and Node server types
+npm run typecheck        # Next route types and app types
 npm run lint             # ESLint
 npm run lint:fix         # Apply ESLint fixes
 npm run format           # Format maintained source/docs and sort Tailwind classes
@@ -128,7 +132,9 @@ npm run check            # All gates above, schema validation, and build
 npm run check:feature    # Before a feature commit: full checks/build, then E2E
 ```
 
-`npm run build` generates Prisma artifacts and compiles Next plus the Node servers.
+`npm run build` generates Prisma artifacts and a standard Next production build.
+`npm run check:realtime` then verifies maintained sources, the lockfile and actual
+built artifacts contain no retired transport. The full check includes this gate.
 It does not apply database migrations. `npm run check` stops at the first failed gate.
 It includes a full dependency audit that blocks critical advisories. Remaining
 noncritical findings and the checked upgrade boundaries are recorded in the
@@ -139,31 +145,21 @@ Migration, startup, build and test commands never download or import that catalo
 
 Runtime/test/config commits automatically run `npm run check:feature` after staged
 lint/format fixes, blocking the commit if checks, build, or E2E fail. For the hook,
-copy `.env.test.example` to `.env.test.local` and configure its disposable test
-database; keep the included test origins and synthetic auth secret. Apply test
-migrations explicitly and install Chromium before first use. The hook loads this
-ignored test configuration automatically. [Tooling setup](docs/tooling.md) explains
-partial staging and documentation-only skips. Manual `check:feature` runs use the
-exported test environment below.
+deliberately configure `.env.test.local` from the prepared native values documented
+in [Supabase test setup](docs/supabase-testing.md). Keep test origins and synthetic
+credentials. Apply test migrations explicitly and install Chromium before first
+use. The hook loads this ignored test configuration automatically.
+[Tooling setup](docs/tooling.md) explains partial staging and documentation-only
+skips. Manual `check:feature` runs use that exported native environment.
 
-For browser checks, export a disposable test database and a synthetic auth secret.
-Set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_SOCKET_URL` to
-`http://127.0.0.1:3100` before building:
+The browser suite starts one standard Next listener on port 3100. It covers public
+pages/themes, anonymous access and actual synthetic-user onboarding, authentication,
+mutual matching, chat and history. Outsiders are denied protected HTTP operations
+and native private channels. Public projections omit exact coordinates and auth data.
+The [retirement evidence map](docs/realtime-retirement.md) records semantic coverage
+for the HTTP/native replacement and distinguishes it from ordinary PostgreSQL
+schema/build/unit checks.
 
-```bash
-npm run db:migrate
-npm run build
-npx --no-install playwright install chromium
-npm run test:e2e
-```
-
-The suite starts the built combined app/socket server on port 3100 and the standalone
-socket server on port 3101; keep both ports free. It covers public
-pages, themes, anonymous access, and an authenticated journey: two users sign up,
-complete profiles, log out/in, mutually like each other, and exchange live messages
-that survive reloads. Likes use the real discovery API; onboarding, match navigation,
-and chat use the browser. A third authenticated user is denied match/message access
-and forged HTTP/socket sends; public profiles omit exact coordinates and auth data.
 The public landing journey follows How we do it and Get started using native
 keyboard navigation, checks the existing section destinations and fixed-nav offset,
 and reaches signup without granting protected profile access. Matching copy describes
@@ -174,27 +170,21 @@ rejects an incorrect password, and verifies that logout removes access.
 A session lifecycle case retains genuine signed cache cookies while revoking or
 expiring their backing sessions. The next protected HTTP read/write must reject
 them without changing data; valid reads, writes, and session renewal still work.
-The socket lifecycle case also exercises the library initializer on an owned
-ephemeral port. Across all three owners, it checks real room/message delivery and
-read receipts, then rejects all seven incoming actions after session revocation or
-expiry with an explicit auth error and disconnect. Rejected actions cannot save a
-message, change a read receipt, or forward typing.
-It also holds a PostgreSQL lock on profile reads while clients connect: room joins
-and typing must work before profile initialization finishes in every runtime.
-The message-write case exercises HTTP and all three socket owners against the same
-validation boundary: malformed/blank/oversized text, the 5,000-character boundary,
-active membership, and owned attachment records. It invokes the actual upload
-completion callback with synthetic metadata and PostgreSQL, verifies image/PDF/video
-limits, and confirms forged client metadata is replaced by the stored values.
+The native action matrix validates every live HTTP operation with a valid session,
+then rejects its next request after expiry/revocation without side effects. Message
+validation exercises malformed/blank/oversized text, the 5,000-character boundary,
+active membership and owned attachment records through canonical HTTP. The actual
+upload callback uses synthetic metadata and PostgreSQL; forged client metadata is
+replaced by stored values.
 
 Message uploads now register a `MessageAttachment` record separately from profile
 gallery files. Apply migrations explicitly before deploying these writers. Existing
 messages remain readable; unregistered old upload keys cannot be used for new sends.
 The storage network and UploadThing webhook signature path are outside this test.
-The retry case sends eight concurrent copies of one operation through each
-transport and checks a single PostgreSQL row/canonical ID. Operation IDs are scoped
+The retry case sends four independent waves of eight concurrent HTTP copies
+of one operation and checks a single PostgreSQL row/canonical ID. Operation IDs are scoped
 to sender and conversation; reusing one with different content fails. A real browser
-proxy drops a saved acknowledgement and cuts the connection: the draft remains,
+proxy drops the real accepted HTTP response: the draft remains,
 retry uses the same ID, and exactly one saved message appears. Explicit server
 rejection also retains a retryable draft.
 
@@ -236,55 +226,41 @@ malformed private data is not printed in storage error logs.
 
 Unmatching keeps existing conversation history readable to its two participants.
 Both open chats become read-only; sends, typing and receipt writes require an
-active match. The unmatch cases exercise outsider typing rejection, room eviction,
-receipt preservation, session expiry and retained authorized history across all
-three socket owners, plus two real open browser chats. Repeated unmatch requests
-are safe to retry. The UI leaves the ended live room after HTTP success so its
-selected socket owner also reconciles participant state.
-Online-status queries return visible presence only for active matches, including
-after an unmatch; the same-process singleton cannot expose status to outsiders.
+active match. Native API and browser cases exercise outsider typing rejection, receipt
+preservation, session expiry and retained authorized history. Repeated unmatch is
+safe. Both chats become read-only through native private hints and authorized HTTP
+reads. Online status is exposed only to visible active matches.
 
-Presence snapshots and live updates use the selected socket runtime. A user remains
-online while any valid session connection is open there. Updates reach only active
-matches with valid sessions; hiding visibility or unmatching retracts the signal.
-The presence cases exercise initial snapshots, two tabs, last-tab disconnect,
-privacy hide/re-enable, outsider/former-match denial and expired-session filtering
-in all three owners. Real browser chat and inbox indicators exercise initial
-navigation, keyboard privacy controls, multiple tabs and unmatching.
+Presence snapshots use server liveness deadlines. A user remains online while any
+valid session lease is live. Cases cover two tabs, last-tab departure, privacy
+retraction/re-enable, outsider/former-match denial and expired-session filtering.
+The owned provider cases hold credential requests/responses/body parsing across
+logout/account/session changes, count actual native connections and prove old
+owners cannot become orphan subscriptions. Ordinary owner refresh keeps one
+connection; a replacement session creates a new owned connection.
 
-Socket setup belongs to a user and session ID. Cleanup aborts pending token requests
-and ignores late response/body continuations; token identity must match the current
-owner before connecting. The provider cases delay real signed responses across
-logout and account changes, verify cookie-owner mismatches are discarded, and keep
-one connection through actual SDK session refreshes. A replacement session gets a
-new owned connection even when the user is unchanged.
+Message delivery cases use HTTP sends outside an open chat, real private native
+subscribers, another sender device and expired-session audience denial. Both inboxes
+and badges update independently of OS preferences. PostgreSQL notification failure
+rolls back the whole send; a completion failure repeats hints without duplicate
+notification effects. The recovery case pauses/restarts the managed cron relay,
+checks concurrent claims and verifies offline history repair without historical
+OS alerts. The bounded outbox case proves 202 real database Broadcast enqueues,
+locked-row skipping and ended-match/expired-session suppression. Eligibility
+checks retain historical MATCH/MESSAGE rows while suppressing ended/missing/foreign
+match effects. Only the OS notification adapter is replaced.
 
-Message delivery cases exercise HTTP and socket sends outside an open chat in all
-three owners, including another sender device and expired-session audience denial.
-Both browser inboxes and notification badges update while browser preferences still
-control OS notifications. A PostgreSQL notification-insert failure rolls back the
-entire send; retry preserves the operation ID. A completion failure repeats real
-hints without duplicate browser notifications, and a fresh socket owner recovers the
-pending intent from PostgreSQL. Socket traffic selects the library owner while HTTP
-stays on the combined app; only the OS notification adapter is replaced.
-Native mode uses real private Supabase subscribers followed by authorized HTTP
-reads, and asserts legacy message streams stay silent. Its recovery case pauses
-the managed cron relay, injects completion failure, checks concurrent retry claims,
-restarts the job and verifies offline history repair without historical OS alerts.
-The native-only bounded outbox case verifies 202 real database Broadcast enqueues,
-locked-row skipping, concurrent claims, and ended-match/expired-session suppression.
-Notification eligibility cases retain historical rows while suppressing effects
-for ended, missing and foreign matches. Native results require the separate
-Supabase CI job; ordinary PostgreSQL does not execute these native branches.
+The native retirement case verifies standard Next returns 404 for the removed
+endpoints, browsers make zero old transport requests and actual Supabase connections
+serve two users. Mutual likes produce live MATCH alerts; stored preferences,
+repeated hints, ineligible rows and reload baselines preserve effect deduplication.
 
 Native chat-command cases cover bounded/monotonic receipts, rejected foreign and
 ended access, session/lease binding, typing order/expiry and concurrent retention
-versus renewal. Real browsers verify HTTP send/read/typing without chat socket
-commands, durable sending with both live connections disconnected, explicit native
+versus renewal. Real browsers verify HTTP send/read/typing, durable sending with live updates disconnected, explicit native
 reconnection, revocation on the next protected request and retained drafts across
 timeouts, conversations and account changes. Lost-response retries retain their
-operation ID. Only synthetic data is used; these are separate from ordinary
-PostgreSQL's temporarily retained command-path checks.
+operation ID. Only synthetic data is used; ordinary PostgreSQL results cover schema/build/unit compatibility only.
 
 Native presence cases verify owned, sequenced liveness heartbeats, the 60-second
 server deadline and lease/session caps, active-match-only audience and hidden
@@ -295,8 +271,7 @@ is real; expiry and the 15-second observer polling window use a controlled synth
 deadline/browser clock. A buffered real heartbeat across an SPA account switch
 cannot update the new owner or restart the abandoned timer. These are distinct
 from waiting a full production lease duration on the wall clock.
-The privacy/unmatch journey blocks legacy socket traffic, proving native hints
-repair both UIs. Repeated native hints cancelling held HTTP reads cannot extend an
+The privacy/unmatch journey proves native hints repair both UIs. Repeated native hints cancelling held HTTP reads cannot extend an
 unrefreshed online indicator past its independent 20-second display deadline.
 An original account-switch assertion also caught liveness surviving a changed
 cookie. A signed, delete-only cleanup capability now closes that exact old lease;
@@ -321,7 +296,7 @@ default, at most 100). Histories initially show the newest page; Load older mess
 exposes earlier history while preserving the draft and scroll position. Inboxes and
 likes offer Load more controls. Inbox search includes unloaded conversations and
 keeps its input available during fetching or retry. Existing history consumers must
-read `items`; message POSTs and socket acknowledgements retain their contracts.
+read `items`; message POSTs retain their contracts.
 
 Pagination cases walk 10,000 tied history rows and 120+ inbox/like rows without gaps
 or duplicates, validate ownership/session/cursor boundaries, and check timestamp
@@ -408,18 +383,19 @@ matching response/log correlation ID, rollback and successful retry. Unit cases
 verify redacted logging and retain safe validation/access/conflict/retry contracts.
 Malformed raw JSON across eight application handlers returns 400 after authentication;
 valid writes still succeed. Unexpected HTTP message errors use the shared internal
-error response; expected message errors and socket contracts remain unchanged.
+error response; expected message errors retain their domain contracts.
 
-Use a local disposable database whose name contains a `test`, `e2e`, or `harness`
-segment. Each run uses unique synthetic emails and cleans up only its own accounts
+Application journeys require the prepared local native Supabase target and its
+verified random marker; ordinary unit/schema checks retain their test-name guard. Each run uses unique synthetic emails and cleans up only its own accounts
 and matches, including after failures. Unit tests also cover compatibility/ranking,
 distance, form validation, and upload-handler access with mocked adapters. External
-storage uploads, idle socket termination, broader device/layout coverage, and other browsers remain
+storage uploads, full wall-clock outage rehearsal, broader device/layout coverage, and other browsers remain
 outside this E2E coverage.
 
 Failure screenshots and traces go into ignored `test-results/` and
 `playwright-report/`. Use `npx --no-install playwright show-report` to inspect them.
-CI provisions a disposable PostgreSQL service and runs the same commands.
+CI retains ordinary PostgreSQL schema/build/unit evidence and runs every
+application/native journey on its owned disposable Supabase stack.
 
 Lint, formatting, and Git hooks follow the supplied MVP Realty tooling setup,
 adapted for Bondi's npm/Next.js app. `npm ci` installs Lefthook: pre-commit fixes
@@ -448,7 +424,7 @@ outside the shared harness. Refresh the client after installing repository skill
 
 ## Deployment
 
-The current runtime needs a Node host with WebSocket support, PostgreSQL, HTTPS,
+The runtime needs a standard Next Node host, Supabase Database + Realtime, HTTPS,
 and UploadThing credentials for uploads. See [deployment preparation](docs/deployment.md)
 for environment settings, release commands, and the remaining verification gates.
 A live demo link will be added after a deployment is verified.

@@ -7,7 +7,7 @@ an imported Supabase signing key, with issuer `bondi-realtime`, audience/role
 receives a random lease topic, renewable for at most 90 seconds and capped by the
 authoritative session expiry. No Better Auth cookie token is returned by this path.
 
-Native channel permission checks are cached. Therefore clients receive only an
+Native channel permission checks are cached. Therefore clients receive only a
 minimal `changed` invalidation, empty or carrying an opaque random hint ID;
 HTTP independently authorizes every sensitive read
 and write. The dispatcher selects live sessions and leases immediately before
@@ -31,7 +31,7 @@ only supported native-schema modification is a SELECT policy on
 
 Native chat commands use authenticated HTTP, with private hints prompting authorized
 reads. Native presence also uses server-owned liveness deadlines and private refresh
-hints; cached native membership never grants peer status. Socket.IO remains for the
-ordinary path until retirement. The separately enabled Supabase
-owner has no transport fallback. Remove
-the old owner after HTTP commands, durable delivery and privacy behavior migrate.
+hints; cached native membership never grants peer status. Supabase is the sole live
+transport after #81; standard Next serves HTTP. The former Socket.IO owners,
+packages and configuration are retired. Missing native public configuration shows
+disconnected live updates, while message writes require the native dispatcher.

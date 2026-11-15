@@ -33,7 +33,6 @@ jobs:
       BETTER_AUTH_SECRET: synthetic-ci-secret-at-least-32-characters
       BETTER_AUTH_URL: http://127.0.0.1:3100
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
-      NEXT_PUBLIC_SOCKET_URL: http://127.0.0.1:3100
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
@@ -48,16 +47,8 @@ jobs:
       - run: npm run check
       - name: Apply migrations to disposable CI database
         run: npm run db:migrate
-      - run: npx --no-install playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: synthetic-browser-failures
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 3
+      # This job proves ordinary PostgreSQL schema/build/unit compatibility.
+      # Live application journeys run on the actual native platform below.
 
   native-supabase:
     runs-on: ubuntu-latest

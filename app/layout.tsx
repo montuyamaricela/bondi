@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
 import { QueryProvider } from '@/app/components/providers/query-provider';
-import { SocketProvider } from '@/app/components/providers/socket-provider';
 import { RealtimeProvider } from '@/app/components/providers/realtime-provider';
 import { ThemeProvider } from '@/app/components/providers/theme-provider';
 import { Toaster } from '@/app/components/ui/sonner';
@@ -45,10 +44,8 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <QueryProvider>
-            <SocketProvider>
-              <RealtimeProvider>{children}</RealtimeProvider>
-              <Toaster duration={3000} position="top-center" />
-            </SocketProvider>
+            <RealtimeProvider>{children}</RealtimeProvider>
+            <Toaster duration={3000} position="top-center" />
           </QueryProvider>
         </ThemeProvider>
       </body>

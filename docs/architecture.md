@@ -1,7 +1,7 @@
 # Bondi architecture
 
 Bondi is a server-rendered Next.js dating app with PostgreSQL/Prisma, Better Auth,
-UploadThing, React Query, and Socket.IO. It cannot use Photo Booth's static-export
+UploadThing, React Query, and Supabase Realtime. It cannot use Photo Booth's static-export
 and Cloudflare Worker architecture without a separate runtime redesign.
 
 ## Current ownership
@@ -12,7 +12,7 @@ and Cloudflare Worker architecture without a separate runtime redesign.
 - `app/components/features/` groups auth, profile, discover, matching, messaging,
   settings, layout, and landing components. Feature hooks and contracts live here.
 - `app/components/ui/` contains shared shadcn/ui and app-specific primitives;
-  `app/components/providers/` owns query, theme, and socket providers.
+  `app/components/providers/` owns query, theme, and session-owned Realtime providers.
 - `lib/client/` wraps browser requests. `lib/server/profile.ts` is an existing
   server data seam. `lib/auth.ts`, `lib/db.ts`, and `lib/session.ts` wire auth/data.
 - `lib/matching-utils.ts`, `lib/geolocation.ts`, and date/initial utilities expose
@@ -20,13 +20,13 @@ and Cloudflare Worker architecture without a separate runtime redesign.
 - `prisma/schema/` is a multi-file schema selected by `prisma.config.ts`;
   `prisma/migrations/` is its migration history.
 - `lib/server/env.ts` owns validated server configuration; `lib/client/env.ts`
-  owns public socket URL reads, with pure validation in `lib/configuration.ts`.
+  owns public Supabase URL/key reads, with pure validation in `lib/configuration.ts`.
   Prisma CLI uses a direct/session `DIRECT_URL` (or a non-transaction
   `DATABASE_URL` fallback). Prisma Client explicitly uses `DATABASE_URL` for
   runtime pooling. Neither generation nor build applies migrations. Auth and public
   origins are required in production; configuration failures omit supplied values.
-- `server.ts` hosts Next and Socket.IO together. `socket-server.ts` hosts sockets
-  separately. `lib/socket.ts` also contains setup logic and shared event types.
+- Standard Next dev/start owns one HTTP listener; browsers connect directly to
+  Supabase Realtime. No custom application WebSocket server is required.
 
 ## Runtime cautions
 
@@ -36,15 +36,15 @@ operations retain their session/ownership checks. The explicit native Supabase t
 stack and its test-only marker schema are described in [native setup](supabase-testing.md).
 Prisma owns app migrations; the harness does not modify Supabase-owned native schemas.
 
-The staged [Supabase subscription owner](realtime.md) uses server-issued ES256
+The [Supabase subscription owner](realtime.md) uses server-issued ES256
 credentials and random, receive-only session leases. Its private native policy
 checks the live Better Auth session through a private boolean lookup. Minimal hints
 invalidate authorized HTTP queries; neither cached channel permissions nor a JWT
-authorize application reads/writes. Native chat uses authenticated HTTP commands;
-the ordinary UI retains Socket.IO until its retirement slice. Native online status
-uses owned server liveness and authorized snapshots. The native owner is explicitly enabled,
-without an automatic fallback. The [decision](adr/0001-session-owned-realtime.md)
-records the privacy constraints and retained authentication/schema ownership.
+authorize application reads/writes. Chat uses authenticated HTTP commands and
+online status uses server liveness with authorized snapshots. Supabase is the sole
+live transport. Absent public configuration produces disconnected status; durable
+writes still require the installed native dispatcher. The [decision](adr/0001-session-owned-realtime.md)
+records privacy constraints and retained authentication/schema ownership.
 
 `lib/server/chat-activity.ts` owns bounded read receipts and ephemeral typing behind
 thin match routes. Every operation checks the current session, expected browser
@@ -57,20 +57,9 @@ stable retries and guarded draft generations; SDK readiness does not authorize o
 gate message persistence. The native provider exposes owned connection/lease status
 and explicit retry, while client cleanup aborts activity and late send continuations.
 
-The sample environment points sockets at the combined app server on port 3000.
-`npm run dev` starts that process. The optional `npm run socket` entry point uses
-port 3001; point clients at it only when intentionally choosing that topology.
-Choose one topology explicitly before diagnosing real-time delivery.
-
-`lib/socket-instance.ts` stores a process-global singleton so Next route bundles
-and the combined custom server share the same instance. Separate processes do not
-share it. An HTTP handler emitting through that singleton does not establish
-delivery to clients connected to the other process. Unmatch also reconciles the
-selected owner through the existing authenticated room-leave action after HTTP
-success; there is no cross-process event bus.
-HTTP online-status queries restrict results to active matches with visibility
-enabled before using that instance. Browser presence snapshots use the selected
-socket owner directly, including the optional standalone topology.
+Standard Next listener flags configure the application origin. Infrastructure
+preparation and migrations remain explicit, separate operations; builds and starts
+do not provision Supabase or apply schema changes.
 
 `lib/session.ts` owns the server session helper; browser components import the
 session hook directly from `lib/auth-client.ts` so Prisma/server auth stay out of
@@ -96,29 +85,7 @@ the same safe destination through its existing success delay and existing-profil
 guard. Default flows keep the bare setup URL and return to discovery. These navigation
 checks do not replace authorization at protected pages or API operations.
 
-All three socket owners capture the database session ID during an authoritative
-handshake and share incoming-action validation in `lib/server/socket-session.ts`.
-An invalid/expired/revoked session receives `auth:error` and disconnects before the
-action handler runs. Authorization completions stay in packet order. Match policies
-live in shared domain handlers. The socket lifecycle test exercises all seven
-incoming actions across all three runtimes; idle session termination is not covered.
-Protected/disconnect handlers and the user's private room attach before the first
-asynchronous presence lookup, so profile initialization cannot drop an immediate join.
-
-`lib/server/presence.ts` counts connected sessions against authoritative database
-expiry/ownership and shares snapshots and refreshes across HTTP and the three
-socket owners. Events target valid connections of active matches only. Per-user
-refreshes serialize within the selected runtime; the process-global queue also
-coordinates Next route bundles. Hiding visibility, unmatching and last-connection
-disconnect retract status. Privacy HTTP writes notify the combined owner, and
-the settings client asks its selected owner to refresh stored state after success.
-The shared `useOnlineStatus` hook owns listeners, loads an initial socket snapshot
-and ignores late snapshots after newer events. Chat and inbox use that same state.
-Different processes do not share connection state without an adapter; choose one
-socket topology for the app. Idle expiry is filtered from subsequent queries and
-actions, rather than proactively terminating idle sockets.
-
-The native path uses `lib/server/native-presence.ts` instead of socket counts.
+`lib/server/native-presence.ts` owns online status.
 Each connected tab refreshes a private `RealtimeLease` liveness deadline through
 HTTP every 20 seconds. The server caps it at 60 seconds and at lease/session expiry;
 ordered leave/heartbeat requests cannot resurrect an older state. Native snapshots
@@ -129,44 +96,28 @@ The provider owns heartbeat timers, request aborts, retry errors and cleanup.
 Observers poll every 15 seconds with a five-second request bound, hide stale results
 on errors/disconnection/hidden documents and revalidate on focus. Abrupt-loss
 detection is bounded rather than instantaneous; the maintained [contract](realtime.md)
-records the limits. Legacy socket snapshots are retained only for the outgoing path.
+records the limits.
 
-`SocketProvider` owns a connection by user ID and session ID. Token responses echo
-the server-resolved identity so a cookie change cannot connect a different session
-under stale client ownership. Abort and disposed checks cover both token awaits;
-late callbacks cannot publish connection state or update caches after cleanup.
-Cleanup removes the owned socket's listeners and disconnects it. Context exposes
-only the current owner's connection; ordinary session-object refreshes keep it,
-while a replacement session ID creates a new one. Server handshake and packet
-authorization continue independently of this client ownership bookkeeping.
+`RealtimeProvider` owns a subscription by account and session. Credential replies
+are bound to the expected owner, and cleanup aborts outstanding requests, removes
+channels/listeners/timers and closes only its lease. Delayed responses cannot
+replace the next owner. Focus revalidates credentials; reconnect refreshes canonical HTTP queries.
 
-`lib/server/messages.ts` is the shared HTTP/socket write operation. It validates
+`lib/server/messages.ts` is the authoritative HTTP write operation. It validates
 untrusted payloads and owned attachments, locks the active match, and commits the
 message, receiver notification and per-user `MessageDelivery` intents together.
 Unmatch waits for accepted sends to commit. Identified retries return the canonical
 message without duplicating effects; conflicting payloads remain rejected. The
 trusted upload callback still registers attachment ownership separately.
 
-In native mode, the [managed database outbox](realtime.md#durable-message-hints)
-publishes private invalidations within the persistence transaction and retries due
-intents through pg_cron. A hint carries only an opaque random event ID. Dispatch
-rechecks active membership and live session leases, verifies native enqueue, and
-isolates per-intent failures. The legacy message relay is disabled in all three
-socket owners; retained socket commands still use the same HTTP write operation.
-Notification effects consume account/session-owned HTTP results, baseline historical
-rows and deduplicate new IDs; active membership determines effect eligibility.
-
-Outside native mode, `lib/server/message-delivery.ts` owns the three runtimes' send
-handlers and delivery relay. Acknowledgements follow durable commit; legacy callers receive a direct
-saved-message response. Each relay claims at most 100 pending user intents using
-`FOR UPDATE SKIP LOCKED`, checks active membership and authoritative connected
-sessions, then enqueues private message, inbox and notification hints. Sender
-connections other than the initiating socket receive the saved message too.
-HTTP wakes the combined owner through a process-global registry; a one-second
-poll also recovers committed intents in the selected standalone/library owner.
-The timer starts with its HTTP listener and stops on close. No external bus is used.
-Choose one socket topology for an account's devices; simultaneous separate owners
-do not broadcast a single completed user intent to each other's connections.
+The [managed database outbox](realtime.md#durable-message-hints) publishes private
+invalidations within the persistence transaction and retries due intents through
+pg_cron. A hint carries only an opaque random event ID. Dispatch rechecks active
+membership and live session leases, verifies native enqueue, and isolates per-intent
+failures. Notification effects consume account/session-owned HTTP results, baseline
+historical rows and deduplicate new MATCH and MESSAGE IDs; active membership
+determines effect eligibility. Browser permissions and saved preferences control
+OS/toast effects independently of canonical inbox updates.
 
 Completion records an enqueue attempt, not recipient delivery/read acknowledgement.
 Failure before completion leaves the intent retryable, including across owner
@@ -191,8 +142,7 @@ ordered by creation time then ID. `message-pages.ts` updates an existing page by
 and reconciles at the whole-query commit, retaining late live arrivals and newer
 read receipts while another page awaits. The TanStack sharing adapter handles both
 stored pages and selected arrays. Draft/attempt state stays local and separate.
-Legacy socket owners acknowledge authorized room joins before history refresh;
-native subscription recovery refreshes HTTP history without match rooms.
+Subscription recovery refreshes HTTP history without match rooms.
 On reconnection, sequential page refetches advance the loaded latest-history window;
 older history remains available through explicit continuation. Obsolete cached
 rows outside that refreshed window are not merged into an apparent history gap.
@@ -235,15 +185,10 @@ owner; foreign IDs receive the same success response without modification. Mark-
 continues to update the server-selected owned unread set.
 
 `lib/server/match-access.ts` owns member authorization and idempotent unmatching.
-`lib/server/socket-live-match.ts` shares the room/read/typing handlers across the
-three owners: only active members can communicate, while former participants
-retain authorized HTTP history. Unmatch publishes a participant-private status
-update and evicts the live room. The UI also leaves that room after HTTP success;
-the selected socket owner checks the stored status before reconciling its clients.
-The provider updates match state and both open chats become read-only. Session
-validation and listener registration ordering still apply before these handlers.
-`lib/app-error.ts` keeps domain error construction independent of Next HTTP imports
-so the same checks work in standalone socket processes.
+Only active members can communicate, while former participants retain authorized
+HTTP history. Private refresh hints reach both former participants after commit,
+and the provider refetches match status so both chats become read-only.
+`lib/app-error.ts` keeps domain error construction independent of HTTP serialization.
 
 `lib/server/matching.ts` owns the mutual-like transition. A transaction-level
 PostgreSQL advisory lock serializes writes for the unordered user pair. READ COMMITTED
@@ -252,7 +197,7 @@ predicate conflicts cannot exhaust normal same-pair retries. The transaction sti
 commits the like, canonical match and intended durable notifications together,
 with a bounded retry for transient database conflicts. Same-action retries return committed state; conflicting
 actions remain rejected and unmatched pairs are not recreated. Missing legacy
-notifications can be filled without replacing existing IDs/read state. Socket
+notifications can be filled without replacing existing IDs/read state. Private
 refresh hints happen after commit and their failure cannot falsely reject the write.
 
 SQL migrations enforce unordered match-pair uniqueness (including legacy reversed
@@ -382,9 +327,8 @@ feedback cannot falsely reject an already committed action.
 returns only `Internal server error`, `INTERNAL_SERVER_ERROR` and a generated
 `requestId` for unexpected API failures. The ID is also in `X-Request-ID` and the
 redacted log; exception objects, messages and stacks are omitted. Notification,
-location, privacy, presence, socket-token and message HTTP handlers use that same
-unexpected-error boundary. Known message errors and socket acknowledgements keep
-their domain contracts. Raw Prisma logging is disabled so SQL/private values cannot
+location, privacy, presence, credential and message HTTP handlers use that same
+unexpected-error boundary. Known message errors keep their domain contracts. Raw Prisma logging is disabled so SQL/private values cannot
 bypass redaction; these correlation logs do not provide a private exception archive.
 `readJson` scopes malformed-body handling to parsing, returning 400 `INVALID_JSON`
 in the formerly unguarded application routes. Existing profile/discovery/message
@@ -427,14 +371,12 @@ startup/build/test/migration imports reference data.
 
 ## Structural work after the harness
 
-1. Extend the authenticated journey with remaining lifecycle/privacy boundaries,
-   uploads, and additional ownership boundaries before moving their data code.
-   Current coverage exercises onboarding, mutual matches, live chat/history, and
-   outsider match/message denial through the combined server. Separate cases cover
-   authoritative HTTP revocation/renewal and event-time socket validity across owners.
-2. Define one socket runtime owner; consolidate the three event implementations
-   behind tested authorization and delivery interfaces. Exercise two synthetic
-   users, a non-member, unmatch, reconnect, typing, and read receipts.
+1. Extend qualified journeys for live uploads and other uncovered boundaries
+   before moving their data code. [Coverage](realtime-retirement.md) distinguishes
+   actual native integration from unit and schema/build evidence.
+2. Rehearse populated database transfer/rollback and qualify the chosen hosted
+   target separately; local platform tests do not establish production cutover.
+
 3. Extract one domain operation at a time from handlers into `lib/server/`, using
    the existing profile operation as a starting point. Keep route contracts stable.
 4. Separate mixed browser/server modules and colocate remaining feature contracts

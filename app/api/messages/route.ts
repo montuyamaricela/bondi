@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { writeMessage, messageWriteError } from '@/lib/server/messages';
-import { wakeMessageDelivery } from '@/lib/server/message-delivery';
-import { getSocketInstance } from '@/lib/socket-instance';
 import { readPagination } from '@/lib/server/cursor-pagination';
 import { readMessageHistory } from '@/lib/server/message-history';
 import { handleApiError } from '@/lib/errors';
@@ -66,7 +64,6 @@ export async function POST(request: NextRequest) {
     }
     assertOptionalChatOwner({ userId: session.user.id, sessionId: session.session.id }, body);
     const { message } = await writeMessage(session.user.id, body);
-    wakeMessageDelivery(getSocketInstance());
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     const { status, ...body } = messageWriteError(error);

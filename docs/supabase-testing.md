@@ -2,8 +2,8 @@
 
 The migration workstream is [#74](https://github.com/montuyamaricela/bondi/issues/74).
 This setup prepares an isolated native Supabase stack for testing. Application login
-still uses Better Auth, uploads use UploadThing, and Socket.IO remains until its
-replacement tickets land. A Supabase Auth user in the native permission test exists
+still uses Better Auth, uploads use UploadThing, and Supabase is the sole live
+transport. Standard Next serves the application HTTP listener. A Supabase Auth user in the native permission test exists
 only to exercise the authenticated Data API role; it is not an account migration.
 
 ## Explicit preparation
@@ -69,7 +69,8 @@ runs before doing it. No automatic Docker cleanup/pruning is included.
 
 ## Safety and access control
 
-Ordinary PostgreSQL journeys retain the loopback and test/e2e/harness name guard.
+Ordinary PostgreSQL unit/schema checks retain the loopback and test/e2e/harness
+name guard; application journeys require the native target below.
 Native local Supabase uses the database name `postgres`, so its test path additionally
 requires the exact project, API/database endpoint pair, explicit confirmation and
 random marker. Playwright verifies that marker against the actual database before
@@ -98,14 +99,15 @@ revocation and browser ownership across delayed responses, logout and replacemen
 
 ## Verification evidence
 
-CI has two required checks: the ordinary PostgreSQL baseline and `native-supabase`.
+CI has two required checks: the ordinary PostgreSQL schema/build/unit job and `native-supabase`.
 The native job explicitly starts/prepares/migrates an ephemeral local Supabase stack,
 runs strict checks and a fresh build, then all retained application journeys and
 the native permission cases. It stops only its owned stack. This job does not need
 a hosted Supabase account or production credentials.
 
-Report local ordinary PostgreSQL results separately from native CI results. A Mac
-without Docker can run the former, but it cannot claim local native integration.
+Report ordinary schema/build/unit results separately from native results.
+Application E2E and `test:supabase` both require the prepared native target. A Mac
+without Docker may run static/unit checks, but cannot claim native integration.
 Physical GPS, live uploads and production-data migration are separate checks. Hosted
 provisioning requires a specific organization/project and any required cost approval;
 this harness does not grant that authorization.

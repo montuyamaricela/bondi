@@ -15,6 +15,7 @@ const checks = [
   'typecheck',
   'lint',
   'build',
+  'check:realtime',
 ];
 
 function runFixture(failingCheck) {

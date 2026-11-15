@@ -1,6 +1,5 @@
 import { db } from '@/lib/db';
 import { createAppError } from '@/lib/app-error';
-import { nativeRealtimeEnabled } from './env';
 import { publishRealtimeHint } from './realtime';
 import { activePeerIds } from './match-access';
 import {
@@ -9,7 +8,6 @@ import {
 } from '@/app/components/features/messaging/presence-input';
 
 export async function notifyPresenceChange(userId: string) {
-  if (!nativeRealtimeEnabled()) return;
   try {
     const peers = await activePeerIds(userId);
     await Promise.all(peers.map((peerId) => publishRealtimeHint(peerId)));

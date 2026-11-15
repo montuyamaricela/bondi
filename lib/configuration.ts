@@ -28,10 +28,3 @@ export function configuredUrl(value: string | undefined, setting: string, databa
     throw new Error(message);
   }
 }
-
-export function configuredPort(value: string | undefined, setting: string, fallback: number) {
-  if (value === undefined) return fallback;
-  if (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535)
-    throw new Error(`${setting} must be an integer port from 1 to 65535.`);
-  return Number(value);
-}

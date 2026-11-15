@@ -10,6 +10,7 @@ const checks = [
   'typecheck',
   'lint',
   'build',
+  'check:realtime',
 ];
 
 for (const check of checks) {
