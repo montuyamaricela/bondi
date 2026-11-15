@@ -283,6 +283,21 @@ until after its component unmounts. They retain generic error feedback and canno
 start a late upload or toast in the replacement editor. These are separate from real
 storage transfer and signed-provider webhook qualification.
 
+### Public profile contract verification
+
+`tests/e2e/public-profile-contract.spec.ts` uses real synthetic accounts, PostgreSQL
+and authorized HTTP. A public viewer sees the expected profile/gallery without an
+empty private-preference section. The owner still sees its real preference, edits
+and saves through the normal form, and retains its safe city display when enabled.
+Exact public/profile-photo key assertions cover Off, zero-coordinate Device and
+City modes with visibility toggles; no private preference/origin/reference/flags or
+owner-only file fields are added. Photo timestamp strings remain canonical.
+
+Success, unknown-target and expired-session responses are checked for private/no-store;
+missing/expired sessions remain unauthorized. Images use a synthetic pixel and
+no real storage transfer occurs. Existing location projection and complete owned
+gallery suites remain independent evidence of their other endpoint contracts.
+
 ### Photo editor keyboard verification
 
 `tests/e2e/photo-keyboard.spec.ts` uses real synthetic sessions, PostgreSQL photos

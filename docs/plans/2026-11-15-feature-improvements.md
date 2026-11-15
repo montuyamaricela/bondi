@@ -102,6 +102,10 @@ interface. The review established these defects on the inventory baseline.
    private gender preferences correctly, but the client types/rendering expect
    the owner field. Keep it omitted, type the public DTO accurately and remove
    the empty private-field section. Test serialized privacy and public rendering.
+   #100 introduces an explicit public profile/photo contract and typed server
+   whitelist, while owner data and editor keep their private preference. The
+   shared view renders owner-only details when present without a public fallback.
+   Authenticated target responses are private/no-store; no public fields expand.
 8. **R9: bind upload initiation to its captured account/session (#108).** A
    follow-up probe confirmed that all three upload endpoints accept a replacement
    cookie owner while ignoring the stale UI owner. Validate first-party owner

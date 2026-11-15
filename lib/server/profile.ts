@@ -3,6 +3,51 @@ import { createAppError } from '@/lib/app-error';
 import { profileWriteOwnerSchema, type ProfileFields } from '@/lib/profile-validation';
 import type { Prisma } from '@prisma/client';
 import { publicLocation } from '@/lib/location';
+import type { PublicProfile } from '@/app/components/features/profile/types';
+
+export async function getPublicProfileByUserId(userId: string): Promise<PublicProfile | null> {
+  const profile = await db.profile.findUnique({
+    where: { userId },
+    select: {
+      userId: true,
+      name: true,
+      age: true,
+      bio: true,
+      gender: true,
+      lookingFor: true,
+      relationshipType: true,
+      interests: true,
+      hobbies: true,
+      user: {
+        select: {
+          files: {
+            orderBy: [{ order: 'asc' }, { id: 'asc' }],
+            select: { id: true, url: true, key: true, name: true, createdAt: true },
+          },
+        },
+      },
+    },
+  });
+  if (!profile) return null;
+  return {
+    userId: profile.userId,
+    name: profile.name,
+    age: profile.age,
+    bio: profile.bio,
+    gender: profile.gender,
+    lookingFor: profile.lookingFor,
+    relationshipType: profile.relationshipType,
+    interests: profile.interests,
+    hobbies: profile.hobbies,
+    photos: profile.user.files.map((file) => ({
+      id: file.id,
+      url: file.url,
+      key: file.key,
+      name: file.name,
+      createdAt: file.createdAt.toISOString(),
+    })),
+  };
+}
 
 export function assertOptionalProfileOwner(
   owner: { userId: string; sessionId: string },

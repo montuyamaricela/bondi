@@ -8,6 +8,7 @@ import type {
   ProfileEditFormData,
   ProfileUpdateResponse,
   PhotoDeleteResponse,
+  PublicProfileResponse,
 } from '@/app/components/features/profile/types';
 
 interface ProfileSetupResponse {
@@ -78,7 +79,7 @@ export function useUserProfileQuery(userId: string, enabled = true) {
   return useQuery({
     queryKey: ['user-profile', userId],
     queryFn: async ({ signal }) => {
-      return await api.get<{ profile: ProfileWithPhotos | null }>(`/api/profile/${userId}`, {
+      return await api.get<PublicProfileResponse>(`/api/profile/${userId}`, {
         signal,
       });
     },

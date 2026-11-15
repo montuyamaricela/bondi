@@ -1,68 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { getServerSession } from '@/lib/session';
+import { getPublicProfileByUserId } from '@/lib/server/profile';
 import { handleApiError } from '@/lib/errors';
+import type { PublicProfileResponse } from '@/app/components/features/profile/types';
+
+const privateHeaders = { 'Cache-Control': 'private, no-store' };
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getServerSession(request.headers);
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: privateHeaders });
     }
 
     const { userId } = await params;
 
-    const profile = await db.profile.findUnique({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            files: {
-              orderBy: [{ order: 'asc' }, { id: 'asc' }],
-              select: {
-                id: true,
-                url: true,
-                key: true,
-                name: true,
-                createdAt: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const profile = await getPublicProfileByUserId(userId);
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404, headers: privateHeaders },
+      );
     }
 
-    const photos = profile.user.files.map((file) => ({
-      id: file.id,
-      url: file.url,
-      key: file.key,
-      name: file.name,
-      createdAt: file.createdAt,
-    }));
-
-    return NextResponse.json({
-      profile: {
-        userId: profile.userId,
-        name: profile.name,
-        age: profile.age,
-        bio: profile.bio,
-        gender: profile.gender,
-        lookingFor: profile.lookingFor,
-        relationshipType: profile.relationshipType,
-        interests: profile.interests,
-        hobbies: profile.hobbies,
-        photos,
-      },
+    return NextResponse.json({ profile } satisfies PublicProfileResponse, {
+      headers: privateHeaders,
     });
   } catch (error) {
-    return handleApiError(error);
+    const response = handleApiError(error);
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
   }
 }
