@@ -347,6 +347,14 @@ unchanged profiles after rejection and a held accepted-save response arriving af
 the editor switches accounts. Such an acknowledgement cannot route or toast in the
 replacement editor. Photo callbacks also stop affecting an unmounted form; a real
 provider upload after account replacement is not covered by these local cases.
+Authenticated public profile reads use a separate whitelisted response from owner
+editing data. They omit private preference/location/privacy fields and owner-only
+photo metadata, with private/no-store responses. The shared view has no empty
+private-preference section for public readers; owner viewing/editing retains its
+actual preference and safe city projection. Two native HTTP/browser cases exercise
+public rendering/gallery, real owner save, exact serialized keys across Off/Device/
+City visibility states, absent targets and missing/expired sessions. This preserves
+the target endpoint's existing field audience; it does not publish additional data.
 
 Keyboard/touch controls supplement discovery gestures with Like/Pass buttons using
 the same guarded actions. Password visibility and selected-option removal have

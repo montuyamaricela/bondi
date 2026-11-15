@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { ProfileWithPhotos } from '../types';
+import type { Profile, PublicProfile } from '../types';
 import { MapPin, Heart, Users, Briefcase } from 'lucide-react';
 import { getInitials } from '@/lib/utils/initials';
 import { Lightbox } from '@/app/components/ui/custom/Lightbox';
 
 interface ProfileViewProps {
-  profile: ProfileWithPhotos;
+  profile: PublicProfile & Partial<Pick<Profile, 'location' | 'genderPreference'>>;
 }
 
 export function ProfileView({ profile }: ProfileViewProps) {
@@ -126,15 +126,17 @@ export function ProfileView({ profile }: ProfileViewProps) {
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <Users className="mt-0.5 h-5 w-5 text-text-muted" />
-                <div>
-                  <p className="text-sm font-semibold text-text-body">Interested in</p>
-                  <p className="text-text-heading">
-                    {getGenderPreferenceLabel(profile.genderPreference)}
-                  </p>
+              {profile.genderPreference && (
+                <div className="flex items-start space-x-3">
+                  <Users className="mt-0.5 h-5 w-5 text-text-muted" />
+                  <div>
+                    <p className="text-sm font-semibold text-text-body">Interested in</p>
+                    <p className="text-text-heading">
+                      {getGenderPreferenceLabel(profile.genderPreference)}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {profile.lookingFor && (
                 <div className="flex items-start space-x-3">

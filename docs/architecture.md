@@ -275,6 +275,15 @@ updates abort it. Returned photos reflect the same transaction. Failed writes le
 prior state intact; explicit conflicts ask the editor to refresh saved photos.
 Both profile uploaders enforce the six-photo quota through the shared registration operation.
 
+`getPublicProfileByUserId` in that same server seam reads and serializes the explicit
+authenticated public-profile whitelist. Its `PublicProfile`/`PublicPhoto` contract
+omits private preference, profile timestamps/ID, exact location, visibility controls
+and owner-only file metadata. Photo dates are ISO strings. The thin target route
+resolves the live session and marks success, absence and denial private/no-store.
+Public queries use that DTO; the shared view renders preference/city details only
+when supplied by the existing owner response. Owner editing types remain canonical
+under the profile feature, with the former global type path re-exporting them.
+
 Onboarding waits for a resolved session before mounting its account-keyed form.
 `lib/client/profile-drafts.ts` owns draft key names and cleanup: retain only the
 current account's namespace, discard unowned legacy data, and clear all onboarding

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { profileEditSchema } from './validation';
+import type { z } from 'zod';
+import type { profileEditSchema } from './validation';
 
 export type ProfileEditFormData = z.infer<typeof profileEditSchema>;
 
@@ -36,6 +36,25 @@ export interface Photo {
   size: number;
   type: string;
   createdAt: string;
+}
+
+export type PublicPhoto = Pick<Photo, 'id' | 'url' | 'key' | 'name' | 'createdAt'>;
+
+export type PublicProfile = Pick<
+  Profile,
+  | 'userId'
+  | 'name'
+  | 'age'
+  | 'bio'
+  | 'gender'
+  | 'interests'
+  | 'hobbies'
+  | 'lookingFor'
+  | 'relationshipType'
+> & { photos: PublicPhoto[] };
+
+export interface PublicProfileResponse {
+  profile: PublicProfile | null;
 }
 
 export interface ProfileUpdateResponse {
