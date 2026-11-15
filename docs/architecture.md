@@ -155,6 +155,12 @@ older history remains available through explicit continuation. Obsolete cached
 rows outside that refreshed window are not merged into an apparent history gap.
 Loading older messages preserves the visible bubble anchor and does not scroll
 the chat to the newest message.
+`ChatView` renders query loading, paused/offline and failure states inside the
+history area, keeping its draft/composer mounted. Successful empty history is
+distinct from an unavailable read. Explicit head retry uses the same owned query
+without cancelling an already pending fetch; older-page errors retain their own
+continuation. History access denial hides cached rows and enters the existing
+refresh recovery, disabling sends independently of subscription readiness.
 
 GET messages, conversations and received likes return `{ items, nextCursor }`.
 `lib/server/cursor-pagination.ts` validates a default 50 / maximum 100 item page and

@@ -211,6 +211,20 @@ fixtures. Native presence/provider lifecycle suites separately exercise cleanup,
 renewal, privacy and authorized hints. Existing visibility assertions remain;
 keyboard consumers wait for the intentionally disabled pending control to be ready.
 
+### Chat-history recovery verification
+
+`tests/e2e/chat-history-errors.spec.ts` starts with real synthetic sessions and saved
+PostgreSQL history. Controlled first-load 503/network failures must expose explicit
+retry rather than successful-empty copy; a held real retry preserves the draft and
+restores each message once, then a normal send persists. Those two cases close the
+native socket to isolate explicit retry from typing/presence-triggered refreshes.
+Separate cases retain actual native hints for a failed background refresh, use real
+browser offline/reconnection, and retain older rows/drafts through continuation
+failure and retry. Successful empty history remains distinct. Controlled 401/403
+history replies isolate refresh recovery and disabled sends; existing pagination
+and native authorization cases cover actual missing/expired/foreign access. No
+storage asset or production provider is contacted by these cases.
+
 ### API-error verification
 
 `tests/e2e/api-errors.spec.ts` uses authenticated synthetic accounts and a scoped
