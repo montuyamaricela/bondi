@@ -384,6 +384,12 @@ capacity and slot reuse after deletion. Actual authenticated upload middleware r
 requests exceeding the remaining total before a controlled provider metadata call.
 Saved primary photos agree across discovery, owned/public profiles, incoming likes,
 matching responses, matches and inbox; browser profile display follows the same order.
+All upload entry points validate a captured account/session pair before quota or
+provider access when either owner header is supplied; legacy clients may omit both.
+First-party uploaders always supply both and cancel their owned attempt on session
+replacement. Native handler/browser cases cover stale and malformed owners, a real
+cookie switch, held initiation cancellation and an asynchronous directory-drop
+callback after unmount. Storage responses are controlled; no real asset is uploaded.
 Legacy ties use an ID tie-breaker. These cases exercise trusted completion callbacks
 and synthetic provider requests, rather than live uploads or webhook signatures.
 The cap applies to registered gallery rows; unregistered provider objects require a

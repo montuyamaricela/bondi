@@ -85,6 +85,12 @@ interface. The review established these defects on the inventory baseline.
    private gender preferences correctly, but the client types/rendering expect
    the owner field. Keep it omitted, type the public DTO accurately and remove
    the empty private-field section. Test serialized privacy and public rendering.
+8. **R9: bind upload initiation to its captured account/session (#108).** A
+   follow-up probe confirmed that all three upload endpoints accept a replacement
+   cookie owner while ignoring the stale UI owner. Validate first-party owner
+   headers before provider contact; cancel owned uploads and reject delayed drops
+   after unmount. This follows R1 before auth, with separate native handler and
+   controlled browser coverage; it does not require live provider assets.
 
 R6 (UI/server password-policy disagreement) belongs in Phase B, avoiding a new
 Better-Auth-only account implementation immediately before migration.

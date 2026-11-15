@@ -228,6 +228,16 @@ synthetic pixel. Legacy ties resolve by ID. These checks cover gallery registrat
 not provider-side orphan cleanup or signed webhook delivery. Uploads that race past
 preflight may be rejected at completion after a provider object already exists.
 
+Upload initiation also checks captured account/session headers before quota or
+provider access. Unit probes assert zero capacity/provider calls for denied pairs;
+real native sessions exercise allowed, stale, replaced and expired identities on
+all three endpoints. Browser cases use the actual first-party uploader and a
+controlled handler/storage adapter to prove captured headers across a cookie switch,
+aborted pending initiation after account replacement, and a directory callback held
+until after its component unmounts. They retain generic error feedback and cannot
+start a late upload or toast in the replacement editor. These are separate from real
+storage transfer and signed-provider webhook qualification.
+
 ### Location Control Center verification
 
 `tests/e2e/location-lifecycle.spec.ts` uses real authentication, HTTP and PostgreSQL

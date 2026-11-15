@@ -213,6 +213,11 @@ returns the canonical row for an owned replay, checks the total again and append
 a unique next order in one transaction. The profile editor takes the same lock,
 so complete reorders and appends serialize. Foreign-key replay claims fail closed.
 Raw upload diagnostics are disabled; private filenames and keys are not logged.
+All upload entry points share live-session authorization and validate the optional
+captured owner headers from `lib/upload-owner.ts` before quota/provider access.
+First-party `PhotoUpload` instances are keyed by account/session and use the typed
+imperative browser adapter with per-attempt cancellation, including delayed-drop
+and completion guards. Accepted provider writes cannot be undone by browser abort.
 Every gallery/primary-photo query uses saved order then ID, including discovery,
 profiles, matching responses and inboxes. Legacy order ties remain deterministic;
 legacy over-cap galleries remain readable/reorderable and reject further additions.
