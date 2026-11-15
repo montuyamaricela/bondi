@@ -134,9 +134,19 @@ function OwnedPhotoUpload({
 
   return (
     <div
-      {...getRootProps()}
+      {...getRootProps({
+        role: 'button',
+        'aria-disabled': isUploading,
+        'aria-busy': isUploading,
+        'aria-label':
+          endpoint === 'profilePhotos'
+            ? 'Upload profile photos'
+            : endpoint === 'profileImage'
+              ? 'Upload profile image'
+              : 'Upload attachment',
+      })}
       className={cn(
-        'w-full cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all',
+        'w-full cursor-pointer rounded-lg border-2 border-dashed p-4 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-main',
 
         isUploading && 'cursor-not-allowed opacity-50',
       )}
