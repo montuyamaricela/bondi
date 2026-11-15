@@ -417,6 +417,7 @@ test('real native tabs aggregate liveness and retract held privacy snapshots and
       (response) =>
         new URL(response.url()).pathname === '/api/profile/privacy' && response.status() === 200,
     );
+    await expect(control).toBeEnabled();
     await control.focus();
     await control.press('Space');
     await hideSaved;
@@ -431,6 +432,7 @@ test('real native tabs aggregate liveness and retract held privacy snapshots and
       (response) =>
         new URL(response.url()).pathname === '/api/profile/privacy' && response.status() === 200,
     );
+    await expect(control).toBeEnabled();
     await control.focus();
     await control.press('Space');
     await showSaved;

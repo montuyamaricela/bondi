@@ -196,6 +196,21 @@ gets no old success toast or routing. These cases use actual auth/HTTP/PostgreSQ
 not mocked identities. Legacy API calls without either owner field stay supported.
 Provider uploads are not performed by this suite.
 
+### Online privacy control verification
+
+`tests/e2e/presence-lifecycle.spec.ts` holds an enable before server acceptance,
+checks that repeated keyboard input cannot enqueue another save, then commits a
+disable and verifies UI, PostgreSQL and a matched peer agree. An outsider remains
+unable to observe presence. A scoped PostgreSQL update failure proves rollback and
+retry. One controlled reply uses the canonical body of a subsequent real write;
+a malformed success body must instead expose recovery. The refresh action reloads
+the saved server value. Parameterized cases hold a failed response across an
+account change, same-account replacement session and logout, requiring owned abort
+and no stale rollback/toast. Sessions, profiles and operations are real synthetic
+fixtures. Native presence/provider lifecycle suites separately exercise cleanup,
+renewal, privacy and authorized hints. Existing visibility assertions remain;
+keyboard consumers wait for the intentionally disabled pending control to be ready.
+
 ### API-error verification
 
 `tests/e2e/api-errors.spec.ts` uses authenticated synthetic accounts and a scoped
