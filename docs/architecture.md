@@ -239,6 +239,14 @@ and completion guards. Accepted provider writes cannot be undone by browser abor
 Every gallery/primary-photo query uses saved order then ID, including discovery,
 profiles, matching responses and inboxes. Legacy order ties remain deterministic;
 legacy over-cap galleries remain readable/reorderable and reject further additions.
+The account-owned editor offers named native earlier/later/delete controls alongside
+drag ordering. Both order paths update the same local draft; Save changes still
+commits the complete owned set through the profile operation. Position announcements
+and bounded focus recovery follow the moved/remaining photo, or the Photos heading
+when empty, without stealing focus from another field. A pending deletion guards
+other gallery commands. Async completions use the latest owned gallery snapshot,
+retaining intervening draft changes and uploads. Upload selection keeps the existing
+adapter and exposes its keyboard action, disabled/busy state and focus styling.
 The limit governs registered gallery rows. Concurrent provider authorizations are
 not reservations: an upload rejected at completion can leave an unregistered remote
 object. Provider-side orphan cleanup is outside this metadata repair.

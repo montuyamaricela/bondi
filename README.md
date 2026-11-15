@@ -356,6 +356,15 @@ buttons cycle photos. Five browser cases use native Tab/Enter/Space, verify actu
 profile/action writes and failure recovery, exercise repeat dialog lifecycle/scroll
 cleanup, and tap the controls in an emulated mobile viewport. This targeted evidence
 does not certify screen readers or physical mobile devices.
+The photo editor adds named Delete and earlier/later controls alongside drag
+ordering, with disabled bounds, 44-pixel targets and position announcements. Order
+remains a draft until Save changes; deletion is immediate. Three separate keyboard
+cases verify focus across moves/bounds, failed save and real save/reload/main-photo
+order, deletion pending/failure/next/last-photo recovery, and continued typing in
+another field. Successful UI deletions use the real owned server operation with a
+controlled storage adapter; real handler failure and existing provider/DB cleanup
+tests remain separate. Empty-gallery recovery reaches the named uploader and opens
+its file chooser. These cases do not transfer real provider assets.
 
 Notification lists preserve their 20-item default and accept only limits from 1–100.
 Bulk read-state changes accept up to 100 nonblank IDs of at most 128 characters;

@@ -283,6 +283,23 @@ until after its component unmounts. They retain generic error feedback and canno
 start a late upload or toast in the replacement editor. These are separate from real
 storage transfer and signed-provider webhook qualification.
 
+### Photo editor keyboard verification
+
+`tests/e2e/photo-keyboard.spec.ts` uses real synthetic sessions, PostgreSQL photos
+and native Tab/Enter/Space. It checks named delete/order buttons, disabled bounds,
+44-pixel dimensions, meaningful position announcements and focus following a moved
+photo. A controlled save failure retains the draft; retry uses the genuine profile
+write and verifies saved/reloaded main/full order. Existing full-set ownership,
+stale/duplicate/omitted-key and transaction-rejection cases remain intact.
+
+Deletion cases exercise the actual authorized handler's missing-provider 503, then
+use the real owned deletion operation with synthetic provider success and genuine
+database removal for controlled UI replies. They retain failure focus, pending
+guards, next/previous-photo focus, last-photo heading/upload/file-chooser recovery,
+and focus/value in a field edited while deletion is pending. Images are synthetic
+pixels. This is UI/HTTP/DB evidence, not live storage transfer or assistive-device
+certification. Browser screenshots attach the reordered gallery to the report.
+
 ### Location Control Center verification
 
 `tests/e2e/location-lifecycle.spec.ts` uses real authentication, HTTP and PostgreSQL

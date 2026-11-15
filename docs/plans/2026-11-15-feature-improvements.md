@@ -94,6 +94,10 @@ interface. The review established these defects on the inventory baseline.
 6. **R7: make photo deletion and ordering keyboard accessible.** Name controls,
    provide an actual keyboard ordering alternative and preserve focus and primary
    photo semantics. Test keyboard-only reordering and saved order after reload.
+   #99 uses native named controls, boundary/deletion focus recovery and safe
+   position announcements. It retains drag and deferred full-order saves, keeps
+   deletion immediate, and preserves the latest owned draft during async gallery
+   completions. The existing uploader gains a named busy/disabled keyboard action.
 7. **R8: separate owner and public profile contracts.** Public profiles omit
    private gender preferences correctly, but the client types/rendering expect
    the owner field. Keep it omitted, type the public DTO accurately and remove
