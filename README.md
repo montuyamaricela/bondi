@@ -248,6 +248,13 @@ The owned provider cases hold credential requests/responses/body parsing across
 logout/account/session changes, count actual native connections and prove old
 owners cannot become orphan subscriptions. Ordinary owner refresh keeps one
 connection; a replacement session creates a new owned connection.
+Credential attempts time out after eight seconds across headers/body reads, then
+use the existing bounded retry and explicit recovery controls. Deterministic clock
+tests cover stalls, late replies, retry limits, disposal and replacement owners.
+Native browser cases hold genuine signed credential continuations, advance the
+controlled clock through timeout, reconnect automatically or explicitly, discard
+the late reply and renew the recovered channel. These are local native results,
+not hosted-network latency guarantees.
 
 Message delivery cases use HTTP sends outside an open chat, real private native
 subscribers, another sender device and expired-session audience denial. Both inboxes

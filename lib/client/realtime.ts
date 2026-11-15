@@ -75,29 +75,47 @@ export function subscribeRealtime(
     if (!active) return Promise.resolve();
     if (pending) return pending;
     pending = (async () => {
+      const attempt = new AbortController();
+      const abandoned = new Promise<never>((_resolve, reject) => {
+        attempt.signal.addEventListener(
+          'abort',
+          () => reject(new Error('Subscription credential attempt cancelled.')),
+          { once: true },
+        );
+      });
+      const abortAttempt = () => attempt.abort();
+      controller.signal.addEventListener('abort', abortAttempt, { once: true });
+      const deadline = setTimeout(abortAttempt, 8000);
       try {
-        const response = await fetch('/api/realtime/credential', {
-          method: 'POST',
-          credentials: 'include',
-          cache: 'no-store',
-          signal: controller.signal,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            expectedUserId: owner.userId,
-            expectedSessionId: owner.sessionId,
-            leaseId: credential?.leaseId,
-          }),
-        });
-        if (!active) return;
-        if (!response.ok) {
-          if ([401, 403, 409].includes(response.status)) {
-            closeCredential();
-            disconnect();
-          }
-          throw new Error('Subscription credential unavailable.');
-        }
-        const payload: unknown = await response.json();
-        if (!active) return;
+        const payload: unknown = await Promise.race([
+          (async () => {
+            const response = await fetch('/api/realtime/credential', {
+              method: 'POST',
+              credentials: 'include',
+              cache: 'no-store',
+              signal: attempt.signal,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                expectedUserId: owner.userId,
+                expectedSessionId: owner.sessionId,
+                leaseId: credential?.leaseId,
+              }),
+            });
+            if (!active || attempt.signal.aborted)
+              throw new Error('Subscription credential attempt cancelled.');
+            if (!response.ok) {
+              if ([401, 403, 409].includes(response.status)) {
+                closeCredential();
+                disconnect();
+              }
+              throw new Error('Subscription credential unavailable.');
+            }
+            return response.json();
+          })(),
+          abandoned,
+        ]);
+        clearTimeout(deadline);
+        if (!active || attempt.signal.aborted) return;
         const next = credentialSchema.parse(payload);
         const remaining = Date.parse(next.expiresAt) - Date.now();
         if (
@@ -152,6 +170,8 @@ export function subscribeRealtime(
         // Close cached native authorization immediately when renewal cannot be proven.
         retry();
       } finally {
+        clearTimeout(deadline);
+        controller.signal.removeEventListener('abort', abortAttempt);
         pending = null;
       }
     })();
