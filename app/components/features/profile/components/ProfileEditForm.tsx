@@ -5,7 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { profileEditSchema } from '../validation';
 import type { ProfileEditFormData, ProfileWithPhotos } from '../types';
 import { useProfileUpdateMutation } from '@/lib/client/profile';
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSession } from '@/lib/auth-client';
+import type { ProfileWriteOwner } from '@/lib/profile-validation';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FetchError } from '@/lib/fetch-wrapper';
@@ -37,9 +40,43 @@ interface ProfileEditFormProps {
 }
 
 export function ProfileEditForm({ profile }: ProfileEditFormProps) {
+  const { data: session, isPending } = useSession();
+  const sessionId = session?.session.id;
+  if (!sessionId || session?.user.id !== profile.userId)
+    return (
+      <div role={isPending ? 'status' : 'alert'}>
+        {isPending ? 'Checking your profile session...' : 'Your profile session changed.'}
+        {!isPending && (
+          <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
+            Refresh profile
+          </Button>
+        )}
+      </div>
+    );
+  return (
+    <AccountProfileEditForm
+      key={`${profile.userId}:${sessionId}`}
+      profile={profile}
+      owner={{ expectedUserId: profile.userId, expectedSessionId: sessionId }}
+    />
+  );
+}
+
+function AccountProfileEditForm({
+  profile,
+  owner,
+}: ProfileEditFormProps & { owner: ProfileWriteOwner }) {
   const router = useRouter();
-  const mutation = useProfileUpdateMutation();
+  const mutation = useProfileUpdateMutation(owner);
+  const queryClient = useQueryClient();
   const [photos, setPhotos] = useState(profile.photos);
+  const active = useRef(false);
+  useLayoutEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
 
   const form = useForm<ProfileEditFormData>({
     resolver: zodResolver(profileEditSchema),
@@ -57,15 +94,23 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
   });
 
   const onSubmit = async (data: ProfileEditFormData) => {
+    if (!active.current) return;
     try {
       const photoKeys = photos.map((photo) => photo.key);
       await mutation.mutateAsync({
         ...data,
         photoKeys,
       });
+      if (!active.current) return;
+      void queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Profile updated successfully!');
       router.push('/profile');
     } catch (error) {
+      if (!active.current) return;
+      if (error instanceof FetchError && error.status === 409) {
+        toast.error('Your session or saved profile changed. Refresh this page before saving.');
+        return;
+      }
       const photoConflict =
         error instanceof FetchError &&
         error.data &&
@@ -83,7 +128,12 @@ export function ProfileEditForm({ profile }: ProfileEditFormProps) {
   return (
     <div className="rounded-lg border border-border-main bg-bg-card p-6 shadow-md">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={(event) => {
+            void form.handleSubmit(onSubmit)(event);
+          }}
+          className="space-y-6"
+        >
           <PhotoManager photos={photos} onPhotosChange={setPhotos} />
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

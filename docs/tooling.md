@@ -175,7 +175,7 @@ and [Prisma v6 parameterized raw queries](https://www.prisma.io/docs/orm/v6/pris
 
 ### Profile-write verification
 
-Five authenticated profile-write cases cover shared setup/edit limits, malformed
+Authenticated profile-write cases cover shared setup/edit limits, malformed
 JSON, strict integer age, 1–10 nonblank labels of at most 100 characters, custom
 label preservation, anonymous/expired sessions and forged owner IDs. Scoped
 PostgreSQL Profile-insert and File-update triggers prove that failed operations
@@ -185,6 +185,16 @@ order for a nonempty gallery. Parallel successful writes return each request's
 complete profile/order and leave one coherent final result. No storage provider is
 called. A browser verifies decimals and cleared ages in both forms and saves a valid
 edit through the normal interface. Pure schema tests keep both client forms aligned.
+
+Captured account/session pairs on first-party setup/edit forms are validated before
+writing. Additional native cases reject stale account/same-account-session owners,
+partial or malformed pairs, and expired sessions without changing either profile.
+A real browser replaces shared cookies while an empty-gallery form remains open;
+the stale save receives 409. A second browser case holds an already accepted save
+response across an observed account change and verifies that the replacement editor
+gets no old success toast or routing. These cases use actual auth/HTTP/PostgreSQL,
+not mocked identities. Legacy API calls without either owner field stay supported.
+Provider uploads are not performed by this suite.
 
 ### API-error verification
 

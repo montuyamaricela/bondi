@@ -1,8 +1,24 @@
 import { db } from '@/lib/db';
 import { createAppError } from '@/lib/app-error';
-import type { ProfileFields } from '@/lib/profile-validation';
+import { profileWriteOwnerSchema, type ProfileFields } from '@/lib/profile-validation';
 import type { Prisma } from '@prisma/client';
 import { publicLocation } from '@/lib/location';
+
+export function assertOptionalProfileOwner(
+  owner: { userId: string; sessionId: string },
+  input: unknown,
+) {
+  // Older API callers may omit both fields; first-party forms always send the pair.
+  if (
+    input &&
+    typeof input === 'object' &&
+    ('expectedUserId' in input || 'expectedSessionId' in input)
+  ) {
+    const expected = profileWriteOwnerSchema.parse(input);
+    if (expected.expectedUserId !== owner.userId || expected.expectedSessionId !== owner.sessionId)
+      throw createAppError('Your session changed. Refresh before saving.', 409, 'SESSION_CHANGED');
+  }
+}
 
 export function profileForOwner(
   profile: Prisma.ProfileGetPayload<{ include: { locationCity: true } }>,

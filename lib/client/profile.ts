@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import type { ProfileWriteOwner } from '@/lib/profile-validation';
 import { api } from '@/lib/fetch-wrapper';
 import type { ProfileSetupFormData } from '@/app/components/features/auth/types';
 import type { ProfileResponse } from '@/types/profile';
@@ -34,10 +35,10 @@ export function useProfileQuery(enabled = true) {
   });
 }
 
-export function useProfileSetupMutation() {
+export function useProfileSetupMutation(owner: ProfileWriteOwner) {
   return useMutation({
     mutationFn: async (data: ProfileSetupFormData) => {
-      return await api.post<ProfileSetupResponse>('/api/profile', data);
+      return await api.post<ProfileSetupResponse>('/api/profile', { ...data, ...owner });
     },
   });
 }
@@ -57,30 +58,18 @@ export function useProfileWithPhotosQuery(enabled = true) {
   });
 }
 
-export function useProfileUpdateMutation() {
-  const queryClient = useQueryClient();
-
+export function useProfileUpdateMutation(owner: ProfileWriteOwner) {
   return useMutation({
     mutationFn: async (data: ProfileEditFormData) => {
-      return await api.patch<ProfileUpdateResponse>('/api/profile', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      queryClient.invalidateQueries({ queryKey: ['profile', 'with-photos'] });
+      return await api.patch<ProfileUpdateResponse>('/api/profile', { ...data, ...owner });
     },
   });
 }
 
 export function usePhotoDeleteMutation() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (photoKey: string) => {
       return await api.delete<PhotoDeleteResponse>(`/api/profile/photos/${photoKey}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      queryClient.invalidateQueries({ queryKey: ['profile', 'with-photos'] });
     },
   });
 }

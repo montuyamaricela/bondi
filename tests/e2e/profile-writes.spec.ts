@@ -33,6 +33,13 @@ const invalidFields = [
   { genderPreference: 'unsupported' },
 ];
 
+async function profileOwner(context: BrowserContext) {
+  const response = await context.request.get('/api/auth/get-session');
+  expect(response.status()).toBe(200);
+  const current = await response.json();
+  return { expectedUserId: current.user.id, expectedSessionId: current.session.id };
+}
+
 async function fixture(browser: Browser, baseURL: string, ip: number) {
   assertTestDatabase();
   const db = new PrismaClient();
@@ -357,6 +364,214 @@ test('profile age inputs retain fractions and cleared values instead of silently
     await setupAge.fill('');
     await expect(setupAge).toHaveValue('');
   } finally {
+    await owned.close();
+  }
+});
+
+test('profile commands validate complete captured owners and reject account and session replacement', async ({
+  browser,
+  baseURL,
+}) => {
+  const owned = await fixture(browser, baseURL!, 230);
+  try {
+    const { contexts, people, db, snapshot } = owned;
+    const alice = await profileOwner(contexts[0]);
+    const bob = await profileOwner(contexts[1]);
+    expect(
+      (
+        await contexts[0].request.post('/api/profile', {
+          data: { ...fields('Captured Alice'), ...alice },
+        })
+      ).status(),
+    ).toBe(201);
+    const before = await Promise.all(people.map((person) => snapshot(person.id)));
+    const invalidOwners = [
+      { expectedUserId: alice.expectedUserId },
+      { expectedSessionId: alice.expectedSessionId },
+      { ...alice, expectedSessionId: '' },
+      { ...alice, expectedUserId: null },
+    ];
+    for (const expected of invalidOwners) {
+      for (const [context, method] of [
+        [contexts[0], 'patch'],
+        [contexts[1], 'post'],
+      ] as const) {
+        const response = await context.request[method]('/api/profile', {
+          data: { ...fields('Rejected malformed owner'), ...expected },
+        });
+        expect(response.status()).toBe(400);
+      }
+    }
+    const staleSetup = await contexts[1].request.post('/api/profile', {
+      data: { ...fields('Stale onboarding'), ...alice },
+    });
+    expect(staleSetup.status()).toBe(409);
+    expect(await staleSetup.json()).toMatchObject({ code: 'SESSION_CHANGED' });
+    expect(await Promise.all(people.map((person) => snapshot(person.id)))).toEqual(before);
+    expect(
+      (
+        await contexts[1].request.post('/api/profile', {
+          data: { ...fields('Captured Bob'), ...bob },
+        })
+      ).status(),
+    ).toBe(201);
+    const saved = await Promise.all(people.map((person) => snapshot(person.id)));
+    for (const expected of [alice, { ...bob, expectedSessionId: alice.expectedSessionId }]) {
+      const response = await contexts[1].request.patch('/api/profile', {
+        data: { ...fields('Stale empty-gallery editor'), photoKeys: [], ...expected },
+      });
+      expect(response.status()).toBe(409);
+      expect(await response.json()).toMatchObject({ code: 'SESSION_CHANGED' });
+    }
+    expect(await Promise.all(people.map((person) => snapshot(person.id)))).toEqual(saved);
+
+    const account = await db.user.findUniqueOrThrow({ where: { id: people[0].id } });
+    expect(
+      (
+        await contexts[0].request.post('/api/auth/sign-in/email', {
+          headers: { Origin: baseURL! },
+          data: { email: account.email, password: 'SyntheticProfile32!' },
+        })
+      ).status(),
+    ).toBe(200);
+    const renewed = await profileOwner(contexts[0]);
+    expect(renewed.expectedUserId).toBe(alice.expectedUserId);
+    expect(renewed.expectedSessionId).not.toBe(alice.expectedSessionId);
+    for (const method of ['post', 'patch'] as const)
+      expect(
+        (
+          await contexts[0].request[method]('/api/profile', {
+            data: { ...fields('Stale same-account session'), ...alice },
+          })
+        ).status(),
+      ).toBe(409);
+    expect(await Promise.all(people.map((person) => snapshot(person.id)))).toEqual(saved);
+    expect(
+      (
+        await contexts[0].request.patch('/api/profile', {
+          data: { ...fields('Current-session save'), photoKeys: [], ...renewed },
+        })
+      ).status(),
+    ).toBe(200);
+    const current = await snapshot(people[0].id);
+    await db.session.updateMany({
+      where: { id: renewed.expectedSessionId },
+      data: { expiresAt: new Date(Date.now() - 60_000) },
+    });
+    expect(
+      (
+        await contexts[0].request.patch('/api/profile', {
+          data: { ...fields('Expired captured session'), ...renewed },
+        })
+      ).status(),
+    ).toBe(401);
+    expect(await snapshot(people[0].id)).toEqual(current);
+    expect(await snapshot(people[1].id)).toEqual(saved[1]);
+  } finally {
+    await owned.close();
+  }
+});
+
+test('a mounted profile form cannot save into another account after shared cookies change', async ({
+  browser,
+  baseURL,
+}) => {
+  const owned = await fixture(browser, baseURL!, 232);
+  try {
+    const { contexts, people, snapshot } = owned;
+    for (const [index, context] of contexts.entries())
+      expect(
+        (
+          await context.request.post('/api/profile', {
+            data: fields(`Original browser owner ${index}`),
+          })
+        ).status(),
+      ).toBe(201);
+    const captured = await profileOwner(contexts[0]);
+    const page = await contexts[0].newPage();
+    await page.goto('/profile/edit');
+    await page.getByLabel('Name', { exact: true }).fill('Stale browser rename');
+    const before = await Promise.all(people.map((person) => snapshot(person.id)));
+    await contexts[0].clearCookies();
+    await contexts[0].addCookies(await contexts[1].cookies());
+    const pending = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/profile') && response.request().method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    const response = await pending;
+    expect(response.request().postDataJSON()).toMatchObject(captured);
+    expect(response.status()).toBe(409);
+    await expect(
+      page.getByText('Your session or saved profile changed. Refresh this page before saving.'),
+    ).toBeVisible();
+    expect(await Promise.all(people.map((person) => snapshot(person.id)))).toEqual(before);
+    await expect(page).toHaveURL(/\/profile\/edit$/);
+  } finally {
+    await owned.close();
+  }
+});
+
+test('an accepted save acknowledgement cannot affect a replacement account editor', async ({
+  browser,
+  baseURL,
+}) => {
+  const owned = await fixture(browser, baseURL!, 234);
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let accepted = () => {};
+  const persisted = new Promise<void>((resolve) => {
+    accepted = resolve;
+  });
+  try {
+    const { contexts, people, db, snapshot } = owned;
+    for (const [index, context] of contexts.entries())
+      expect(
+        (
+          await context.request.post('/api/profile', { data: fields(`Held owner ${index}`) })
+        ).status(),
+      ).toBe(201);
+    const other = await snapshot(people[1].id);
+    const page = await contexts[0].newPage();
+    await page.goto('/profile/edit');
+    await page.getByLabel('Name', { exact: true }).fill('Accepted original-owner save');
+    await page.route('**/api/profile', async (route) => {
+      if (route.request().method() !== 'PATCH') return route.continue();
+      const response = await route.fetch();
+      expect(response.status()).toBe(200);
+      accepted();
+      await held;
+      await route.fulfill({ response });
+    });
+    await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
+    await persisted;
+    await contexts[0].clearCookies();
+    await contexts[0].addCookies(await contexts[1].cookies());
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Held owner 1');
+    const finished = page.waitForEvent('requestfinished', {
+      predicate: (request) =>
+        request.url().endsWith('/api/profile') && request.method() === 'PATCH',
+    });
+    release();
+    await finished;
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
+    await expect(page).toHaveURL(/\/profile\/edit$/);
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Held owner 1');
+    await expect(page.getByText('Profile updated successfully!', { exact: true })).toHaveCount(0);
+    expect((await db.profile.findUniqueOrThrow({ where: { userId: people[0].id } })).name).toBe(
+      'Accepted original-owner save',
+    );
+    expect(await snapshot(people[1].id)).toEqual(other);
+  } finally {
+    release();
     await owned.close();
   }
 });
