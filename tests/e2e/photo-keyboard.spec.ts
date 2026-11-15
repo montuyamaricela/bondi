@@ -260,39 +260,51 @@ test('photo deletion preserves pending state, failure focus and a usable empty-g
   }
 });
 
-test('an asynchronous photo deletion does not steal focus from another field', async ({
-  browser,
-  baseURL,
-}) => {
-  const owned = await fixture(browser, baseURL!, 73);
-  const ready = Promise.withResolvers<void>();
-  try {
-    const { context, completeDelete } = owned;
-    const page = await context.newPage();
-    let held = false;
-    await page.route('**/api/profile/photos/*', async (route) => {
-      expect((await route.fetch()).status()).toBe(503);
-      held = true;
-      await ready.promise;
-      await completeDelete(route);
-    });
-    await page.goto('/profile/edit');
-    await tabTo(page, page.getByRole('button', { name: 'Delete photo 2', exact: true }));
-    await page.keyboard.press('Enter');
-    await expect.poll(() => held).toBe(true);
-    const name = page.getByRole('textbox', { name: 'Name', exact: true });
-    await tabTo(page, name);
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.type(' amended');
-    await expect(name).toHaveValue('Gallery owner amended');
-    ready.resolve();
-    await expect(
-      page.getByRole('list', { name: 'Profile photos' }).getByRole('listitem'),
-    ).toHaveCount(2);
-    await expect(name).toBeFocused();
-    await expect(name).toHaveValue('Gallery owner amended');
-  } finally {
-    ready.resolve();
-    await owned.close();
-  }
-});
+for (const activation of ['keyboard', 'retained field focus'] as const)
+  test(`an asynchronous photo deletion preserves another field (${activation})`, async ({
+    browser,
+    baseURL,
+  }) => {
+    const owned = await fixture(browser, baseURL!, activation === 'keyboard' ? 73 : 74);
+    const ready = Promise.withResolvers<void>();
+    try {
+      const { context, completeDelete } = owned;
+      const page = await context.newPage();
+      let held = false;
+      await page.route('**/api/profile/photos/*', async (route) => {
+        expect((await route.fetch()).status()).toBe(503);
+        held = true;
+        await ready.promise;
+        await completeDelete(route);
+      });
+      await page.goto('/profile/edit');
+      const remove = page.getByRole('button', { name: 'Delete photo 2', exact: true });
+      const name = page.getByRole('textbox', { name: 'Name', exact: true });
+      if (activation === 'keyboard') {
+        await tabTo(page, remove);
+        await page.keyboard.press('Enter');
+      } else {
+        await tabTo(page, name);
+        // Model activation that does not move DOM focus to the button.
+        await page
+          .getByRole('button', { name: 'Move photo 2 earlier', exact: true })
+          .evaluate((button: HTMLButtonElement) => button.click());
+        await expect(name).toBeFocused();
+        await remove.evaluate((button: HTMLButtonElement) => button.click());
+      }
+      await expect.poll(() => held).toBe(true);
+      await tabTo(page, name);
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.type(' amended');
+      await expect(name).toHaveValue('Gallery owner amended');
+      ready.resolve();
+      await expect(
+        page.getByRole('list', { name: 'Profile photos' }).getByRole('listitem'),
+      ).toHaveCount(2);
+      await expect(name).toBeFocused();
+      await expect(name).toHaveValue('Gallery owner amended');
+    } finally {
+      ready.resolve();
+      await owned.close();
+    }
+  });

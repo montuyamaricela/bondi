@@ -297,7 +297,8 @@ use the real owned deletion operation with synthetic provider success and genuin
 database removal for controlled UI replies. They retain failure focus, pending
 guards, next/previous-photo focus, last-photo heading/upload/file-chooser recovery,
 and focus/value in a field edited while deletion is pending. Images are synthetic
-pixels. This is UI/HTTP/DB evidence, not live storage transfer or assistive-device
+pixels. A controlled activation that leaves field focus also verifies recovery is
+bound to the initiating photo button. These checks are UI/HTTP/DB evidence, not live storage transfer or assistive-device
 certification. Browser screenshots attach the reordered gallery to the report.
 
 ### Location Control Center verification

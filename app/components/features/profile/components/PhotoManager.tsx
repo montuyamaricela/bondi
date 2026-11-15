@@ -26,7 +26,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
   const focusRequest = useRef<{
     index: number;
     action: 'earlier' | 'later' | 'delete';
-    origin: Element | null;
+    origin: HTMLButtonElement;
   } | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const active = useRef(false);
@@ -92,9 +92,8 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
     }
   };
 
-  const handleDelete = async (photoKey: string) => {
+  const handleDelete = async (photoKey: string, origin: HTMLButtonElement) => {
     if (!active.current || deleting.current) return;
-    const origin = document.activeElement;
     const index = latestPhotos.current.findIndex((photo) => photo.key === photoKey);
     if (index < 0) return;
     deleting.current = photoKey;
@@ -121,7 +120,11 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
     }
   };
 
-  const reorder = (from: number, to: number, action?: 'earlier' | 'later') => {
+  const reorder = (
+    from: number,
+    to: number,
+    focus?: { action: 'earlier' | 'later'; origin: HTMLButtonElement },
+  ) => {
     const current = latestPhotos.current;
     if (
       !active.current ||
@@ -136,16 +139,16 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
     const next = [...current];
     const [photo] = next.splice(from, 1);
     next.splice(to, 0, photo);
-    if (action) focusRequest.current = { index: to, action, origin: document.activeElement };
+    if (focus) focusRequest.current = { index: to, ...focus };
     updatePhotos(next);
     setAnnouncement(
       `Photo ${from + 1} moved to position ${to + 1} of ${next.length}. Save changes to apply this order.`,
     );
   };
 
-  const move = (photoKey: string, direction: -1 | 1) => {
+  const move = (photoKey: string, direction: -1 | 1, origin: HTMLButtonElement) => {
     const from = latestPhotos.current.findIndex((photo) => photo.key === photoKey);
-    reorder(from, from + direction, direction === -1 ? 'earlier' : 'later');
+    reorder(from, from + direction, { action: direction === -1 ? 'earlier' : 'later', origin });
   };
 
   const handleDragStart = (index: number) => {
@@ -231,7 +234,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
                   aria-busy={deleteMutation.isPending && deleteMutation.variables === photo.key}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(photo.key);
+                    handleDelete(photo.key, e.currentTarget);
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onDragStart={(e) => {
@@ -264,7 +267,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
                   title="Move earlier"
                   data-photo-action="earlier"
                   disabled={index === 0 || deleteMutation.isPending}
-                  onClick={() => move(photo.key, -1)}
+                  onClick={(event) => move(photo.key, -1, event.currentTarget)}
                 >
                   <ChevronLeft aria-hidden="true" />
                 </Button>
@@ -277,7 +280,7 @@ export function PhotoManager({ photos, onPhotosChange }: PhotoManagerProps) {
                   title="Move later"
                   data-photo-action="later"
                   disabled={index === photos.length - 1 || deleteMutation.isPending}
-                  onClick={() => move(photo.key, 1)}
+                  onClick={(event) => move(photo.key, 1, event.currentTarget)}
                 >
                   <ChevronRight aria-hidden="true" />
                 </Button>

@@ -358,10 +358,11 @@ cleanup, and tap the controls in an emulated mobile viewport. This targeted evid
 does not certify screen readers or physical mobile devices.
 The photo editor adds named Delete and earlier/later controls alongside drag
 ordering, with disabled bounds, 44-pixel targets and position announcements. Order
-remains a draft until Save changes; deletion is immediate. Three separate keyboard
+remains a draft until Save changes; deletion is immediate. Four separate browser
 cases verify focus across moves/bounds, failed save and real save/reload/main-photo
 order, deletion pending/failure/next/last-photo recovery, and continued typing in
-another field. Successful UI deletions use the real owned server operation with a
+another field. Recovery is bound to the initiating button, including controlled
+activation that keeps field focus. Successful UI deletions use the real owned server operation with a
 controlled storage adapter; real handler failure and existing provider/DB cleanup
 tests remain separate. Empty-gallery recovery reaches the named uploader and opens
 its file chooser. These cases do not transfer real provider assets.
