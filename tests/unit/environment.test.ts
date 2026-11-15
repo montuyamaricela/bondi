@@ -144,3 +144,34 @@ test('the browser has one validated Realtime configuration and degrades when it 
       },
     );
 });
+
+test('public Realtime configuration accepts legacy anon keys and rejects privileged or malformed JWTs', () => {
+  const legacy = (role: string) =>
+    [
+      Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url'),
+      Buffer.from(JSON.stringify({ role })).toString('base64url'),
+      'synthetic-signature',
+    ].join('.');
+  const url = 'https://realtime.example';
+  const anon = legacy('anon');
+  assert.equal(publicRealtimeConfiguration({ url, key: anon })?.key, anon);
+  for (const key of [
+    legacy('service_role'),
+    legacy('authenticated'),
+    legacy(''),
+    'eyJ.invalid.signature',
+    'eyJ.e30.signature',
+    'sb_publishable_',
+    ' sb_publishable_synthetic',
+    `${anon}.extra`,
+  ])
+    assert.throws(
+      () => publicRealtimeConfiguration({ url, key }),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, 'Supabase Realtime requires a public API key.');
+        assert.ok(!error.message.includes(key));
+        return true;
+      },
+    );
+});

@@ -63,6 +63,11 @@ oldest pending age, attempts and the owned cron job's failures; enqueue completi
 does not prove browser receipt or display. Ended matches and absent/expired audiences
 complete without publishing: bounded HTTP refetch repairs missed hints on reconnect.
 
+The [release audit](supabase-release-readiness.md) provides executed, read-only
+aggregate queries for due/backoff work, owned cron health and connection counts.
+Observe both intent retries and cron failures; a successful job invocation can
+contain an intent retry. Never use raw private rows or job return messages as metrics.
+
 Notification queries are scoped to the current account/session. The initial snapshot
 establishes a baseline without replaying historical browser notifications; subsequent
 new unread MATCH and MESSAGE rows notify once per mounted owner, respecting browser permission
