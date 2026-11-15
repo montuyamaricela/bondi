@@ -275,6 +275,14 @@ cannot update the new owner or restart the abandoned timer. These are distinct
 from waiting a full production lease duration on the wall clock.
 The privacy/unmatch journey proves native hints repair both UIs. Repeated native hints cancelling held HTTP reads cannot extend an
 unrefreshed online indicator past its independent 20-second display deadline.
+
+The online-visibility control permits one pending save at a time and renders the
+returned canonical value. Browser cases hold real writes, attempt rapid keyboard
+toggles, verify rollback/retry after a scoped database failure and check a matched
+peer's visibility. Controlled canonical/malformed replies exercise response handling.
+Account changes, replacement sessions and logout dispose the old settings owner;
+old failures cannot roll back or notify the replacement settings. A failed save
+shows an explicit refresh action rather than claiming the value was persisted.
 An original account-switch assertion also caught liveness surviving a changed
 cookie. A signed, delete-only cleanup capability now closes that exact old lease;
 native API cases reject forged/rebound proofs and prove it grants no read/write

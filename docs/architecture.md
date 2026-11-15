@@ -98,6 +98,13 @@ on errors/disconnection/hidden documents and revalidate on focus. Abrupt-loss
 detection is bounded rather than instantaneous; the maintained [contract](realtime.md)
 records the limits.
 
+Settings carries the server snapshot's account/session identity into its owned
+form. Online-visibility writes serialize through one pending operation, include
+that captured identity and use the canonical HTTP result. A changed session
+refreshes the server snapshot before mounting new settings, while old requests
+and late effects are disposed. This does not replace server authorization or
+serialize commands from separate clients.
+
 `RealtimeProvider` owns a subscription by account and session. Credential replies
 are bound to the expected owner, and cleanup aborts outstanding requests, removes
 channels/listeners/timers and closes only its lease. Delayed responses cannot
