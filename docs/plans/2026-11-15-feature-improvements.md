@@ -12,6 +12,11 @@ fresh auth accounts**, so legacy password import, account migration and session
 continuity are no longer requirements. This is not authorization to delete an
 unspecified database. The earlier Database/Realtime migration kept Better Auth.
 
+The user also selected **Supabase Storage with fresh photos/files**, replacing
+UploadThing. There is no legacy-media copy requirement. Existing external assets
+stay untouched until a separately approved cleanup. This replaces the original R3
+UploadThing-host repair; finish the other repairs, then Auth/account, then Storage.
+
 ## What Bondi already has
 
 - Profile setup/editing already includes name, age, gender, bio, relationship
@@ -66,11 +71,11 @@ interface. The review established these defects on the inventory baseline.
    overwrite a newer disable while the switch displays Off. Use an immediate
    pending guard, canonical server responses and operation-owned rollback; retain
    authorized peer invalidation. Test held writes, failures and owner changes.
-3. **R3: align image rendering with canonical UploadThing hosts.** Current
-   `*.ufs.sh` URLs fail Next's allowlist. Permit the configured provider host/path,
-   retain intentional legacy compatibility and replace the unsupported remote
-   placeholder with an existing local/initials fallback. Test representative
-   callback/display URLs and host rejection; qualify real uploads separately.
+3. **R3: superseded by the Storage cutover (#96).** Current `*.ufs.sh` URLs fail
+   Next's allowlist and a remote placeholder is unsupported. The user selected a
+   fresh Storage provider instead of investing further in UploadThing-specific
+   rendering. Move this work after Auth/account; the Storage ticket owns protected
+   delivery and the existing local/initials fallback for missing photos.
 4. **R4: distinguish failed history from successful empty history.** The first
    failed fetch currently renders the empty-conversation copy. Provide loading,
    error/retry, empty and populated states; retain access recovery and durable
@@ -135,6 +140,49 @@ inside each ticket's PR. Test local captured mail before claiming recovery works
 Every runtime PR must work against its stated configuration; no half-switched
 default. Database reset/provisioning is a separate explicit operator action against
 a known target, never an implicit test/build side effect.
+
+## Phase B continued: private Supabase Storage
+
+Approved sequence: remaining repairs → fresh Auth (#101) → recovery/account
+(#103) → Storage (#96) → selected additions (#104–#106). Auth no longer depends on
+#96, preventing a dependency cycle. Use the installed Supabase SDK and remove
+UploadThing's routes, adapters, dependencies and credentials once all callers and
+tests use native Storage. Do not introduce a permanent dual-provider bridge.
+
+Supabase private buckets apply access control to downloads as well as writes;
+public bucket URLs are accessible to anyone who has them. Keep dating media in
+private buckets, with explicitly authorized application access and restrictive
+native policies. [Bucket access models](https://supabase.com/docs/guides/storage/buckets/fundamentals),
+[Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
+
+- Start with fresh profile photos and attachment bytes. No bulk import or copying
+  from UploadThing is required; do not delete old external assets or reset an
+  unspecified database. Hosted bucket setup is an explicit operator action.
+- Preserve captured account/session commands, six-photo quota under concurrency,
+  saved order/main-photo semantics, owned replay and deletion/retry. Storage does
+  not implement these application rules automatically. Validate bounded size/type
+  and actual content, strip image location metadata and keep processing bounded.
+- Prefer stable authenticated application media URLs and private/no-store reads,
+  avoiding public Next image caching of protected assets. Persist object metadata
+  rather than expiring access URLs. Any signed capability needs explicit expiry,
+  revocation and cache qualification; it is not a live application session.
+- Preserve the current authenticated profile audience. Unregistered attachments
+  are owner-only; saved attachments follow authorized chat history, including
+  read-only history after unmatch. Never expose service keys or authorize from
+  editable metadata, browser-supplied paths or cached claims alone.
+- Specify registration/finalization and partial-failure compensation so accepted
+  bytes and app records cannot silently diverge. Cover retries, quota races,
+  abandoned work and wrong-owner deletion without building a generalized media
+  framework or adding a chat attachment composer.
+- Enable the actual guarded local Storage service for verification. It is
+  currently disabled/excluded; do not reset unrelated local projects or rotate
+  their marker just to enable it. Test actual synthetic upload/read/reload/order/
+  delete, direct native denials, session revocation, account changes, rollback,
+  cleanup and metadata privacy. SDK mocks alone do not qualify this migration.
+
+Paid image transformation features are not prerequisites. Report local native
+proof separately from hosted setup/delivery. Preserve meaningful verification
+while replacing provider-specific fixtures for the approved fresh-media contract.
 
 ## Phase C: selected additions after account work
 
