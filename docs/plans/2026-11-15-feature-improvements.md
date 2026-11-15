@@ -80,6 +80,10 @@ interface. The review established these defects on the inventory baseline.
    failed fetch currently renders the empty-conversation copy. Provide loading,
    error/retry, empty and populated states; retain access recovery and durable
    sends. Test transient failure recovery and authorization denial.
+   #97 keeps the composer mounted during pending/offline reads and explicit retry,
+   retains cached rows on refresh failures, and uses existing access recovery for
+   denied history. Its browser cases separate controlled failures, real offline
+   behavior and native hint-triggered recovery; HTTP ownership remains unchanged.
 5. **R5: bound each Realtime credential attempt.** A pending fetch currently
    prevents all renewal/retry. Bound headers and body consumption without aborting
    the reusable owner lifetime. Test retry, late responses, disposal and focus.

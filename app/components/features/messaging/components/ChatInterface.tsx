@@ -76,7 +76,12 @@ function ChatView({
   const queryClient = useQueryClient();
   const {
     data: messages = EMPTY_MESSAGES,
-    isLoading,
+    isPending,
+    isError,
+    error,
+    isFetching,
+    isPaused,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -103,7 +108,8 @@ function ChatView({
   const attemptRef = useRef<Operation | null>(null);
   const generation = useRef(0);
   const sendController = useRef<AbortController | null>(null);
-  const canSend = !activity.blocked && !sendDenied;
+  const historyDenied = chatAccessDenied(error);
+  const canSend = !activity.blocked && !sendDenied && !historyDenied;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Draft state belongs to the current conversation.
@@ -245,14 +251,6 @@ function ChatView({
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-main" />
-      </div>
-    );
-  }
-
   return (
     <div className="custom-scrollbar flex h-full flex-col overflow-hidden">
       <div
@@ -261,28 +259,48 @@ function ChatView({
         ref={historyRef}
         className="flex-1 space-y-2 overflow-y-auto p-4"
       >
-        {hasNextPage && (
+        {!historyDenied && isFetching && !isFetchingNextPage && (
+          <p role="status" aria-label="Loading messages" className="text-center text-text-muted">
+            <Loader2 aria-hidden="true" className="mx-auto h-5 w-5 animate-spin" />
+            Loading messages...
+          </p>
+        )}
+        {!historyDenied && isPaused && (
+          <p role="status" className="text-center text-text-muted">
+            Waiting for a connection to load messages.
+          </p>
+        )}
+        {!historyDenied && isError && !isFetchNextPageError && (
+          <div role="alert" className="text-center text-sm text-error">
+            <p>Could not load messages. Your draft is kept.</p>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isFetching || isPaused}
+              onClick={() => void refetch({ cancelRefetch: false })}
+            >
+              Retry messages
+            </Button>
+          </div>
+        )}
+        {hasNextPage && !historyDenied && (
           <div className="text-center">
             {isFetchNextPageError && (
               <p role="alert" className="mb-2 text-sm text-error">
                 Could not load older messages. Try again.
               </p>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={loadOlder}
-              disabled={isFetchingNextPage}
-            >
+            <Button type="button" variant="outline" onClick={loadOlder} disabled={isFetching}>
               Load older messages
             </Button>
           </div>
         )}
-        {messages.length === 0 ? (
+        {!historyDenied && !isPending && !isError && messages.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <p className="text-center text-text-muted">No messages yet. Start the conversation!</p>
           </div>
-        ) : (
+        )}
+        {!historyDenied &&
           messages.map((message) => (
             <MessageBubble
               key={message.id}
@@ -293,9 +311,8 @@ function ChatView({
               currentUserImage={currentUserImage}
               currentUserName={currentUserName}
             />
-          ))
-        )}
-        {activity.typing && !isUnmatched && (
+          ))}
+        {activity.typing && !isUnmatched && !historyDenied && (
           <div role="status" aria-label="Typing indicator" className="mb-4 flex justify-start">
             <div className="rounded-2xl rounded-bl-sm border border-border-main bg-bg-card px-4 py-2 text-text-muted">
               <div className="flex gap-1">
@@ -316,6 +333,14 @@ function ChatView({
       </div>
 
       <div className="border-t border-border-main bg-bg-card p-4">
+        {(activity.blocked || sendDenied || historyDenied) && (
+          <div role="alert">
+            Chat access changed. Refresh the page to continue.
+            <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
+              Refresh chat
+            </Button>
+          </div>
+        )}
         {isUnmatched ? (
           <div className="rounded-lg border border-border-main bg-bg-hover px-4 py-3 text-center">
             <p className="text-sm text-text-muted">
@@ -329,14 +354,6 @@ function ChatView({
                 Live updates unavailable. You can still send messages.
                 <Button type="button" variant="ghost" onClick={realtime.retry}>
                   Retry live updates
-                </Button>
-              </div>
-            )}
-            {(activity.blocked || sendDenied) && (
-              <div role="alert">
-                Chat access changed. Refresh the page to continue.
-                <Button type="button" variant="ghost" onClick={() => window.location.reload()}>
-                  Refresh chat
                 </Button>
               </div>
             )}

@@ -199,6 +199,14 @@ The recovery case disconnects a browser with populated history and a draft, send
 missed messages from its peer, and reconnects without reloading. Room joins are
 acknowledged before history refresh. A delayed older HTTP snapshot cannot erase a
 newer live message; both views converge in order without duplicates and keep the draft.
+Chat history distinguishes pending/offline, failed, successfully empty and populated
+reads. Failed first-page or background refreshes offer Retry messages without
+unmounting the composer or removing saved rows; access denial uses Refresh chat and
+disables sending. Older-page retry stays separate. The history-error cases use real
+synthetic sessions/PostgreSQL with controlled HTTP failures, actual browser offline
+mode and a native hint-triggered refresh. They preserve drafts and verify canonical
+messages appear once after recovery. Controlled 401/403 replies isolate UI recovery;
+the authorization suites separately exercise actual missing/expired/foreign sessions.
 The matching case forces a PostgreSQL serialization failure and verifies an actual
 transaction retry using a sequence that survives rollback. It also injects a
 notification failure and verifies the like,
